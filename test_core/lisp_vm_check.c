@@ -274,3 +274,11 @@ lisp_cell_t lisp_get_root_cons( lisp_vm_t * vm, lisp_size_t i)
   return ret;
 }
 
+lisp_cell_t lisp_get_white_cons( lisp_vm_t * vm, lisp_size_t i)
+{
+  lisp_cell_t ret;
+  ret.type_id = LISP_TID_CONS;
+  ret.data.cons = vm->cons_table[i - vm->grey_cons_top];
+  return ret;
+}
+

@@ -128,6 +128,14 @@ int lisp_cons_root(lisp_vm_t * vm, lisp_cons_t * cons)
     lisp_size_t index = cons->gc_cons_index;
     assert(cons == vm->cons_table[index]);
     lisp_cons_t * tmp = _insert_root_cons(vm, cons);
+    if(LISP_IS_CONS_OBJECT(&cons->car)) 
+    {
+      _ensure_not_white(vm, cons->car.data.cons);
+    }
+    if(LISP_IS_CONS_OBJECT(&cons->cdr)) 
+    {
+      _ensure_not_white(vm, cons->cdr.data.cons);
+    }
     if(tmp == NULL) 
     {
       return LISP_ALLOC_ERROR;
@@ -201,8 +209,8 @@ int lisp_cons_unroot(lisp_vm_t * vm, lisp_cons_t * cons)
   return LISP_OK;
 }
 
-lisp_ref_count_t lisp_cons_root_refcount(lisp_vm_t         * vm,
-                                         const lisp_cell_t * cell)
+lisp_ref_count_t lisp_root_refcount(lisp_vm_t         * vm,
+				    const lisp_cell_t * cell)
 {
   if(LISP_IS_CONS_OBJECT(cell) && cell->data.cons->is_root) 
   {
@@ -215,6 +223,20 @@ lisp_ref_count_t lisp_cons_root_refcount(lisp_vm_t         * vm,
     return 0;
   }
 }
+
+int lisp_cons_set_car_cdr(lisp_vm_t * vm, 
+			  lisp_cons_t * cons, 
+			  const lisp_cell_t * car,
+			  const lisp_cell_t * cdr)
+{
+  /* @todo check color!!!! */
+  lisp_unset_object(vm, &cons->car);
+  lisp_unset_object(vm, &cons->cdr);
+  lisp_copy_object(vm, &cons->car, car);
+  lisp_copy_object(vm, &cons->cdr, cdr);
+  return LISP_OK;
+}
+
 
 
 /*********************************************************

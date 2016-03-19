@@ -217,7 +217,7 @@ static void _destruct_lambda(lisp_vm_t * vm,
   lisp_size_t i;
   for(i = 0; i < n; i++) 
   {
-    LISP_UNSET(vm, &data[i]);
+    lisp_unset_object(vm, &data[i]);
   }
   FREE_OBJECT(ptr);
 }

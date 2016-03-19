@@ -23,7 +23,7 @@ static void test_make_empty_lambda(unit_test_t * tst)
   ASSERT_EQ_U(tst, LISP_AS(&lambda, lisp_lambda_t)->args_size, 0);
   ASSERT_EQ_U(tst, LISP_AS(&lambda, lisp_lambda_t)->instr_size, 0);
   ASSERT_EQ_U(tst, LISP_AS(&lambda, lisp_lambda_t)->data_size, 0);
-  LISP_UNSET(vm, &lambda);
+  lisp_unset_object(vm, &lambda);
   lisp_free_vm(vm);
   ASSERT_MEMCHECK(tst, memcheck);
   memcheck_finalize(1);
@@ -62,11 +62,11 @@ static void test_make_lambda(unit_test_t * tst)
    *       depends on requires:
    * @0001 lisp_eq(lisp_cell_t *, lisp_cell_t *)
    */
-  LISP_UNSET(vm, &data[0]);
-  LISP_UNSET(vm, &data[1]);
-  LISP_UNSET(vm, &data[2]);
-  LISP_UNSET(vm, &data[3]);
-  LISP_UNSET(vm, &lambda);
+  lisp_unset_object(vm, &data[0]);
+  lisp_unset_object(vm, &data[1]);
+  lisp_unset_object(vm, &data[2]);
+  lisp_unset_object(vm, &data[3]);
+  lisp_unset_object(vm, &lambda);
   lisp_free_vm(vm);
   ASSERT_MEMCHECK(tst, memcheck);
   memcheck_finalize(1);
@@ -96,10 +96,10 @@ static void test_make_lambda_alloc_error_1(unit_test_t * tst)
 				    }));
 
   ASSERT(tst,      LISP_IS_NIL(&lambda));
-  LISP_UNSET(vm, &data[0]);
-  LISP_UNSET(vm, &data[1]);
-  LISP_UNSET(vm, &data[2]);
-  LISP_UNSET(vm, &data[3]);
+  lisp_unset_object(vm, &data[0]);
+  lisp_unset_object(vm, &data[1]);
+  lisp_unset_object(vm, &data[2]);
+  lisp_unset_object(vm, &data[3]);
   lisp_free_vm(vm);
   ASSERT_MEMCHECK(tst, memcheck);
   memcheck_finalize(1);
@@ -132,11 +132,11 @@ static void test_make_lambda_alloc_error_2(unit_test_t * tst)
 					LISP_PUSHD(1),
 					LISP_END
 				       }));
-  LISP_UNSET(vm, &data[0]);
-  LISP_UNSET(vm, &data[1]);
-  LISP_UNSET(vm, &data[2]);
-  LISP_UNSET(vm, &data[3]);
-  LISP_UNSET(vm, &lambda);
+  lisp_unset_object(vm, &data[0]);
+  lisp_unset_object(vm, &data[1]);
+  lisp_unset_object(vm, &data[2]);
+  lisp_unset_object(vm, &data[3]);
+  lisp_unset_object(vm, &lambda);
   lisp_free_vm(vm);
   ASSERT_MEMCHECK(tst, memcheck);
   memcheck_finalize(1);

@@ -13,6 +13,79 @@
 #define COLOR_CYAN     "\x1B[36m"
 #define COLOR_WHITE    "\x1B[37m"
 
+static unit_assertion_t * _unit_create_basic_assertion(unit_test_t      * tst,
+						       const char       * file, 
+						       int                line);
+static void _free_assertion(unit_assertion_t * ass);
+static void _print_result(FILE * fp, int success, int color);
+static void _print_assertion(FILE * fp, unit_assertion_t * ass, int color);
+static void _count_assertion(unit_test_t * tst, unit_assertion_t * ass);
+
+static char * _alloc_sprintf(const char * fmt, ...);
+static char * _alloc_strcpy(const char * from);
+
+static int _unit_run_test(FILE * fp, unit_context_t * ctx, unit_test_t * tst);
+
+static void _unit_deactivate_all_suites(unit_context_t * ctx);
+static void _unit_final_report_print(FILE * fp, 
+                                     unit_context_t * ctx,
+                                     const char * name,
+                                     const char * result_name,
+                                     size_t n_passed,
+                                     size_t n_failed,
+                                     size_t no_results);
+
+static unit_assertion_t * _unit_create_basic_assertion(unit_test_t      * tst,
+						       const char       * file, 
+						       int                line) 
+{
+  unit_assertion_t * assertion = malloc(sizeof(unit_assertion_t));
+  if(assertion == NULL) 
+  {
+    return assertion;
+  }
+  assertion->expect         = NULL;
+  assertion->expect_explain = NULL;
+  assertion->file           = _alloc_strcpy(file);
+  assertion->line           = line;
+  assertion->success        = 0;
+  assertion->tst            = NULL;
+  assertion->next           = NULL;
+  assertion->expect         = NULL;
+  if(tst) 
+  {
+    if(tst->last_assertion != NULL) 
+    {
+      tst->last_assertion->next = assertion;
+      tst->last_assertion = assertion;
+    }
+    else 
+    {
+      tst->last_assertion = assertion;
+      tst->first_assertion = assertion;
+    }
+    assertion->tst = tst;
+  }
+  return assertion;
+}
+
+static void _free_assertion(unit_assertion_t * ass)
+{
+  if(ass->expect) 
+  {
+    free(ass->expect);
+  }
+  if(ass->expect_explain) 
+  {
+    free(ass->expect_explain);
+  }
+  if(ass->file)
+  {
+    free(ass->file);
+  }
+  free(ass);
+}
+
 static void _print_result(FILE * fp, int success, int color) 
 {
   if(color)
@@ -27,53 +100,60 @@ static void _print_result(FILE * fp, int success, int color)
   }
 }
 
-static void _print_assertion(unit_test_t * tst, 
-                             unit_assertion_t * ass, 
-                             const char * file, 
-                             int line) 
+static void _print_assertion(FILE * fp,
+                             unit_assertion_t * ass,
+			     int color)
 {
-  if(ass->success) tst->_passed_assertions++;
-  else tst->_failed_assertions++;
-  if((!ass->success && 
-      tst->suite->ctx->verbose_level > 0) || 
-     tst->suite->ctx->verbose_level > 1)
+  _print_result(fp, ass->success, color);
+  fprintf(fp, "    %s:%d: assertion <%s>\n",
+	  ass->file, ass->line, ass->expect);
+  if(ass->expect_explain) 
   {
-    _print_result(tst->_fp, ass->success, tst->suite->ctx->color);
-
-    fprintf(tst->_fp, "    %s:%d: assertion <%s>\n",
-            file, line, ass->expect);
-    if(ass->expect_explain) 
+    const char * begin = ass->expect_explain;
+    int size = snprintf(NULL, 0, "            %s:%d: ", ass->file, ass->line);
+    while(*begin) 
     {
-      const char * begin = ass->expect_explain;
-      int size = snprintf(NULL, 0, "            %s:%d: ", file,line);
-      while(*begin) 
+      const char * ptr = begin;
+      while(*ptr && *ptr!= '\n')
       {
-        const char * ptr = begin;
-        while(*ptr && *ptr!= '\n')
-        {
-          ptr++;
-        }
-        char * buff = malloc(size + (ptr-begin) + 2);
-        int i;
-        for(i = 0; i < size; i++) 
-        {
-          buff[i] = ' ';
-        }
-        ptr = begin;
-        while(*ptr && *ptr!= '\n')
-        {
-          buff[i++] = *ptr;
-          ptr++;
-        }
-        buff[i] = '\0';
-        fprintf(tst->_fp, "%s\n", buff);
-        begin = ptr;
-        if(*begin == '\n')
-        { 
-          begin++;
-        }
-        free(buff);
+	ptr++;
       }
+      char * buff = malloc(size + (ptr-begin) + 2);
+      int i;
+      for(i = 0; i < size; i++) 
+      {
+	buff[i] = ' ';
+      }
+      ptr = begin;
+      while(*ptr && *ptr!= '\n')
+      {
+	buff[i++] = *ptr;
+	ptr++;
+      }
+      buff[i] = '\0';
+      fprintf(fp, "%s\n", buff);
+      begin = ptr;
+      if(*begin == '\n')
+      { 
+	begin++;
+      }
+      free(buff);
+    }
+  }
+}
+
+static void _count_assertion(unit_test_t * tst, 
+                             unit_assertion_t * ass)
+{
+  if(tst != NULL) 
+  {
+    if(ass->success) tst->_passed_assertions++;
+    else tst->_failed_assertions++;
+    if((!ass->success && 
+	tst->suite->ctx->verbose_level > 0) || 
+       tst->suite->ctx->verbose_level > 1)
+    {
+      _print_assertion(tst->_fp, ass,tst->suite->ctx->color);
     }
   }
 }
@@ -111,7 +191,104 @@ static char * _alloc_strcpy(const char * from)
   }
 }
 
+static int _unit_run_test(FILE * fp, unit_context_t * ctx, unit_test_t * tst) 
+{
+  int passed = 1;
+  if(ctx->verbose_level) 
+  {
+    fprintf(fp, "          test '%s'\n", tst->name);
+  }
+  tst->_fp                = fp;
+  tst->_passed_assertions = 0;
+  tst->_failed_assertions = 0;
+  tst->func(tst);
+  if(tst->_passed_assertions + tst->_failed_assertions) 
+  {
+    ctx->n_assertions_passed+= tst->_passed_assertions;
+    ctx->n_assertions_failed+= tst->_failed_assertions;
+    if(tst->_failed_assertions) 
+    {
+      passed = 0;
+      ctx->n_tests_failed++;
+      if(ctx->verbose_level) 
+      {
+        _print_result(fp, 0, ctx->color);
+        fprintf(fp, "  test '%s'\n", tst->name);
+      }
+    }
+    else 
+    {
+      if(ctx->verbose_level) 
+      {
+        _print_result(fp, 1, ctx->color);
+        fprintf(fp, "  test '%s'\n", tst->name);
+      }
+      ctx->n_tests_passed++;
+    }
+  }
+  else 
+  {
+    if(ctx->verbose_level) 
+    {
+      _print_result(fp, 2, ctx->color);
+      fprintf(fp, "  test '%s'\n", tst->name);
+    }
+    ctx->n_tests_without_assertions++;
+  }
+  return passed;
+}
 
+static void _unit_deactivate_all_suites(unit_context_t * ctx) 
+{
+  unit_suite_t * suite = ctx->first_suite;
+  while(suite != NULL) 
+  {
+    suite->active = 0;
+    suite = suite->next;
+  }
+}
+
+static void _unit_final_report_print(FILE * fp, 
+                                     unit_context_t * ctx,
+                                     const char * name,
+                                     const char * result_name,
+                                     size_t n_passed,
+                                     size_t n_failed,
+                                     size_t no_results)
+{
+  size_t n = n_passed + n_failed + no_results;
+  if(ctx->color) 
+  {
+    if(n == n_passed)
+    {
+      fprintf(fp, COLOR_GREEN);
+    }
+    else if(n_failed) 
+    {
+      fprintf(fp, COLOR_RED);
+    }
+    else 
+    {
+      fprintf(fp, COLOR_BLUE);
+    }
+    fprintf(fp, "%u / %u %s passed "COLOR_NORMAL, n_passed,n,name);
+    if(no_results) 
+    {
+      fprintf(fp, COLOR_BLUE" (%u without %s)"COLOR_NORMAL, 
+              no_results, result_name);
+    }
+    fprintf(fp, "\n");
+  }
+  else
+  {
+    fprintf(fp, "%u / %u %s passed ", n_passed,n,name);
+    if(no_results) 
+    {
+      fprintf(fp, " (%u without %s)", no_results, result_name);
+    }
+    fprintf(fp, "\n");
+  }
+}
 
 unit_context_t * unit_create_context()
 {
@@ -153,19 +330,7 @@ void unit_free_context(unit_context_t * ctx)
         while(ass) 
         {
           unit_assertion_t * next_ass = ass->next;
-          if(ass->expect) 
-          {
-            free(ass->expect);
-          }
-          if(ass->expect_explain) 
-          {
-            free(ass->expect_explain);
-          }
-          if(ass->file)
-          {
-            free(ass->file);
-          }
-          free(ass);
+	  _free_assertion(ass);
           ass = next_ass;
         }
         if(tst->name) 
@@ -183,16 +348,6 @@ void unit_free_context(unit_context_t * ctx)
       suite = next_suite;
     }
     free(ctx);
-  }
-}
-
-static void _unit_deactivate_all_suites(unit_context_t * ctx) 
-{
-  unit_suite_t * suite = ctx->first_suite;
-  while(suite != NULL) 
-  {
-    suite->active = 0;
-    suite = suite->next;
   }
 }
 
@@ -283,45 +438,13 @@ unit_test_t * unit_create_test(unit_suite_t         * suite,
   return tst;
 }
 
-unit_assertion_t * _unit_create_basic_assertion(unit_test_t * tst, 
-                                                const char  * file, 
-                                                int           line) 
+unit_assertion_t * unit_create_assertion(unit_test_t * tst,
+					 const char  * expect, 
+                                         const char  * file, 
+					 int           line, 
+                                         int           success)
 {
-  unit_assertion_t * assertion = malloc(sizeof(unit_assertion_t));
-  if(assertion == NULL) 
-  {
-    return assertion;
-  }
-  assertion->expect         = NULL;
-  assertion->expect_explain = NULL;
-  assertion->file           = _alloc_strcpy(file);
-  assertion->line           = line;
-  assertion->success        = 0;
-  assertion->tst            = tst;
-  assertion->next           = NULL;
-  assertion->expect         = NULL;
-  if(tst->last_assertion != NULL) 
-  {
-    tst->last_assertion->next = assertion;
-    tst->last_assertion = assertion;
-  }
-  else 
-  {
-    tst->last_assertion = assertion;
-    tst->first_assertion = assertion;
-  }
-  return assertion;
-}
-
-
-unit_assertion_t * unit_create_assertion(unit_test_t * tst, 
-                                         const char * expect, 
-                                         const char * file, int line, 
-                                         int success)
-{
-  unit_assertion_t * ass = _unit_create_basic_assertion(tst,
-                                                        file,
-                                                        line);
+  unit_assertion_t * ass = _unit_create_basic_assertion(tst, file, line);
   if(ass) 
   {
     ass->expect = malloc(strlen(expect)+1);
@@ -331,282 +454,288 @@ unit_assertion_t * unit_create_assertion(unit_test_t * tst,
     }
     ass->success = success;
   }
-  _print_assertion(tst, ass, file, line);
+  _count_assertion(tst, ass);
   return ass;
 }
 
-unit_assertion_t * unit_create_assertion_cmp_u(unit_test_t * tst,
-                                               const char * lhs_expr,
-                                               const char * rhs_expr,
-                                               unsigned int lhs,
-                                               unsigned int rhs,
-                                               const char * file,
-                                               int line,
-                                               const char * op)
+int unit_create_check(unit_test_t * tst,
+		      const char  * expect,
+		      const char  * file, 
+		      int           line,
+		      int           success,
+		      int           verbose)
 {
-  unit_assertion_t * ass = _unit_create_basic_assertion(tst,
-                                                        file,
-                                                        line);
-  ass->success = 0;
-  ass->expect = _alloc_sprintf("%s%s%s", lhs_expr, op, rhs_expr);
-  ass->expect_explain = _alloc_sprintf("with %s==%u\n"
-                                       "     %s==%u", 
-                                       lhs_expr, lhs, rhs_expr, rhs);
-  if(!strcmp(op,"==")) 
+  if(success) 
   {
-    ass->success = (lhs == rhs);
-  }
-  else if(!strcmp(op,"!=")) 
-  {
-    ass->success = (lhs != rhs);
-  }
-  else if(!strcmp(op,"<")) 
-  {
-    ass->success = (lhs < rhs);
-  }
-  else if(!strcmp(op, ">")) 
-  {
-    ass->success = (lhs > rhs);
-  }
-  else if(!strcmp(op,"<=")) 
-  {
-    ass->success = (lhs <= rhs);
-  }
-  else if(!strcmp(op, ">=")) 
-  {
-    ass->success = (lhs >= rhs);
-  }
-
-  _print_assertion(tst, ass, file, line);
-  return ass;
-}
-
-unit_assertion_t * unit_create_assertion_cmp_ptr(unit_test_t * tst,
-                                                 const char * lhs_expr,
-                                                 const char * rhs_expr,
-                                                 const void * lhs,
-                                                 const void * rhs,
-                                                 const char * file,
-                                                 int          line,
-                                                 const char * op)
-{
-  unit_assertion_t * ass = _unit_create_basic_assertion(tst,
-                                                        file,
-                                                        line);
-  ass->success = 0;
-  ass->expect = _alloc_sprintf("%s%s%s", lhs_expr, op, rhs_expr);
-  ass->expect_explain = _alloc_sprintf("with %s==%p\n"
-                                       "     %s==%p", 
-                                       lhs_expr, lhs, rhs_expr, rhs);
-  if(!strcmp(op,"==")) 
-  {
-    ass->success = (lhs == rhs);
-  }
-  else if(!strcmp(op,"!=")) 
-  {
-    ass->success = (lhs != rhs);
-  }
-  else if(!strcmp(op,"<")) 
-  {
-    ass->success = (lhs < rhs);
-  }
-  else if(!strcmp(op, ">")) 
-  {
-    ass->success = (lhs > rhs);
-  }
-  else if(!strcmp(op,"<=")) 
-  {
-    ass->success = (lhs <= rhs);
-  }
-  else if(!strcmp(op, ">=")) 
-  {
-    ass->success = (lhs >= rhs);
-  }
-
-  _print_assertion(tst, ass, file, line);
-  return ass;
-}
-
-unit_assertion_t * unit_create_assertion_eq_ptr(unit_test_t * tst,
-                                                const char  * lhs_expr,
-                                                const char  * rhs_expr,
-                                                void        * lhs,
-                                                void        * rhs,
-                                                const char  * file,
-                                                int           line,
-                                                int           negation)
-{
-  unit_assertion_t * ass = _unit_create_basic_assertion(tst,
-                                                        file,
-                                                        line);
-  ass->success = 0;
-  if(negation)
-  {
-    ass->expect = _alloc_sprintf("%s!=%s", lhs_expr, rhs_expr);
+    return 1;
   }
   else 
   {
-    ass->expect = _alloc_sprintf("%s==%s", lhs_expr, rhs_expr);
+    unit_assertion_t * ass = unit_create_assertion(tst, 
+						   expect,
+						   file,
+						   line,
+						   success);
+    if(tst == NULL) 
+    {
+      /* not managed by tst */
+      if(verbose)
+      {
+	_print_assertion(stderr, ass, 1);
+      }
+      _free_assertion(ass);
+    }
+    return 0;
   }
-  ass->expect_explain = _alloc_sprintf("with %s==%p\n"
-                                       "     %s==%p", lhs_expr, lhs, rhs_expr, rhs);
-  ass->success = (negation && lhs != rhs) || (!negation && lhs == rhs);
-  _print_assertion(tst, ass, file, line);
-  return ass;
 }
 
-/*Todo: const char  * lhs_expect, const char  * rhs_expect, int negation */
-unit_assertion_t * unit_create_assertion_eq_cstr(unit_test_t * tst,
-                                                 const char * expect,
-                                                 const char * rhs_expr,
-                                                 const char * lhs,
-                                                 const char * rhs,
-                                                 const char * file,
-                                                 int line)
+/*********************************************************************
+ * 
+ * macros to create check and assertion functions
+ *
+ *********************************************************************/
+#define __CREATE_CMP__(__CMP_TYPE__, __TYPE__)				\
+  int unit_##__CMP_TYPE__(__TYPE__ lhs, __TYPE__ rhs,			\
+			  const char * op)				\
+  { return ( !strcmp(op,"==") && (lhs == rhs) ) ||			\
+      ( !strcmp(op,"!=") && (lhs != rhs) ) ||				\
+      ( !strcmp(op,"<")  && (lhs < rhs) )  ||				\
+      ( !strcmp(op, ">") && (lhs > rhs) ) ||				\
+      ( !strcmp(op,"<=") && (lhs <= rhs) ) ||				\
+      ( !strcmp(op, ">=") && (lhs >= rhs) );				\
+  }
+
+#define __CREATE_ARR_CMP__(__CMP_TYPE__, __TYPE__)			\
+  int unit_arr_##__CMP_TYPE__(const __TYPE__  * lhs,			\
+			      size_t            nlhs,			\
+			      const __TYPE__  * rhs,			\
+			      size_t            nrhs,			\
+			      const char      * op)			\
+  {									\
+    size_t i;								\
+    for(i = 0; i < nlhs; i++)						\
+    {									\
+      if(i == nrhs)							\
+      {									\
+	if( !strcmp(op, "==") || !strcmp(op, "<") || !strcmp(op, "<="))	\
+	{								\
+	  return 0;							\
+	}								\
+	else								\
+	{								\
+	  return 1;							\
+	}								\
+      }									\
+      if(!unit_##__CMP_TYPE__(lhs[i], rhs[i],"=="))			\
+      {									\
+	return unit_##__CMP_TYPE__(lhs[i], rhs[i],op);			\
+      }									\
+    }									\
+    return								\
+      ( !strcmp(op, "==") && (nlhs ==  nrhs) ) ||			\
+      ( !strcmp(op, "!=") && (nlhs !=  nrhs) ) ||			\
+      ( !strcmp(op, "<")  && (nlhs <   nrhs) ) ||			\
+      ( !strcmp(op, ">")  && (nlhs >   nrhs) ) ||			\
+      ( !strcmp(op, "<=") && (nlhs <=  nrhs) ) ||			\
+      ( !strcmp(op, ">=") && (nlhs >= nrhs) );				\
+  }
+
+#define __CREATE_ASSERTION__(__CMP_TYPE__, __TYPE__, __FMT__)		\
+  unit_assertion_t *							\
+  unit_create_assertion_##__CMP_TYPE__(unit_test_t * tst,		\
+				       const char * lhs_expr,		\
+				       const char * rhs_expr,		\
+				       __TYPE__ lhs,			\
+				       __TYPE__ rhs,			\
+				       const char * file,		\
+				       int line,			\
+				       const char * op)			\
+  {									\
+    unit_assertion_t * ass = _unit_create_basic_assertion(tst,		\
+							  file,		\
+							  line);	\
+    ass->success = 0;							\
+    ass->expect = _alloc_sprintf("%s%s%s", lhs_expr, op, rhs_expr);	\
+    ass->expect_explain = _alloc_sprintf("with %s=="#__FMT__"\n"	\
+					 "     %s=="#__FMT__"",		\
+					 lhs_expr, lhs, rhs_expr, rhs);	\
+    ass->success = unit_##__CMP_TYPE__(lhs, rhs, op);			\
+    _count_assertion(tst, ass);						\
+    return ass;								\
+  }									\
+
+#define __CREATE_ASSERTION_ARR__(__CMP_TYPE__, __TYPE__, __FMT__)	\
+  unit_assertion_t *							\
+  unit_create_assertion_arr_##__CMP_TYPE__(unit_test_t *     tst,	\
+					   const char *      lhs_expr,	\
+					   const char *      rhs_expr,	\
+					   const __TYPE__  * lhs,	\
+					   size_t            nlhs,	\
+					   const __TYPE__  * rhs,	\
+					   size_t            nrhs,	\
+					   const char *      file,	\
+					   int               line,	\
+					   const char      * op)	\
+  {									\
+    unit_assertion_t * ass = _unit_create_basic_assertion(tst,		\
+							  file,		\
+							  line);	\
+    ass->success = 0;							\
+    ass->expect = _alloc_sprintf("%s%s%s", lhs_expr, op, rhs_expr);	\
+    ass->expect_explain = _alloc_sprintf("with %s==%p\n"		\
+					 "     %s==%p",			\
+					 lhs_expr, lhs, rhs_expr, rhs);	\
+    ass->success = unit_arr_##__CMP_TYPE__(lhs, nlhs, rhs, nrhs, op);	\
+    _count_assertion(tst, ass);						\
+    return ass;								\
+  }
+
+
+#define __CREATE_CHECK__(__CMP_TYPE__, __TYPE__)		\
+  int unit_create_check_##__CMP_TYPE__(unit_test_t  * tst,	\
+				     const char   * lhs_expr,	\
+				     const char   * rhs_expr,	\
+				     __TYPE__   lhs,		\
+				     __TYPE__   rhs,		\
+				     const char   * file,	\
+				     int            line,	\
+				     const char   * op,		\
+				     int            verbose)	\
+  {								\
+    if(unit_##__CMP_TYPE__(lhs, rhs, op))			\
+    {								\
+      return 1;							\
+    }								\
+    else							\
+    {								\
+      unit_assertion_t * ass;					\
+      ass = unit_create_assertion_##__CMP_TYPE__(tst,		\
+						lhs_expr,	\
+						rhs_expr,	\
+						lhs,		\
+						rhs,		\
+						file,		\
+						line,		\
+						op);		\
+	if(tst == NULL)						\
+	{							\
+	  /* not managed by tst */				\
+	  if(verbose)						\
+	  {							\
+	    _print_assertion(stderr, ass, 1);			\
+	  }							\
+	  _free_assertion(ass);					\
+	}							\
+	return 0;						\
+    }								\
+  }
+
+#define __CREATE_CHECK_ARR__(__CMP_TYPE__, __TYPE__)			\
+  int unit_create_check_arr_##__CMP_TYPE__(unit_test_t    * tst,	\
+					   const char     * lhs_expr,	\
+					   const char     * rhs_expr,	\
+					   const __TYPE__ * lhs,	\
+					   size_t           nlhs,	\
+					   const __TYPE__ * rhs,	\
+					   size_t           nrhs,	\
+					   const char     * file,	\
+					   int              line,	\
+					   const char     * op,		\
+					   int              verbose)	\
+  {									\
+    if(unit_arr_##__CMP_TYPE__(lhs, nlhs, rhs, nrhs, op))		\
+    {									\
+      return 1;								\
+    }									\
+    else								\
+    {									\
+      unit_assertion_t * ass;						\
+      ass = unit_create_assertion_arr_##__CMP_TYPE__(tst,		\
+						     lhs_expr,		\
+						     rhs_expr,		\
+						     lhs,		\
+						     nlhs,		\
+						     rhs,		\
+						     nrhs,		\
+						     file,		\
+						     line,		\
+						     op);		\
+	if(tst == NULL)							\
+	{								\
+	  /* not managed by tst */					\
+	  if(verbose)							\
+	  {								\
+	    _print_assertion(stderr, ass, 1);				\
+	  }								\
+	  _free_assertion(ass);						\
+	}								\
+	return 0;							\
+    }									\
+  }
+
+
+/*********************************************************************
+ * 
+ * int 
+ *
+ *********************************************************************/
+__CREATE_CMP__(           cmp_i, int);
+__CREATE_ARR_CMP__(       cmp_i, int);
+__CREATE_ASSERTION__(     cmp_i, int, "%d");
+__CREATE_ASSERTION_ARR__( cmp_i, int, "%d");
+__CREATE_CHECK__(         cmp_i, int);
+__CREATE_CHECK_ARR__(     cmp_i, int);
+
+/*********************************************************************
+ * 
+ * unsigned int 
+ *
+ *********************************************************************/
+__CREATE_CMP__(           cmp_u, unsigned int);
+__CREATE_ASSERTION__(     cmp_u, unsigned int, "%u");
+__CREATE_CHECK__(         cmp_u, unsigned int);
+__CREATE_ARR_CMP__(       cmp_u, unsigned int);
+__CREATE_ASSERTION_ARR__( cmp_u, unsigned int, "%u");
+__CREATE_CHECK_ARR__(     cmp_u, unsigned int);
+
+/*********************************************************************
+ * 
+ * pointer
+ *
+ *********************************************************************/
+__CREATE_CMP__(           cmp_ptr, const void *);
+__CREATE_ASSERTION__(     cmp_ptr, const void *, "%p");
+__CREATE_CHECK__(         cmp_ptr, const void *);
+__CREATE_ARR_CMP__(       cmp_ptr, const void *);
+__CREATE_ASSERTION_ARR__( cmp_ptr, const void *, "%p");
+__CREATE_CHECK_ARR__(     cmp_ptr, const void *);
+
+/*********************************************************************
+ * 
+ * c string
+ *
+ *********************************************************************/
+int unit_cmp_cstr(const char * lhs, const char * rhs, const char * op)
 {
-  unit_assertion_t * ass = _unit_create_basic_assertion(tst,
-                                                        file,
-                                                        line);
-  if(ass != NULL) 
-  {
-    if(lhs == NULL) 
-    {
-      if(rhs == NULL) 
-      {
-        ass->expect = _alloc_sprintf("%s (NULL==NULL)", expect);
-        ass->success = 1;
-      }
-      else 
-      {
-        ass->expect = _alloc_sprintf("%s (NULL==\"%s\")", expect, rhs);
-        ass->success = 0;
-      }
-    }
-    else 
-    {
-      if(rhs == NULL) 
-      {
-        ass->expect = _alloc_sprintf("%s (%s==NULL)", expect, lhs);
-        ass->success = 0;
-      }
-      else 
-      {
-        ass->expect = _alloc_sprintf("%s (\"%s\"==\"%s\")", expect, lhs, rhs);
-        if(!strcmp(lhs, rhs)) 
-        {
-          ass->success = 1;
-        }
-        else 
-        {
-          ass->success = 0;
-        }
-      }
-    }
-    _print_assertion(tst, ass, file, line);
-  }
-  return ass;
+  return ( !strcmp(op,"==") && !strcmp(lhs, rhs)) ||
+    ( !strcmp(op,"!=") && strcmp(lhs, rhs))       ||
+    ( !strcmp(op,"<")  && strcmp(lhs, rhs)<0)     ||
+    ( !strcmp(op, ">") && strcmp(lhs, rhs)>0)     ||
+    ( !strcmp(op,"<=") && strcmp(lhs, rhs)<=0)    ||
+    ( !strcmp(op, ">=")&& strcmp(lhs, rhs)>=0);
 }
+__CREATE_ARR_CMP__(   cmp_cstr, const char *);
+__CREATE_ASSERTION__( cmp_cstr, const char *, "%s");
+__CREATE_CHECK__(     cmp_cstr, const char *);
+__CREATE_ASSERTION_ARR__( cmp_cstr, const char *, "%s");
+__CREATE_CHECK_ARR__(     cmp_cstr, const char *);
 
-unit_assertion_t * unit_create_assertion_eq_cstr_list(unit_test_t  * tst,
-                                                      const char   * lhs_expr,
-                                                      const char   * rhs_expr,
-                                                      const char  ** lhs,
-                                                      size_t         n,
-                                                      const char  ** rhs,
-                                                      size_t         m,
-                                                      const char  *  file,
-                                                      int            line,
-                                                      int            negation)
-{
-  unit_assertion_t * ass = _unit_create_basic_assertion(tst,
-                                                        file,
-                                                        line);
-  if(negation)
-  {
-    ass->expect = _alloc_sprintf("%s!=%s", lhs_expr, rhs_expr);
-  }
-  else 
-  {
-    ass->expect = _alloc_sprintf("%s==%s", lhs_expr, rhs_expr);
-  }
-  size_t max_nm = n > m ? n : m;
-  size_t size = 0;
-  size_t j = 0,i = 0;
-  ass->success = negation ? 0 : 1;
-  for(i = 0; i < max_nm; i++) 
-  {
-    size+= 13+10;
-    if(i < n) size += strlen(lhs[i]);
-    else      size += 4;
-    if(i < m) size += strlen(rhs[i]);
-    else      size += 4;
-  }
-  ass->expect_explain = malloc(size + 2);
-  for(i = 0; i < max_nm; i++) 
-  {
-    ass->expect_explain[j++] = '[';
-    j+= snprintf(&ass->expect_explain[j], 8, "%u", i);
-    ass->expect_explain[j++] = ']';
-    ass->expect_explain[j++] = ':';
-    ass->expect_explain[j++] = ' ';
-    if(i < n) 
-    {
-      ass->expect_explain[j++] = '"';
-      // Todo: escape string
-      strcpy(&ass->expect_explain[j], lhs[i]);
-      j+= strlen(lhs[i]);
-      ass->expect_explain[j++] = '"';
-    }
-    else 
-    {
-      ass->expect_explain[j++] = 'N';
-      ass->expect_explain[j++] = 'U';
-      ass->expect_explain[j++] = 'L';
-      ass->expect_explain[j++] = 'L';
-    }
 
-    ass->expect_explain[j++] = ' ';
-    if(i < n && i < m) 
-    {
-      if(strcmp(lhs[i], rhs[i])) 
-      {
-        ass->expect_explain[j++] = '!';
-        ass->success = negation ? 1 : 0;
-      }
-      else 
-      {
-        ass->expect_explain[j++] = '=';
-      }
-    }
-    else 
-    {
-      ass->expect_explain[j++] = '!';
-      ass->success = negation ? 1 : 0;
-    }
-    ass->expect_explain[j++] = '=';
-    ass->expect_explain[j++] = ' ';
-    if(i < m) 
-    {
-      ass->expect_explain[j++] = '"';
-      //Todo: escape string
-      strcpy(&ass->expect_explain[j], rhs[i]);
-      j+= strlen(rhs[i]);
-      ass->expect_explain[j++] = '"';
-    }
-    else 
-    {
-      ass->expect_explain[j++] = 'N';
-      ass->expect_explain[j++] = 'U';
-      ass->expect_explain[j++] = 'L';
-      ass->expect_explain[j++] = 'L';
-    }
-    ass->expect_explain[j++] = '\n';
-  }
-  ass->expect_explain[j++] = '\0';
-  _print_assertion(tst, ass, file, line);
-  return ass;
-}
-
+/*********************************************************************
+ * 
+ * memchecker
+ *
+ *********************************************************************/
 unit_assertion_t * unit_memchecker(unit_test_t              * tst,
                                    struct memchecker_t      * memcheck,
                                    const char               * file, 
@@ -627,7 +756,7 @@ unit_assertion_t * unit_memchecker(unit_test_t              * tst,
                 chunk->ptr,
                 chunk->alloc_file,
                 chunk->alloc_line);
-        unit_create_assertion(tst, buff, file, line, 0);
+	unit_create_assertion(tst, buff, file, line, 0);
         ret = 0;
       }
     }
@@ -635,61 +764,14 @@ unit_assertion_t * unit_memchecker(unit_test_t              * tst,
   for(i = 0; i < memcheck->n_not_managed; i++) 
   {
     ret = 0;
-    unit_create_assertion(tst, memcheck->message_not_managed[i], file, line, 0);
+    unit_create_assertion(tst,memcheck->message_not_managed[i], file, line, 0);
   }
   for(i = 0; i < memcheck->n_double_free; i++) 
   {
     ret = 0;
-    unit_create_assertion(tst,memcheck->message_double_free[i], file, line, 0);
+    unit_create_assertion(tst, memcheck->message_double_free[i], file, line, 0);
   }
-  return unit_create_assertion(tst, "memory segmentation", file, line, ret);
-}
-
-static int _unit_run_test(FILE * fp, unit_context_t * ctx, unit_test_t * tst) 
-{
-  int passed = 1;
-  if(ctx->verbose_level) 
-  {
-    fprintf(fp, "          test '%s'\n", tst->name);
-  }
-  tst->_fp                = fp;
-  tst->_passed_assertions = 0;
-  tst->_failed_assertions = 0;
-  tst->func(tst);
-  if(tst->_passed_assertions + tst->_failed_assertions) 
-  {
-    ctx->n_assertions_passed+= tst->_passed_assertions;
-    ctx->n_assertions_failed+= tst->_failed_assertions;
-    if(tst->_failed_assertions) 
-    {
-      passed = 0;
-      ctx->n_tests_failed++;
-      if(ctx->verbose_level) 
-      {
-        _print_result(fp, 0, ctx->color);
-        fprintf(fp, "  test '%s'\n", tst->name);
-      }
-    }
-    else 
-    {
-      if(ctx->verbose_level) 
-      {
-        _print_result(fp, 1, ctx->color);
-        fprintf(fp, "  test '%s'\n", tst->name);
-      }
-      ctx->n_tests_passed++;
-    }
-  }
-  else 
-  {
-    if(ctx->verbose_level) 
-    {
-      _print_result(fp, 2, ctx->color);
-      fprintf(fp, "  test '%s'\n", tst->name);
-    }
-    ctx->n_tests_without_assertions++;
-  }
-  return passed;
+  return unit_create_assertion(tst, "memory segmentation", file, line, ret); 
 }
 
 void unit_run(FILE * fp, unit_context_t * ctx)
@@ -755,47 +837,6 @@ void unit_run(FILE * fp, unit_context_t * ctx)
   }
 }
 
-static void _unit_final_report_print(FILE * fp, 
-                                     unit_context_t * ctx,
-                                     const char * name,
-                                     const char * result_name,
-                                     size_t n_passed,
-                                     size_t n_failed,
-                                     size_t no_results)
-{
-  size_t n = n_passed + n_failed + no_results;
-  if(ctx->color) 
-  {
-    if(n == n_passed)
-    {
-      fprintf(fp, COLOR_GREEN);
-    }
-    else if(n_failed) 
-    {
-      fprintf(fp, COLOR_RED);
-    }
-    else 
-    {
-      fprintf(fp, COLOR_BLUE);
-    }
-    fprintf(fp, "%u / %u %s passed "COLOR_NORMAL, n_passed,n,name);
-    if(no_results) 
-    {
-      fprintf(fp, COLOR_BLUE" (%u without %s)"COLOR_NORMAL, 
-              no_results, result_name);
-    }
-    fprintf(fp, "\n");
-  }
-  else
-  {
-    fprintf(fp, "%u / %u %s passed ", n_passed,n,name);
-    if(no_results) 
-    {
-      fprintf(fp, " (%u without %s)", no_results, result_name);
-    }
-    fprintf(fp, "\n");
-  }
-}
                                      
 void unit_final_report(FILE * fp,
                        unit_context_t * ctx)
@@ -850,7 +891,7 @@ void unit_final_report(FILE * fp,
     }
     else 
     {
-      fprintf(fp, "%u / %u tests deactivated\n", ctx->n_tests_deactivated, n);
+      fprintf(fp, "%u / %u tests deactivated\n", (unsigned int)(ctx->n_tests_deactivated), (unsigned)n);
     }
   }
 

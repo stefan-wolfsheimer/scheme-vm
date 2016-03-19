@@ -145,71 +145,6 @@ int lisp_unset_object(lisp_vm_t * vm,
 
 int lisp_unset_object_root(lisp_vm_t * vm,
 			   lisp_cell_t * target);
-		      
-
-
-/** __CELL__ is pointer to uninitialized cell
- * @todo replace with lisp_copy_object */
-
-#define LISP_INIT(__VM__, __CELL__, __SOURCE__)                         \
-  {                                                                     \
-    if(LISP_IS_OBJECT((__SOURCE__)))                                    \
-      {                                                                 \
-        ++LISP_REFCOUNT((__SOURCE__));                                  \
-      }                                                                 \
-    *(__CELL__) = *(__SOURCE__);                                        \
-  }
-
-/** __CELL__ is pointer to initialized cell
- */
-#define LISP_SET(__VM__, __CELL__, __SOURCE__)                          \
-  {                                                                     \
-    if(LISP_IS_OBJECT(__CELL__))                                        \
-      {                                                                 \
-        if(! --LISP_REFCOUNT((__CELL__)))                               \
-          {                                                             \
-            if((__VM__)->types[(__CELL__)->type_id].destructor != NULL) \
-              {                                                         \
-                (__VM__)->types[(__CELL__)->type_id]                    \
-                .destructor((__VM__), (__CELL__)->data.ptr);            \
-              }                                                         \
-            else                                                        \
-              {                                                         \
-                FREE_OBJECT((__CELL__)->data.ptr);                      \
-              }                                                         \
-          }                                                             \
-    }                                                                   \
-    LISP_INIT((__VM__), (__CELL__), (__SOURCE__))                       \
-  }
-
-#if 1
-/* @todo replace with lisp_unset_object and lisp_unset_root_object */
-#define LISP_UNSET(__VM__, __CELL__)                                    \
-  {                                                                     \
-    lisp_cell_t * __cell__ = (__CELL__);                                \
-    if(LISP_IS_OBJECT(__cell__))                                        \
-      {                                                                 \
-        if(! --LISP_REFCOUNT(__cell__))                                 \
-          {                                                             \
-            if((__VM__)->types[__cell__->type_id].destructor != NULL)	\
-	    {                                     			\
-                (__VM__)->types[(__cell__)->type_id]                    \
-                  .destructor((__VM__), __cell__->data.ptr);            \
-              }                                                         \
-            else                                                        \
-              {                                                         \
-                FREE_OBJECT(__cell__->data.ptr);                        \
-              }                                                         \
-          }                                                             \
-      }                                                                 \
-    *__cell__ = lisp_nil;                                               \
-  }
-#endif
-/*****************************************************************************
- * 
- * stack operations
- * 
- *****************************************************************************/
 
 /*****************************************************************************
  * 
@@ -479,17 +414,42 @@ int lisp_make_cons_root_typed_car_cdr(lisp_vm_t     * vm,
  * @param  vm virtual machine context 
  * @param  cell to be tested
  * @return reference count
+ *
+ * @todo rename it to lisp_root_refcount
+ *       (all functions with cons_prefix should operate on conses
  */
-lisp_ref_count_t lisp_cons_root_refcount(lisp_vm_t         * vm,
-                                         const lisp_cell_t * cell);
+lisp_ref_count_t lisp_root_refcount(lisp_vm_t         * vm,
+				    const lisp_cell_t * cell);
 
 int lisp_cons_root(lisp_vm_t * vm, lisp_cons_t * cons);
 int lisp_cons_unroot(lisp_vm_t * vm, lisp_cons_t * cons);
 
+
+
+
+
 /* @todo: implement */
-int lisp_cons_set_car();
-/* @todo: implement */
-int lisp_cons_set_cdr();
+int lisp_cons_set_car_cdr(lisp_vm_t * vm, 
+			  lisp_cons_t * cons, 
+			  const lisp_cell_t * car,
+			  const lisp_cell_t * cdr);
+
+int lisp_cons_set_car(lisp_vm_t   * vm, 
+		      lisp_cons_t * cons, 
+		      const lisp_cell_t * car);
+int lisp_cons_set_cdr(lisp_vm_t   * vm, 
+		      lisp_cons_t * cons, 
+		      const lisp_cell_t * cdr);
+int lisp_set_car_cdr(lisp_vm_t * vm,
+		     const lisp_cell_t * cell,
+		     const lisp_cell_t * car,
+		     const lisp_cell_t * cdr);
+int lisp_set_car(lisp_vm_t * vm,
+		 const lisp_cell_t * cell,
+		 const lisp_cell_t * car);
+int lisp_set_cdr(lisp_vm_t * vm,
+		 const lisp_cell_t * cell,
+		 const lisp_cell_t * cdr);
 
 /*****************************************************************
  *

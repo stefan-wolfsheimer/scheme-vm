@@ -7,10 +7,12 @@
 * Object/Memory management 
 ** TODO Implement transactions for copying an array of cells
 ** TODO analyze cases for copying conses
-** TODO Unit test lisp_copy_object family
+** DONE Unit test lisp_copy_object family
 ** TODO Implement GC cycles
 ** TODO Always check if allocation was successful
-*** TODO implement for creating vms
+*** TODO check code lisp_vm.c
+*** TODO check code lisp_cons.c
+*** DONE implement for creating vms
 ** DONE Fix retiring mocks
    next mock pointer is not set to nil when all mocks are consumed 
    see test_alloc_vm_fail
@@ -18,7 +20,8 @@
 ** DONE automaticall determine number of expected allocs in create_vm
    in order to make allocation error mock more stable (don't need to 
    increase number of expected allocs when new alloc is introduced)
-** TODO Replace LISP_UNSET with function
+** DONE Replace LISP_UNSET with function
+** DONE Replace LISP_INIT and LISP_SET with copy_object family
 * Conses
 ** TODO Implement set_car, set_cdr
 
@@ -30,6 +33,11 @@
    the value of this variable is added to the text message
 
 ** TODO Define internal ASSERT that writes the result to the current test
+** DONE Check if test fails if there are failed checks 
+   add unit test for that 
+** TODO Allow assertions and checks without test object
+   Example: if(CHECK_EQ_U(NULL, 1, 0)) ... // will print warning
+            ASSERT_EQ_U(NULL, 1, 0)        // will exit(8)
 ** TODO fork / thread test execution
 * String 
 ** TODO unicode strings

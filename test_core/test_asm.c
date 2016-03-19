@@ -16,7 +16,7 @@
                                       __INSTR__ ),                      \
                (__SIZE__));                                             \
    ASSERT_EQ_CSTR(tst, lisp_c_string(&str), (__STRING__));              \
-   LISP_UNSET((__VM__), &str);                                          \
+   lisp_unset_object((__VM__), &str);                                          \
   }
 
   

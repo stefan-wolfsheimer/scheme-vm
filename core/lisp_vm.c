@@ -33,14 +33,12 @@ static void _lisp_create_vm_cleanup(lisp_vm_t * vm)
 lisp_vm_t * lisp_create_vm(lisp_vm_param_t * param)
 {
   lisp_vm_t * ret;
-  /* @todo check all mallocs */
   ret = MALLOC(sizeof(lisp_vm_t));
   if(ret == NULL) 
   {
     return NULL;
   }
-
-  /* @todo create main thread with own stack */
+  /* @todo create continuations with own stack each */
   ret->data_stack      = NULL;
   ret->data_stack_size = param->data_stack_size;
   ret->data_stack_top  = 0;
@@ -120,13 +118,13 @@ void lisp_free_cons_gc(lisp_vm_t * vm)
   {
     for(i = 0; i < vm->black_cons_top; i++) 
     {
-      LISP_UNSET(vm, &vm->cons_table[i]->car);
-      LISP_UNSET(vm, &vm->cons_table[i]->cdr);
+      lisp_unset_object(vm, &vm->cons_table[i]->car);
+      lisp_unset_object(vm, &vm->cons_table[i]->cdr);
     }
     for(i = vm->grey_cons_begin; i < vm->white_cons_top; i++) 
     {
-      LISP_UNSET(vm, &vm->cons_table[i]->car);
-      LISP_UNSET(vm, &vm->cons_table[i]->cdr);
+      lisp_unset_object(vm, &vm->cons_table[i]->car);
+      lisp_unset_object(vm, &vm->cons_table[i]->cdr);
     }
     FREE(vm->cons_table);
   }
@@ -134,8 +132,8 @@ void lisp_free_cons_gc(lisp_vm_t * vm)
   {
     for(i = 0; i < vm->root_cons_top; i++) 
     {
-      LISP_UNSET(vm, &vm->root_cons_table[i].cons->car);
-      LISP_UNSET(vm, &vm->root_cons_table[i].cons->cdr);
+      lisp_unset_object(vm, &vm->root_cons_table[i].cons->car);
+      lisp_unset_object(vm, &vm->root_cons_table[i].cons->cdr);
     }
     FREE(vm->root_cons_table);
   }
@@ -274,14 +272,15 @@ int lisp_copy_n_objects_as_root( lisp_vm_t   * vm,
     ret = _lisp_copy_object_as_root(vm, &target[i], &source[i]);
     if(ret) 
     {
-      /* revert transaction 
-       * @todo unit test 
-       */
+      /* revert transaction */
       lisp_size_t j;
       for(j = 0; j < i; j++) 
       {
-	/* @todo also unroot */
-        LISP_UNSET(vm, &target[i]);
+        lisp_unset_object_root(vm, &target[j]);
+      }
+      for(j = i; j < n; j++) 
+      {
+	target[j] = lisp_nil;
       }
       return ret;
     }

@@ -19,7 +19,7 @@ static int lisp_calle_readkey(lisp_vm_t   * vm,
   char ch[2];
   scanf("%c", &ch[0]);
   ch[1] = '\0';
-  printf("readkey %c\n",ch);
+  //printf("readkey %c\n",ch);
   /* todo unset value */
   lisp_make_string(vm, &vm->value, ch);
   return 0;
@@ -118,6 +118,7 @@ lisp_size_t lisp_disassemble_instr(lisp_vm_t    * vm,
   return 0;
 }
 
+#if 0
 static void lisp_step_debug(lisp_vm_t     * vm, 
                             lisp_lambda_t * lambda, 
                             lisp_instr_t    pc)
@@ -127,6 +128,7 @@ static void lisp_step_debug(lisp_vm_t     * vm,
   lisp_disassemble_instr(vm, &str, &instr[pc]);
   printf("<%p>:%d\t%s\n", lambda, pc, lisp_c_string(&str));
 }
+#endif 
 
 #define LISP_STEP_DEBUG(__VM__, __LAMBDA__, __PC__) \
   lisp_step_debug((__VM__), (__LAMBDA__), (__PC__))

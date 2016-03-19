@@ -30,10 +30,6 @@ static lisp_cons_t * _get_different_cons(lisp_vm_t   * vm,
    total = 6 + 24 = 30
 */
 #define N_CAR_CONS_COMBINATIONS 30
-static void __set_different_root_cons()
-{
-}
-
 static int _get_car_cdr_combination(lisp_vm_t    * vm,
                                     lisp_cons_t  * cons, /* can be NULL */
                                     lisp_cell_t  * car,
@@ -364,7 +360,7 @@ static int test_new_root_cons_prepared(unit_test_t  * tst,
                                                            &car, &cdr));
       }
       ret&= CHECK(tst,       LISP_IS_CONS(&cons));
-      ret&= CHECK_EQ_U(tst,  lisp_cons_root_refcount(vm, &cons), 1);
+      ret&= CHECK_EQ_U(tst,  lisp_root_refcount(vm, &cons), 1);
       ret&= CHECK_EQ_U(tst,  lisp_n_root_cons(vm),  n_root_conses  + delta_root);
       ret&= CHECK_EQ_U(tst,  lisp_n_black_cons(vm), n_black_conses + delta_black);
       ret&= CHECK_EQ_U(tst,  lisp_n_grey_cons(vm),  n_grey_conses  + delta_grey);
@@ -373,7 +369,7 @@ static int test_new_root_cons_prepared(unit_test_t  * tst,
 
       /* increase root count */
       ret&= CHECK_FALSE(tst, lisp_copy_object_as_root(vm, &root_cons, &cons));
-      ret&= CHECK_EQ_U(tst,  lisp_cons_root_refcount(vm, &cons), 2);
+      ret&= CHECK_EQ_U(tst,  lisp_root_refcount(vm, &cons), 2);
       ret&= CHECK_EQ_U(tst,  lisp_n_root_cons(vm),  n_root_conses  + delta_root);
       ret&= CHECK_EQ_U(tst,  lisp_n_black_cons(vm), n_black_conses + delta_black);
       ret&= CHECK_EQ_U(tst,  lisp_n_grey_cons(vm),  n_grey_conses  + delta_grey);
@@ -381,7 +377,7 @@ static int test_new_root_cons_prepared(unit_test_t  * tst,
     
       /* decrease root count */
       ret&= CHECK_FALSE(tst, lisp_unset_object_root(vm, &root_cons));
-      ret&= CHECK_EQ_U(tst,  lisp_cons_root_refcount(vm, &cons), 1);
+      ret&= CHECK_EQ_U(tst,  lisp_root_refcount(vm, &cons), 1);
       ret&= CHECK_EQ_U(tst, lisp_n_root_cons(vm),  n_root_conses  + delta_root);
       ret&= CHECK_EQ_U(tst, lisp_n_black_cons(vm), n_black_conses + delta_black);
       ret&= CHECK_EQ_U(tst, lisp_n_grey_cons(vm),  n_grey_conses  + delta_grey);
@@ -391,7 +387,7 @@ static int test_new_root_cons_prepared(unit_test_t  * tst,
       delta_root--;
       delta_black++;
       ret&= CHECK_FALSE(tst, lisp_cons_unroot(vm, cons.data.cons));
-      ret&= CHECK_EQ_U(tst,  lisp_cons_root_refcount(vm, &cons), 0);
+      ret&= CHECK_EQ_U(tst,  lisp_root_refcount(vm, &cons), 0);
       ret&= CHECK(tst,       lisp_is_black_cons(vm, &cons));
       ret&= CHECK_EQ_U(tst, lisp_n_root_cons(vm),  n_root_conses  + delta_root);
       ret&= CHECK_EQ_U(tst, lisp_n_black_cons(vm), n_black_conses + delta_black);
@@ -479,7 +475,7 @@ static int test_make_cons_prepared(unit_test_t  * tst,
       ret&= CHECK_EQ_U(tst, lisp_n_grey_cons(vm),  n_grey_conses  + delta_grey);
       ret&= CHECK_EQ_U(tst, lisp_n_white_cons(vm), n_white_conses + delta_white);
       ret&= CHECK(tst,       lisp_vm_check(tst, vm));
-      ret&= CHECK_EQ_U(tst,  lisp_cons_root_refcount(vm, &cons), 0);
+      ret&= CHECK_EQ_U(tst,  lisp_root_refcount(vm, &cons), 0);
       ret&= CHECK(tst,       lisp_vm_check(tst, vm));
     }
     lisp_free_vm(vm);
@@ -533,16 +529,20 @@ static void test_copy_cons(unit_test_t * tst)
   /* make a cons */
   ASSERT_FALSE(tst, lisp_make_cons(vm, &cons));
   ASSERT(tst,       LISP_IS_CONS(&cons));
-  ASSERT_EQ_U(tst,  lisp_cons_root_refcount(vm, &cons), 0);
+  ASSERT_EQ_U(tst,  lisp_root_refcount(vm, &cons), 0);
   ASSERT_EQ_U(tst,  lisp_n_white_cons(vm), n_white_conses + 1);
   ASSERT(tst,       lisp_vm_check(tst, vm));
   /* make a copy */
   ASSERT_FALSE(tst, lisp_copy_object(vm, &copied_cons, &cons));
   ASSERT(tst,       LISP_IS_CONS(&copied_cons));
-  ASSERT_EQ_U(tst,  lisp_cons_root_refcount(vm, &copied_cons), 0);
+  ASSERT_EQ_U(tst,  lisp_root_refcount(vm, &copied_cons), 0);
   ASSERT_EQ_U(tst,  lisp_n_white_cons(vm), n_white_conses + 1);
   ASSERT(tst,       lisp_vm_check(tst, vm));
   /* @todo copy a root cons, copy a cons to root set */
+
+  lisp_free_vm(vm);
+  ASSERT_MEMCHECK(tst, memcheck);
+  memcheck_finalize(1);
 }
 
 static int test_color2root_prepared(unit_test_t * tst, 
@@ -605,11 +605,11 @@ static int test_color2root_prepared(unit_test_t * tst,
   ret &= CHECK_EQ_U(tst,  lisp_n_gap_cons(vm),     n_gap);
   ret &= CHECK_EQ_U(tst,  lisp_n_grey_cons(vm),    n_grey);
   ret &= CHECK_EQ_U(tst,  lisp_n_white_cons(vm),   n_white);
-  ret &= CHECK_EQ_U(tst,  lisp_cons_root_refcount(vm, &cons), 0);
+  ret &= CHECK_EQ_U(tst,  lisp_root_refcount(vm, &cons), 0);
 
   /* copy cons into root set */
   ret&= CHECK_FALSE(tst,  lisp_copy_object_as_root(vm, &root_cons, &cons));
-  ret &= CHECK_EQ_U(tst,  lisp_cons_root_refcount(vm, &cons), 1);
+  ret &= CHECK_EQ_U(tst,  lisp_root_refcount(vm, &cons), 1);
   ret &= CHECK_EQ_U(tst,  lisp_n_root_cons(vm),    n_root2);
   ret &= CHECK_EQ_U(tst,  lisp_n_black_cons(vm),   n_black2);
   ret &= CHECK_EQ_U(tst,  lisp_n_gap_cons(vm),     n_gap2);
@@ -619,7 +619,7 @@ static int test_color2root_prepared(unit_test_t * tst,
 
   /* decrease root cons count */
   ret&= CHECK_FALSE(tst,  lisp_unset_object_root(vm, &root_cons));
-  ret &= CHECK_EQ_U(tst,  lisp_cons_root_refcount(vm, &cons), 0);
+  ret &= CHECK_EQ_U(tst,  lisp_root_refcount(vm,   &cons), 0);
   ret &= CHECK_EQ_U(tst,  lisp_n_root_cons(vm),    n_root3);
   ret &= CHECK_EQ_U(tst,  lisp_n_black_cons(vm),   n_black3);
   ret &= CHECK_EQ_U(tst,  lisp_n_gap_cons(vm),     n_gap3);

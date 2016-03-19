@@ -91,7 +91,7 @@ void lisp_parser_init(lisp_vm_t * vm, lisp_parser_state_t * state)
 
 void lisp_parser_reset(lisp_vm_t * vm, lisp_parser_state_t * state)
 {
-  LISP_UNSET(vm, &state->expression);
+  lisp_unset_object(vm, &state->expression);
   state->state      = LISP_PARSER_START;
   state->column     = 0;
   state->line       = 0;
@@ -139,7 +139,6 @@ static unsigned short _parser_pop(lisp_vm_t           * vm,
   }
   return 0;
 }
-
 
 static size_t _parse_state_start(lisp_vm_t           * vm,
                                  lisp_parser_state_t * state,
@@ -197,7 +196,7 @@ static size_t _parse_state_car(lisp_vm_t           * vm,
     else if(str[pos] == ')')
     {
       assert(state->stack_top);
-      LISP_UNSET(vm, state->stack[state->stack_top-1].cell);
+      lisp_unset_object(vm, state->stack[state->stack_top-1].cell);
       _parser_pop(vm, state);
       state->state = state->stack_top ? LISP_PARSER_CDR : LISP_PARSER_END;
       pos++;
@@ -237,7 +236,7 @@ static size_t _parse_state_cdr(lisp_vm_t           * vm,
     else if(str[pos] == ')') 
     {
       assert(state->stack_top);
-      LISP_UNSET(vm, state->stack[state->stack_top-1].cell);
+      lisp_unset_object(vm, state->stack[state->stack_top-1].cell);
       _parser_pop(vm, state);
       state->state = state->stack_top ? LISP_PARSER_CDR : LISP_PARSER_END;
       pos++;

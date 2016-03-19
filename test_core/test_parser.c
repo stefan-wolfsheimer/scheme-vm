@@ -13,7 +13,8 @@ static int final_parser_state(lisp_vm_t * vm,
   lisp_parser_init(vm, &state);
   lisp_parse_next_expression_cstr(vm, &state, str);
   int ret = state.state == end_state;
-  LISP_SET(vm, &vm->value, &state.expression);
+  lisp_unset_object(vm, &vm->value);
+  lisp_copy_object(vm, &vm->value, &state.expression);
   lisp_parser_free(vm, &state);
   return ret;
 }
