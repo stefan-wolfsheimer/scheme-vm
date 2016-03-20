@@ -169,7 +169,7 @@ static lisp_cons_t * _get_different_cons(lisp_vm_t   * vm,
 
 static void test_cons_set_up(unit_test_t * tst)
 {
-  memchecker_t * memcheck = memcheck_begin(0);
+  memcheck_begin();
   lisp_vm_t    * vm = lisp_create_vm(&lisp_vm_default_param);
   ASSERT_NEQ_PTR(tst, vm, NULL);
   lisp_size_t    n_root_conses = 10;
@@ -195,13 +195,13 @@ static void test_cons_set_up(unit_test_t * tst)
   ASSERT_EQ_U(tst, 
               lisp_n_white_cons(vm), n_white_conses);
   lisp_free_vm(vm);
-  ASSERT_MEMCHECK(tst, memcheck);
-  memcheck_finalize(1);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
 }
 
 static void test_get_different_root_cons(unit_test_t * tst)
 {
-  memchecker_t * memcheck = memcheck_begin(0);
+  memcheck_begin();
   lisp_vm_t    * vm = lisp_create_vm(&lisp_vm_default_param);
   lisp_size_t    n_root_conses = 10;
   set_up_conses(tst, vm, n_root_conses, 0, 0, 0, 0);
@@ -228,13 +228,13 @@ static void test_get_different_root_cons(unit_test_t * tst)
                                          ),
                 lisp_get_root_cons(vm, 2).data.cons);
   lisp_free_vm(vm);
-  ASSERT_MEMCHECK(tst, memcheck);
-  memcheck_finalize(1);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end(1);
 }
 
 static void test_get_different_cons(unit_test_t * tst)
 {
-  memchecker_t * memcheck = memcheck_begin(0);
+  memcheck_begin();
   lisp_vm_t    * vm = lisp_create_vm(&lisp_vm_default_param);
   lisp_size_t    n_black_conses  = 10;
   lisp_size_t    n_gap_conses    = 10;
@@ -304,8 +304,8 @@ static void test_get_different_cons(unit_test_t * tst)
                 _get_cons(vm, 32).data.cons);
 
   lisp_free_vm(vm);
-  ASSERT_MEMCHECK(tst, memcheck);
-  memcheck_finalize(1);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
 }
 
 static int test_new_root_cons_prepared(unit_test_t  * tst,
@@ -315,7 +315,7 @@ static int test_new_root_cons_prepared(unit_test_t  * tst,
                                        lisp_size_t    n_grey_conses,
                                        lisp_size_t    n_white_conses)
 {
-  memchecker_t * memcheck = memcheck_begin(0);
+  memcheck_begin();
   lisp_size_t c;
   int ret  = 1;
   lisp_cell_t root_cons;
@@ -397,8 +397,8 @@ static int test_new_root_cons_prepared(unit_test_t  * tst,
     }
     lisp_free_vm(vm);
   }
-  ret&= CHECK_MEMCHECK(tst, memcheck);
-  memcheck_finalize(1);
+  ret&= CHECK_MEMCHECK(tst);
+  memcheck_end();
   return ret;
 }
 
@@ -434,7 +434,7 @@ static int test_make_cons_prepared(unit_test_t  * tst,
                                    lisp_size_t    n_white_conses)
 {
   /* @todo add tests with lisp_copy_object_root() */
-  memchecker_t * memcheck = memcheck_begin(0);
+  memcheck_begin();
   lisp_size_t c;
   int ret  = 1;
   for(c = 0; c < N_CAR_CONS_COMBINATIONS; c++) 
@@ -481,8 +481,8 @@ static int test_make_cons_prepared(unit_test_t  * tst,
     lisp_free_vm(vm);
   }
 
-  ret&= CHECK_MEMCHECK(tst, memcheck);
-  memcheck_finalize(1);
+  ret&= CHECK_MEMCHECK(tst);
+  memcheck_end();
   return ret;
 }
 
@@ -513,7 +513,7 @@ static void test_make_cons(unit_test_t * tst)
 
 static void test_copy_cons(unit_test_t * tst) 
 {
-  memchecker_t * memcheck = memcheck_begin(0);
+  memcheck_begin();
   lisp_vm_t    * vm = lisp_create_vm(&lisp_vm_default_param);
   lisp_cell_t    cons;
   lisp_cell_t    copied_cons;
@@ -541,8 +541,8 @@ static void test_copy_cons(unit_test_t * tst)
   /* @todo copy a root cons, copy a cons to root set */
 
   lisp_free_vm(vm);
-  ASSERT_MEMCHECK(tst, memcheck);
-  memcheck_finalize(1);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
 }
 
 static int test_color2root_prepared(unit_test_t * tst, 
@@ -554,8 +554,8 @@ static int test_color2root_prepared(unit_test_t * tst,
                                     lisp_size_t   i)
 {
   /* @todo add cases with set-car / set-cdr */
+  memcheck_begin();
   int            ret      = 1;
-  memchecker_t * memcheck = memcheck_begin(0);
   lisp_vm_t    * vm;
   lisp_cell_t    cons;
   lisp_size_t    n_root2  = n_root; 
@@ -628,8 +628,8 @@ static int test_color2root_prepared(unit_test_t * tst,
   ret &= CHECK(tst,       lisp_vm_check(tst, vm));
 
   lisp_free_vm(vm);
-  ret &= CHECK_MEMCHECK(tst, memcheck);
-  memcheck_finalize(1);
+  ret &= CHECK_MEMCHECK(tst);
+  memcheck_end();
   return ret;
 }
 

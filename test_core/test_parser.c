@@ -21,7 +21,7 @@ static int final_parser_state(lisp_vm_t * vm,
 
 static void test_no_expression(unit_test_t * tst)
 {
-  memchecker_t * memcheck = memcheck_begin(0);
+  memcheck_begin();
   lisp_vm_t * vm = lisp_create_vm(&lisp_vm_default_param);
   ASSERT(tst, final_parser_state(vm, "",      LISP_PARSER_START,0));
   ASSERT(tst, LISP_IS_NIL(&vm->value));
@@ -30,13 +30,13 @@ static void test_no_expression(unit_test_t * tst)
   ASSERT(tst, final_parser_state(vm, " \n  ", LISP_PARSER_START,0));
   ASSERT(tst, LISP_IS_NIL(&vm->value));
   lisp_free_vm(vm);
-  ASSERT_MEMCHECK(tst, memcheck);
-  memcheck_finalize(1);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
 }
 
 static void test_parens(unit_test_t * tst) 
 {
-  memchecker_t * memcheck = memcheck_begin(0);
+  memcheck_begin();
   lisp_vm_t * vm = lisp_create_vm(&lisp_vm_default_param);
   ASSERT(tst, final_parser_state(vm, "(",     LISP_PARSER_CAR, 1));
   ASSERT(tst, LISP_IS_NIL(&vm->value));
@@ -75,8 +75,8 @@ static void test_parens(unit_test_t * tst)
   ASSERT(tst, LISP_IS_NIL(LISP_CDR(LISP_CDR(LISP_CDR(&vm->value)))));
 
   lisp_free_vm(vm);
-  ASSERT_MEMCHECK(tst, memcheck);
-  memcheck_finalize(1);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
 }
 
 void test_parser(unit_context_t * ctx)

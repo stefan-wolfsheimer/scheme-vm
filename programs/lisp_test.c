@@ -4,6 +4,8 @@
 void test_test(unit_context_t * ctx);
 void test_hash_table(unit_context_t * ctx);
 void test_xmalloc(unit_context_t * ctx);
+void test_xstring(unit_context_t * ctx);
+void test_assertion(unit_context_t * ctx);
 void test_vm(unit_context_t * ctx);
 void test_asm(unit_context_t * ctx);
 void test_parser(unit_context_t * ctx);
@@ -15,6 +17,8 @@ int main(int argc, const char ** argv)
   unit_context_t * ctx = unit_create_context();
   test_test(ctx);
   test_xmalloc(ctx);
+  test_xstring(ctx);
+  test_assertion(ctx);
   test_hash_table(ctx);
   test_cons(ctx);
   test_vm(ctx);

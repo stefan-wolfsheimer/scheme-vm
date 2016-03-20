@@ -34,21 +34,21 @@ static int make_test_object(lisp_cell_t   * target,
 
 static void test_alloc_object(unit_test_t * tst)
 {
-  memchecker_t * memcheck = memcheck_begin(0);
+  memcheck_begin();
   void * obj = MALLOC_OBJECT(3,1);
   FREE_OBJECT(obj);
-  ASSERT_MEMCHECK(tst, memcheck);
-  memcheck_finalize(1);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
 }
 
 static void test_alloc_object_fail(unit_test_t * tst)
 {
-  memchecker_t * memcheck = memcheck_begin(0);
-  memcheck_expected_alloc(memcheck, 0);
+  memcheck_begin();
+  memcheck_expected_alloc(0);
   void * obj = MALLOC_OBJECT(3,1);
   ASSERT_EQ_PTR(tst, obj, NULL);
-  ASSERT_MEMCHECK(tst, memcheck);
-  memcheck_finalize(1);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
 }
 
 static void test_alloc_vm_fail(unit_test_t * tst)
@@ -57,54 +57,58 @@ static void test_alloc_vm_fail(unit_test_t * tst)
    * expected allocs to initialize the vm
    */
   size_t expected_mallocs = 0;
-  memchecker_t * memcheck;
   lisp_vm_t    * vm;
   size_t         i,j;
-  memcheck = memcheck_begin(0);
-  vm = lisp_create_vm(&lisp_vm_default_param);
-  expected_mallocs = memcheck->n_chunks;
-  ASSERT_NEQ_PTR(tst, vm, NULL);
-  lisp_free_vm(vm);
-  ASSERT_MEMCHECK(tst, memcheck);
-  memcheck_finalize(1);
+  {
+    memchecker_t * memcheck = memcheck_begin();
+    vm = lisp_create_vm(&lisp_vm_default_param);
+    expected_mallocs = memcheck->n_chunks;
+    ASSERT_NEQ_PTR(tst, vm, NULL);
+    lisp_free_vm(vm);
+    ASSERT_MEMCHECK(tst);
+    memcheck_end();
+  }
+
   for(i = 0; i < expected_mallocs; i++) 
   {
-    memcheck = memcheck_begin(0);
+    memchecker_t * memcheck = memcheck_begin();
     for(j = 0; j < i; j++) 
     {
-      memcheck_expected_alloc(memcheck, 1);
+      memcheck_expected_alloc(1);
     }
-    memcheck_expected_alloc(memcheck, 0);
+    memcheck_expected_alloc(0);
     vm = lisp_create_vm(&lisp_vm_default_param);
     ASSERT_EQ_PTR(tst, vm, NULL);
     if(i + 1 == expected_mallocs) 
     {
       ASSERT_EQ_PTR(tst, memcheck->next_mock, NULL);
     }
-    ASSERT_MEMCHECK(tst, memcheck);
-    memcheck_finalize(1);
+    ASSERT_MEMCHECK(tst);
+    memcheck_end();
   }
-  memcheck = memcheck_begin(0);
-  for(j = 0; j < expected_mallocs; j++) 
   {
-    memcheck_expected_alloc(memcheck, 1);
+    memcheck_begin();
+    for(j = 0; j < expected_mallocs; j++) 
+    {
+      memcheck_expected_alloc(1);
+    }
+    memcheck_expected_alloc(0);
+    vm = lisp_create_vm(&lisp_vm_default_param);
+    ASSERT_NEQ_PTR(tst, vm, NULL);
+    lisp_free_vm(vm);
+    ASSERT_MEMCHECK(tst);
+    memcheck_end();
   }
-  memcheck_expected_alloc(memcheck, 0);
-  vm = lisp_create_vm(&lisp_vm_default_param);
-  ASSERT_NEQ_PTR(tst, vm, NULL);
-  lisp_free_vm(vm);
-  ASSERT_MEMCHECK(tst, memcheck);
-  memcheck_finalize(1);
 }
 
 static void test_register_type(unit_test_t * tst)
 {
-  memchecker_t  * memcheck;
+  memcheck_begin();
   lisp_vm_t     * vm;
   lisp_type_id_t  id = 0;
   lisp_cell_t     obj;
   int             flag;
-  memcheck = memcheck_begin(0);
+
   vm = lisp_create_vm(&lisp_vm_default_param);
   ASSERT_FALSE(tst, lisp_register_object_type(vm,
 					      "TEST",
@@ -118,18 +122,17 @@ static void test_register_type(unit_test_t * tst)
   lisp_unset_object(vm, &obj);
   ASSERT(tst, LISP_IS_NIL(&obj));
   lisp_free_vm(vm);
-  ASSERT_MEMCHECK(tst, memcheck);
-  memcheck_finalize(1);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
 }
 
 static void test_object_without_explicit_destructor(unit_test_t * tst)
 {
+  memcheck_begin();
   lisp_cell_t    obj, copy;
   int            flags;
-  memchecker_t * memcheck;
   lisp_vm_t    * vm;
   lisp_type_id_t  id = 0;
-  memcheck = memcheck_begin(0);
   vm = lisp_create_vm(&lisp_vm_default_param);
   ASSERT_NEQ_PTR(tst, vm, NULL);
   ASSERT_FALSE(tst, lisp_register_object_type(vm,
@@ -140,32 +143,28 @@ static void test_object_without_explicit_destructor(unit_test_t * tst)
   ASSERT_FALSE(tst, make_test_object(&obj, &flags, id));
   ASSERT(tst, LISP_REFCOUNT(&obj) == 1);
   ASSERT_FALSE(tst, lisp_unset_object(vm, &obj));
-
+    
 
   ASSERT_FALSE(tst, make_test_object(&obj, &flags, id));
   ASSERT_FALSE(tst, lisp_copy_object_as_root(vm, &copy, &obj));
   ASSERT(tst, LISP_REFCOUNT(&obj) == 2);
   ASSERT_FALSE(tst, lisp_unset_object(vm, &obj));
   ASSERT_FALSE(tst, lisp_unset_object_root(vm, &copy));
-
-
   lisp_unset_object(vm, &obj);
-
   lisp_free_vm(vm);
-  ASSERT_MEMCHECK(tst, memcheck);
-  memcheck_finalize(1);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
 }
 
 
 static void test_copy_object(unit_test_t * tst)
 {
+  memcheck_begin();
   lisp_cell_t    obj;
   lisp_cell_t    copy;
   int            flags;
-  memchecker_t * memcheck;
   lisp_vm_t    * vm;
   lisp_type_id_t  id = 0;
-  memcheck = memcheck_begin(0);
   vm = lisp_create_vm(&lisp_vm_default_param);
   ASSERT_NEQ_PTR(tst, vm, NULL);
   ASSERT_FALSE(tst, lisp_register_object_type(vm,
@@ -182,7 +181,7 @@ static void test_copy_object(unit_test_t * tst)
   lisp_unset_object(vm, &obj);
   ASSERT(tst, LISP_REFCOUNT(&copy) == 1);
   lisp_unset_object(vm, &copy);
-
+    
   ASSERT_FALSE(tst, make_test_object(&obj, &flags, id));
   ASSERT(tst, LISP_REFCOUNT(&obj) == 1);
   ASSERT_FALSE(tst, lisp_copy_object_as_root(vm, &copy, &obj));
@@ -192,10 +191,10 @@ static void test_copy_object(unit_test_t * tst)
   ASSERT_FALSE(tst, lisp_unset_object(vm, &obj));
   ASSERT(tst, LISP_REFCOUNT(&copy) == 1);
   ASSERT_FALSE(tst, lisp_unset_object_root(vm, &copy));
-
+    
   lisp_free_vm(vm);
-  ASSERT_MEMCHECK(tst, memcheck);
-  memcheck_finalize(1);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
 }
 
 static void _test_init_objects_to_copy(unit_test_t * tst,
@@ -227,13 +226,11 @@ static void _test_init_objects_to_copy(unit_test_t * tst,
 
 static void test_copy_n_objects(unit_test_t * tst)
 {
-
+  memcheck_begin();
   lisp_cell_t    from[5];
   lisp_cell_t    to[5];
   int            flags[5];
-  memchecker_t * memcheck;
   lisp_vm_t    * vm;
-  memcheck = memcheck_begin(0);
   vm = lisp_create_vm(&lisp_vm_default_param);
   ASSERT_NEQ_PTR(tst, vm, NULL);
   /* 1. init vector */
@@ -266,17 +263,15 @@ static void test_copy_n_objects(unit_test_t * tst)
   ASSERT(tst, lisp_vm_check(tst, vm));
 
   lisp_free_vm(vm);
-  ASSERT_MEMCHECK(tst, memcheck);
-  memcheck_finalize(1);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
 }
 
 static void test_copy_object_as_root_and_unset_root(unit_test_t * tst)
 {
+  memcheck_begin();
   lisp_cell_t    cons, car, cdr, copy, copy2;
-  memchecker_t * memcheck;
   lisp_vm_t    * vm;
-
-  memcheck = memcheck_begin(0);
   vm = lisp_create_vm(&lisp_vm_default_param);
   ASSERT_NEQ_PTR(tst, vm, NULL);
 
@@ -322,16 +317,15 @@ static void test_copy_object_as_root_and_unset_root(unit_test_t * tst)
   ASSERT(tst, lisp_vm_check(tst, vm));
 
   lisp_free_vm(vm);
-  ASSERT_MEMCHECK(tst, memcheck);
-  memcheck_finalize(1);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
 }
 
 static void test_copy_object_as_root_fail(unit_test_t * tst)
 {
+  memcheck_begin();
   lisp_cell_t    cons, car, cdr, copy;
-  memchecker_t * memcheck;
   lisp_vm_t    * vm;
-  memcheck = memcheck_begin(0);
   vm = lisp_create_vm(&lisp_vm_default_param);
   ASSERT_NEQ_PTR(tst, vm, NULL);
 
@@ -345,24 +339,23 @@ static void test_copy_object_as_root_fail(unit_test_t * tst)
   ASSERT(tst, lisp_vm_check(tst, vm));
 
   /* 2. copy object as root with expected failure */
-  memcheck_expected_alloc(memcheck, 0);
+  memcheck_expected_alloc(0);
   ASSERT(tst, lisp_copy_object_as_root(vm, &copy, &cons));
   ASSERT_FALSE(tst, lisp_is_root_cons(vm, &cons));
   ASSERT(tst, lisp_vm_check(tst, vm));
 
   lisp_free_vm(vm);
-  ASSERT_MEMCHECK(tst, memcheck);
-  memcheck_finalize(1);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
 }
 
 static void test_copy_n_object_as_root(unit_test_t * tst)
 {
+  memcheck_begin();
   lisp_cell_t    from[5];
   lisp_cell_t    to[5];
   int            flags[5];
-  memchecker_t * memcheck;
   lisp_vm_t    * vm;
-  memcheck = memcheck_begin(0);
   vm = lisp_create_vm(&lisp_vm_default_param);
   ASSERT_NEQ_PTR(tst, vm, NULL);
   /* 1. init vector */
@@ -397,25 +390,24 @@ static void test_copy_n_object_as_root(unit_test_t * tst)
   ASSERT(tst, lisp_vm_check(tst, vm));
 
   lisp_free_vm(vm);
-  ASSERT_MEMCHECK(tst, memcheck);
-  memcheck_finalize(1);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
 }
 
 static void test_copy_n_object_as_root_fail(unit_test_t * tst)
 {
+  memcheck_begin();
   /* @todo implement the same as above but with failure mock */
   lisp_cell_t    from[5];
   lisp_cell_t    to[5];
   int            flags[5];
-  memchecker_t * memcheck;
   lisp_vm_t    * vm;
-  memcheck = memcheck_begin(0);
   vm = lisp_create_vm(&lisp_vm_default_param);
   ASSERT_NEQ_PTR(tst, vm, NULL);
   /* 1. init vector */
   _test_init_objects_to_copy(tst, vm, from, flags);
 
-  memcheck_expected_alloc(memcheck, 0);
+  memcheck_expected_alloc(0);
   /* 2. copy 5 objects */
   ASSERT(tst, lisp_copy_n_objects_as_root(vm, to, from, 5));
   ASSERT(tst, LISP_IS_NIL(&to[0]));
@@ -434,17 +426,16 @@ static void test_copy_n_object_as_root_fail(unit_test_t * tst)
 
 
   lisp_free_vm(vm);
-  ASSERT_MEMCHECK(tst, memcheck);
-  memcheck_finalize(1);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
 }
 
 
 static void test_unset_root_fail(unit_test_t * tst)
 {
-  memchecker_t * memcheck;
+  memcheck_begin();
   lisp_vm_t    * vm;
   lisp_cell_t    cons;
-  memcheck = memcheck_begin(0);
   vm = lisp_create_vm(&lisp_vm_default_param);
 
   /* 1. create 10 root conses */
@@ -454,14 +445,14 @@ static void test_unset_root_fail(unit_test_t * tst)
   /* 2. unroot first root cons with expected allocation error */
   cons = lisp_get_root_cons(vm, 0);
   ASSERT(tst, lisp_is_root_cons(vm, &cons));
-  memcheck_expected_alloc(memcheck, 0);
+  memcheck_expected_alloc(0);
   ASSERT(tst, lisp_unset_object_root(vm, &cons));
   ASSERT(tst, lisp_is_root_cons(vm, &cons));
   ASSERT(tst, lisp_vm_check(tst, vm));
 
   lisp_free_vm(vm);
-  ASSERT_MEMCHECK(tst, memcheck);
-  memcheck_finalize(1);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
 }
 
 
@@ -471,7 +462,7 @@ static void test_unset_root_fail(unit_test_t * tst)
    to separate file */
 static void test_create_string(unit_test_t * tst)
 {
-  memchecker_t * memcheck = memcheck_begin(0);
+  memcheck_begin();
   lisp_vm_t * vm = lisp_create_vm(&lisp_vm_default_param);
   lisp_cell_t str;
   lisp_make_string(vm, &str, "abc");
@@ -481,13 +472,13 @@ static void test_create_string(unit_test_t * tst)
   ASSERT_FALSE(tst, lisp_unset_object(vm, &str));
   ASSERT(        tst, LISP_IS_NIL(&str));
   lisp_free_vm(vm);
-  ASSERT_MEMCHECK(tst, memcheck);
-  memcheck_finalize(1);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
 }
 
 static void test_sprintf(unit_test_t * tst) 
 {
-  memchecker_t * memcheck = memcheck_begin(0);
+  memcheck_begin();
   lisp_vm_t * vm = lisp_create_vm(&lisp_vm_default_param);
   lisp_cell_t str;
   lisp_sprintf(vm, &str, "%d %x %s", 1,0xff, "abc");
@@ -497,13 +488,13 @@ static void test_sprintf(unit_test_t * tst)
   ASSERT_FALSE(tst, lisp_unset_object(vm, &str));
   ASSERT(tst, LISP_IS_NIL(&str));
   lisp_free_vm(vm);
-  ASSERT_MEMCHECK(tst, memcheck);
-  memcheck_finalize(1);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
 }
 
 static void test_copy_string(unit_test_t * tst) 
 {
-  memchecker_t * memcheck = memcheck_begin(0);
+  memcheck_begin();
   lisp_vm_t * vm = lisp_create_vm(&lisp_vm_default_param);
   lisp_cell_t str, copy1, copy2;
   lisp_make_string(vm, &str, "abc");
@@ -531,13 +522,13 @@ static void test_copy_string(unit_test_t * tst)
   ASSERT_FALSE(tst, lisp_unset_object(vm, &copy1));
   ASSERT_FALSE(tst, lisp_unset_object(vm, &copy2));
   lisp_free_vm(vm);
-  ASSERT_MEMCHECK(tst, memcheck);
-  memcheck_finalize(1);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
 }
 
 static void test_create_symbol(unit_test_t * tst) 
 {
-  memchecker_t * memcheck = memcheck_begin(0);
+  memcheck_begin();
   lisp_vm_t * vm = lisp_create_vm(&lisp_vm_default_param);
 
   lisp_cell_t symb_abc_1;
@@ -566,8 +557,8 @@ static void test_create_symbol(unit_test_t * tst)
   ASSERT_EQ_U(tst, HASH_TABLE_SIZE(&vm->symbols), 0);
   
   lisp_free_vm(vm);
-  ASSERT_MEMCHECK(tst, memcheck);
-  memcheck_finalize(1);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
 }
 
 void test_vm(unit_context_t * ctx)

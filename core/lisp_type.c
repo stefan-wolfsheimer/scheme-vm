@@ -14,9 +14,10 @@ static int _lisp_register_object_type(lisp_vm_t         * vm,
 				      lisp_char_t       * name,
 				      lisp_destructor_t   destructor,
 				      lisp_type_id_t      new_type_id);
+#if 0
 static void _destruct_lambda(lisp_vm_t * vm,
                              void      * ptr);
-
+#endif
 static void _destruct_symbol(lisp_vm_t * vm, void * ptr);
 
 static int _construct_symbol(void       * target,
@@ -172,6 +173,7 @@ int lisp_create_symbol_lstring(lisp_vm_t         * vm,
                                lisp_cell_t       * cell,
                                lisp_cell_t       * lstr)
 {
+  return 0;
 }
 
 int lisp_create_symbol_sprintf(lisp_vm_t         * vm,
@@ -179,11 +181,13 @@ int lisp_create_symbol_sprintf(lisp_vm_t         * vm,
                                const lisp_char_t * fmt,
                                ...)
 {
+  return 0;
 }
 
 lisp_symbol_t * lisp_get_symbol(lisp_vm_t * vm,
                                 const lisp_char_t * cstr)
 {
+  return NULL;
 }
 
 lisp_symbol_t * lisp_get_symbol_lstring(lisp_vm_t * vm,
@@ -205,6 +209,7 @@ lisp_symbol_t * lisp_get_symbol_sprintf(lisp_vm_t * vm,
  * 
  *****************************************************************************/
 /* @todo move it to other c file */
+#if 0
 static void _destruct_lambda(lisp_vm_t * vm,
                              void      * ptr)
 {
@@ -221,5 +226,5 @@ static void _destruct_lambda(lisp_vm_t * vm,
   }
   FREE_OBJECT(ptr);
 }
-
+#endif
 

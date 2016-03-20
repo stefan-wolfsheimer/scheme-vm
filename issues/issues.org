@@ -39,10 +39,13 @@
    Example: if(CHECK_EQ_U(NULL, 1, 0)) ... // will print warning
             ASSERT_EQ_U(NULL, 1, 0)        // will exit(8)
 ** TODO fork / thread test execution
+** TODO create standalone assertion library
+   that can be used from unit test framework and applications
 * String 
 ** TODO unicode strings
 ** TODO substrings
 
+** TODO general c-string library extension
 * Execution system
 ** TODO define optcodes
 ** TODO JIT compiler

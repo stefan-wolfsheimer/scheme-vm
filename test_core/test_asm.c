@@ -24,7 +24,7 @@
 
 static void test_disassemble_instr(unit_test_t * tst) 
 {
-  memchecker_t * memcheck = memcheck_begin(0);
+  memchecker_t * memcheck = memcheck_begin();
   lisp_vm_t * vm = lisp_create_vm(&lisp_vm_default_param);
   ASSERT_DISASSEMBLE(tst, vm, { LISP_PUSHD(1) },   2, "PUSHD 1");
   ASSERT_DISASSEMBLE(tst, vm, { LISP_PUSHS(2) },   2, "PUSHS 2");
@@ -41,8 +41,8 @@ static void test_disassemble_instr(unit_test_t * tst)
   ASSERT_DISASSEMBLE(tst, vm, { LISP_RETURNIF },      1, "RETURNIF");
 
   lisp_free_vm(vm);
-  ASSERT_MEMCHECK(tst, memcheck);
-  memcheck_finalize(1);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
 }
 
 void test_asm(unit_context_t * ctx)

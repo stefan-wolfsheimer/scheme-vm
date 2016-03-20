@@ -2,33 +2,24 @@
 #define __UNIT_TEST_H__
 #include <stdlib.h>
 #include <stdio.h>
+#include "assertion.h"
 
 #define UNIT_CHECKS_VERBOSE 0
 /* @todo printer for array assertions */
 /* @todo extra library for c string */
+/* @todo extra library for assertions */
 
 struct memchecker_t;
 struct unit_test_t;
 typedef void(*unit_test_function_t)(struct unit_test_t * tst);
-
-typedef struct unit_assertion_t
-{
-  char * expect;
-  char * expect_explain;
-  char * file;
-  int line;
-  int success;
-  struct unit_test_t * tst;
-  struct unit_assertion_t * next;
-} unit_assertion_t;
 
 typedef struct unit_test_t
 {
   char                    * name;
   unit_test_function_t      func;
   struct unit_test_t      * next;
-  struct unit_assertion_t * first_assertion;
-  struct unit_assertion_t * last_assertion;
+  struct assertion_t      * first_assertion;
+  struct assertion_t      * last_assertion;
   struct unit_suite_t     * suite;
   short int                 active;
   void                    * user_data;
@@ -78,10 +69,22 @@ unit_test_t * unit_create_test(unit_suite_t * suite,
                                const char * name, 
                                unit_test_function_t func);
 
-unit_assertion_t * unit_create_assertion(unit_test_t * tst,
-					 const char  * expect,
-                                         const char  * file, int line, 
-                                         int           success);
+/** 
+ *  Add a list of assertion (or a single assertion to the test).
+ *  Increases the reference count of each assertion.
+ *  @return non zero if all assertions are successful
+ */
+int unit_add_assertion(unit_test_t * tst,
+		       assertion_t * assertion_lst);
+
+
+assertion_t * unit_create_assertion(unit_test_t * tst,
+				    const char  * expect,
+				    const char  * file,
+				    int line, 
+				    int           success);
+
+
 
 int unit_create_check(unit_test_t * tst,
 		      const char  * expect,
@@ -107,7 +110,7 @@ int unit_create_check(unit_test_t * tst,
 			      const char      * op);
 
 #define __CREATE_ASSERTION__(__CMP_TYPE__, __TYPE__)			\
-  unit_assertion_t *							\
+  assertion_t *							\
   unit_create_assertion_##__CMP_TYPE__(unit_test_t * tst,		\
 				       const char * lhs_expr,		\
 				       const char * rhs_expr,		\
@@ -118,7 +121,7 @@ int unit_create_check(unit_test_t * tst,
 				       const char * op);
 
 #define __CREATE_ASSERTION_ARR__(__CMP_TYPE__, __TYPE__)		\
-  unit_assertion_t *							\
+  assertion_t *							\
   unit_create_assertion_arr_##__CMP_TYPE__(unit_test_t *    tst,	\
 					   const char *     lhs_expr,	\
 					   const char *     rhs_expr,	\
@@ -197,7 +200,7 @@ int unit_create_check(unit_test_t * tst,
 				 __LHS__,__NLHS__,__RHS__,__NRHS__,	\
 				 __OP__)				\
   unit_create_check_arr_##__TYPE__((__TEST__),				\
-				     (#__LHS__),			\
+				   (#__LHS__),				\
 				   (#__RHS__),				\
 				   (__LHS__),				\
 				   (__NLHS__),				\
@@ -461,7 +464,7 @@ __CREATE_CHECK_ARR__(     cmp_u, unsigned int);
 
 #define CHECK_GE_ARR_U(__TEST__, __LHS__,__NLHS__, __RHS__,__NRHS__)	\
   __CREATE_CHECK_ARR_CMP__(cmp_u, (__TEST__),				\
-			   (__LHS__),(__NLHS__),			\
+				       (__LHS__),(__NLHS__),		\
 			   (__RHS__), (__NRHS__), ">=")
 
 
@@ -726,10 +729,10 @@ __CREATE_CHECK_ARR__(     cmp_cstr, const char *);
 #undef __CREATE_CHECK_ARR__
 
 
-unit_assertion_t * unit_memchecker(unit_test_t              * tst,
-                                   struct memchecker_t      * memcheck,
-                                   const char               * file, 
-                                   int                        line);
+assertion_t * unit_memchecker(unit_test_t              * tst,
+			      struct memchecker_t      * memcheck,
+			      const char               * file, 
+			      int                        line);
                                          
 void unit_run(FILE * fp,
               unit_context_t * ctx);
@@ -768,80 +771,16 @@ void unit_final_report(FILE * fp,
 		    !(__EXPR__),					\
 		    UNIT_CHECKS_VERBOSE)
 
-#if 0
-/** Compare two arrays of strings */
-#define ASSERT_EQ_CSTR_LIST(__TEST__, __LHS__,__SLHS__,                 \
-                            __RHS__, __SRHS__)                          \
-  if(! unit_create_assertion_eq_cstr_list((__TEST__),                   \
-                                          #__LHS__,                     \
-                                          #__RHS__,                     \
-                                          (__LHS__),                    \
-                                          (__SLHS__),                   \
-                                          (__RHS__),                    \
-                                          (__SRHS__),                   \
-                                          __FILE__,                     \
-                                          __LINE__,                     \
-                                          0)->success)                  \
-    { return; }
-
-/** Compare two arrays of strings */
-#define CHECK_EQ_CSTR_LIST(__TEST__, __LHS__,__SLHS__,			\
-                            __RHS__, __SRHS__)                          \
-  unit_create_chcek_eq_cstr_list((__TEST__),				\
-				 #__LHS__,				\
-				 #__RHS__,				\
-				 (__LHS__),				\
-				 (__SLHS__),				\
-				 (__RHS__),				\
-				 (__SRHS__),				\
-				 __FILE__,				\
-				 __LINE__,				\
-				 0,					\
-				 UNIT_CHECKS_VERBOSE)		    
-
-#define ASSERT_NEQ_CSTR_LIST(__TEST__, __LHS__,__SLHS__,                \
-                            __RHS__, __SRHS__)                          \
-  if(! unit_create_assertion_eq_cstr_list((__TEST__),                   \
-                                          #__LHS__,                     \
-                                          #__RHS__,                     \
-                                          (__LHS__),                    \
-                                          (__SLHS__),                   \
-                                          (__RHS__),                    \
-                                          (__SRHS__),                   \
-                                          __FILE__,                     \
-                                          __LINE__,                     \
-                                          1)->success)                  \
-    { return; }
-
-#define CHECK_NEQ_CSTR_LIST(__TEST__, __LHS__,__SLHS__,			\
-                            __RHS__, __SRHS__)                          \
-  unit_check_assertion_eq_cstr_list((__TEST__),				\
-				    #__LHS__,				\
-				    #__RHS__,				\
-				    (__LHS__),				\
-				    (__SLHS__),				\
-				    (__RHS__),				\
-				    (__SRHS__),				\
-				    __FILE__,				\
-				    __LINE__,				\
-				    1,					\
-				    UNIT_CHECKS_VERBOSE)
-
-#endif
-
-
-
-
 /*****************************************************************
  * xmalloc assertions 
  *****************************************************************/
-#define ASSERT_MEMCHECK(__TEST__, __MEMCHECKER__)                 \
-  if(! unit_memchecker( (__TEST__), (__MEMCHECKER__),             \
-                        __FILE__, __LINE__)->success)             \
-    { return; }
+#define ASSERT_MEMCHECK(__TEST__)					\
+  if(!unit_add_assertion( (__TEST__), memcheck_finalize()))		\
+  {									\
+    return;								\
+  }
 
-#define CHECK_MEMCHECK(__TEST__, __MEMCHECKER__)                   \
-  ( unit_memchecker( (__TEST__), (__MEMCHECKER__),                 \
-                     __FILE__, __LINE__)->success )
-  
+#define CHECK_MEMCHECK(__TEST__)				\
+  unit_add_assertion( (__TEST__), memcheck_finalize())
+				       
 #endif

@@ -84,7 +84,7 @@ clean:
 .PHONY: clean
 
 ${OBJDIR}/coverage.info: ${OBJDIR}/lisp_test_cov
-	${OBJDIR}/lisp_test_cov cons
+	${OBJDIR}/lisp_test_cov
 	lcov --capture --no-external --directory .  --output-file ${OBJDIR}/coverage_unfiltered.info
 	lcov --remove ${OBJDIR}/coverage_unfiltered.info $(shell pwd )/'test_*/*' $(shell pwd )/'programs/*' -o ${OBJDIR}/coverage.info
 

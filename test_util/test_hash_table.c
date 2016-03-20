@@ -64,7 +64,7 @@ static char** ht_create_n_elements(size_t n)
   for(i = 0; i < n; i++) 
   {
     elements[i] = MALLOC(sizeof(char) * 10);
-    sprintf(elements[i], "%u", i);
+    sprintf(elements[i], "%zu", i);
   }
   return elements;
 }
@@ -258,7 +258,7 @@ static int _ht_check_bucket_entries(unit_test_t       * tst,
 }
 
 
-static unit_assertion_t* 
+static assertion_t* 
 create_assertion_ht_has_elements(unit_test_t       * tst,
                                  hash_table_t      * ht, 
                                  const char        * ht_expression,
@@ -370,7 +370,7 @@ create_assertion_ht_has_elements(unit_test_t       * tst,
     entry = HASH_TABLE_NEXT(entry);
   }
   qsort (ht_values, m, sizeof(char*), my_strcmp);
-  unit_assertion_t * assertion;
+  assertion_t * assertion;
   assertion = unit_create_assertion_arr_cmp_cstr(tst,
 						 ht_expression,
 						 elements_expression,
@@ -393,7 +393,7 @@ static void test_hash_function(unit_test_t * tst)
 
 static void test_hash_table_init(unit_test_t * tst)
 {
-  memchecker_t * memcheck = memcheck_begin(0);
+  memchecker_t * memcheck = memcheck_begin();
   hash_table_t ht;
   hash_table_init(&ht, 
                   ht_cmp_function,
@@ -402,8 +402,8 @@ static void test_hash_table_init(unit_test_t * tst)
                   ht_destructor,
                   1);
   hash_table_finalize(&ht);
-  ASSERT_MEMCHECK(tst, memcheck);
-  memcheck_finalize(1);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
 }
 
 
@@ -414,7 +414,7 @@ static void test_hash_table_set(unit_test_t * tst,
 {
   size_t         i,j;
   hash_table_t   ht;
-  memchecker_t * memcheck = memcheck_begin(0);
+  memchecker_t * memcheck = memcheck_begin();
   char **        elements_in_table = MALLOC(sizeof(char*)*n);
   for(i=0; i < n; i++) 
   {
@@ -458,8 +458,8 @@ static void test_hash_table_set(unit_test_t * tst,
   }
   hash_table_finalize(&ht);
   FREE(elements_in_table);
-  ASSERT_MEMCHECK(tst, memcheck);
-  memcheck_finalize(1);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
 
 }
 
@@ -468,7 +468,7 @@ static void test_hash_table_find_or_insert(unit_test_t * tst,
                                            const char * elements[],
                                            size_t n)
 {
-  memchecker_t * memcheck = memcheck_begin(0);
+  memchecker_t * memcheck = memcheck_begin();
   size_t i,j;
   hash_table_t ht;
   int inserted;
@@ -516,8 +516,8 @@ static void test_hash_table_find_or_insert(unit_test_t * tst,
   }
   hash_table_finalize(&ht);
   FREE(elements_in_table);
-  ASSERT_MEMCHECK(tst, memcheck);
-  memcheck_finalize(1);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
 }
 
 
@@ -564,7 +564,7 @@ static void test_hash_table_find_or_insert_different_buckets(unit_test_t * tst)
 
 static void test_hash_table_set_after_swap(unit_test_t * tst)
 {
-  memchecker_t * memcheck = memcheck_begin(0);
+  memchecker_t * memcheck = memcheck_begin();
   hash_table_t ht;
   size_t i,m,n = 100;
   char ** elements = ht_init_n_elements(&ht, n);
@@ -582,8 +582,8 @@ static void test_hash_table_set_after_swap(unit_test_t * tst)
   ASSERT_EQ_U(tst, ht.hash_array[ht.current_world_index].n_elements, n);
   ht_free_n_elements(elements, n);
   hash_table_finalize(&ht);
-  ASSERT_MEMCHECK(tst, memcheck);
-  memcheck_finalize(1);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
 }
 
 static void test_hash_table_find_or_insert_after_swap(unit_test_t * tst)
@@ -593,7 +593,7 @@ static void test_hash_table_find_or_insert_after_swap(unit_test_t * tst)
 
 static void test_hash_table_remove(unit_test_t * tst)
 {
-  memchecker_t * memcheck = memcheck_begin(0);
+  memchecker_t * memcheck = memcheck_begin();
   hash_table_t ht;
   size_t i,m,n = 100;
   char ** elements = ht_init_n_elements(&ht, n);
@@ -700,13 +700,13 @@ static void test_hash_table_remove(unit_test_t * tst)
   ht_free_n_elements(elements, n);
   FREE(active_elements);
   hash_table_finalize(&ht);
-  ASSERT_MEMCHECK(tst, memcheck);
-  memcheck_finalize(1);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
 }
 
 static void test_hash_table_recycle(unit_test_t * tst)
 {
-  memchecker_t * memcheck = memcheck_begin(0);
+  memchecker_t * memcheck = memcheck_begin();
   hash_table_t ht;
   size_t i,m,n = 100;
   char ** elements = ht_init_n_elements(&ht, n);
@@ -733,8 +733,8 @@ static void test_hash_table_recycle(unit_test_t * tst)
   ASSERT_EQ_U(tst, ht.hash_array[ht.current_world_index].n_buckets, 150);
   ht_free_n_elements(elements, n);
   hash_table_finalize(&ht);
-  ASSERT_MEMCHECK(tst, memcheck);
-  memcheck_finalize(1);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
 }
 
 
