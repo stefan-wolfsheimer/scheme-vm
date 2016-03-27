@@ -14,12 +14,10 @@
 #define COLOR_WHITE    "\x1B[37m"
 
 static void _print_result(FILE * fp, int success, int color);
-/* @todo move to assertion.c */
-static void _print_assertion(FILE * fp, assertion_t * ass, int color);
+/* @todo remove _count_assertion use add_assertion instead */
 static void _count_assertion(unit_test_t * tst, assertion_t * ass);
 
 /* @todo replace with library functions */
-static char * _alloc_sprintf(const char * fmt, ...);
 static char * _alloc_strcpy(const char * from);
 
 static int _unit_run_test(FILE * fp, unit_context_t * ctx, unit_test_t * tst);
@@ -32,6 +30,7 @@ static void _unit_final_report_print(FILE * fp,
                                      size_t n_passed,
                                      size_t n_failed,
                                      size_t no_results);
+
 
 static void _print_result(FILE * fp, int success, int color) 
 {
@@ -47,59 +46,10 @@ static void _print_result(FILE * fp, int success, int color)
   }
 }
 
-static void _print_assertion(FILE * fp,
-                             assertion_t * ass,
-			     int color)
-{
-  _print_result(fp, ass->success, color);
-  if(ass->is_exception) 
-  {
-    fprintf(fp, "    %s:%d: exception <%s>\n",
-	    ass->file, ass->line, ass->expect);
-  }
-  else 
-  {
-    fprintf(fp, "    %s:%d: assertion <%s>\n",
-	    ass->file, ass->line, ass->expect);
-  }
-  if(ass->expect_explain) 
-  {
-    const char * begin = ass->expect_explain;
-    int size = snprintf(NULL, 0, "            %s:%d: ", ass->file, ass->line);
-    while(*begin) 
-    {
-      const char * ptr = begin;
-      while(*ptr && *ptr!= '\n')
-      {
-	ptr++;
-      }
-      char * buff = malloc(size + (ptr-begin) + 2);
-      int i;
-      for(i = 0; i < size; i++) 
-      {
-	buff[i] = ' ';
-      }
-      ptr = begin;
-      while(*ptr && *ptr!= '\n')
-      {
-	buff[i++] = *ptr;
-	ptr++;
-      }
-      buff[i] = '\0';
-      fprintf(fp, "%s\n", buff);
-      begin = ptr;
-      if(*begin == '\n')
-      { 
-	begin++;
-      }
-      free(buff);
-    }
-  }
-}
-
 static void _count_assertion(unit_test_t * tst, 
                              assertion_t * assertion)
 {
+  /* @todo remove this function */
   if(tst != NULL) 
   {
     if(assertion->success) tst->_passed_assertions++;
@@ -118,25 +68,13 @@ static void _count_assertion(unit_test_t * tst,
 	tst->suite->ctx->verbose_level > 0) || 
        tst->suite->ctx->verbose_level > 1)
     {
-      _print_assertion(tst->_fp, assertion,tst->suite->ctx->color);
+      assertion_print(tst->_fp,
+		      assertion,
+		      tst->suite->ctx->color);
     }
   }
 }
 
-static char * _alloc_sprintf(const char * fmt, ...)
-{
-  int       size;
-  va_list   ap1, ap2;
-  char    * ret;
-  va_start(ap1, fmt);
-  va_copy(ap2, ap1);
-  size = vsnprintf(NULL, 0, fmt, ap1);
-  va_end(ap1);
-  ret = malloc( sizeof(char) * (size+1) );
-  vsprintf(ret, fmt, ap2);  
-  va_end(ap2);
-  return ret;
-}
 
 static char * _alloc_strcpy(const char * from)
 {
@@ -236,20 +174,20 @@ static void _unit_final_report_print(FILE * fp,
     {
       fprintf(fp, COLOR_BLUE);
     }
-    fprintf(fp, "%u / %u %s passed "COLOR_NORMAL, n_passed,n,name);
+    fprintf(fp, "%zu / %zu %s passed "COLOR_NORMAL, n_passed,n,name);
     if(no_results) 
     {
-      fprintf(fp, COLOR_BLUE" (%u without %s)"COLOR_NORMAL, 
+      fprintf(fp, COLOR_BLUE" (%zu without %s)"COLOR_NORMAL, 
               no_results, result_name);
     }
     fprintf(fp, "\n");
   }
   else
   {
-    fprintf(fp, "%u / %u %s passed ", n_passed,n,name);
+    fprintf(fp, "%zu / %zu %s passed ", n_passed,n,name);
     if(no_results) 
     {
-      fprintf(fp, " (%u without %s)", no_results, result_name);
+      fprintf(fp, " (%zu without %s)", no_results, result_name);
     }
     fprintf(fp, "\n");
   }
@@ -415,7 +353,31 @@ int unit_add_assertion(unit_test_t * tst, assertion_t * assertion_lst)
     {
       ok = 0;
     }
-    _count_assertion(tst, current);
+    if(tst != NULL) 
+    {
+      if(current->success) tst->_passed_assertions++;
+      else tst->_failed_assertions++;
+      if(tst->last_assertion != NULL) 
+      {
+	tst->last_assertion->next = current;
+	tst->last_assertion       = current;
+      }
+      else 
+      {
+	tst->last_assertion  = current;
+	tst->first_assertion = current;
+      }
+      if((!current->success && 
+	  tst->suite->ctx->verbose_level > 0) || 
+	 tst->suite->ctx->verbose_level > 1)
+      {
+	assertion_print(tst->_fp, current,tst->suite->ctx->color);
+      }
+    }
+    else 
+    {
+      assertion_free(current);
+    }
     current = next;
   }
   return ok;
@@ -464,7 +426,7 @@ int unit_create_check(unit_test_t * tst,
       /* not managed by tst */
       if(verbose)
       {
-	_print_assertion(stderr, ass, 1);
+	assertion_print(stderr, ass, 1);
       }
       assertion_free(ass);
     }
@@ -474,247 +436,10 @@ int unit_create_check(unit_test_t * tst,
 
 /*********************************************************************
  * 
- * macros to create check and assertion functions
- *
- *********************************************************************/
-#define __CREATE_CMP__(__CMP_TYPE__, __TYPE__)				\
-  int unit_##__CMP_TYPE__(__TYPE__ lhs, __TYPE__ rhs,			\
-			  const char * op)				\
-  { return ( !strcmp(op,"==") && (lhs == rhs) ) ||			\
-      ( !strcmp(op,"!=") && (lhs != rhs) ) ||				\
-      ( !strcmp(op,"<")  && (lhs < rhs) )  ||				\
-      ( !strcmp(op, ">") && (lhs > rhs) ) ||				\
-      ( !strcmp(op,"<=") && (lhs <= rhs) ) ||				\
-      ( !strcmp(op, ">=") && (lhs >= rhs) );				\
-  }
-
-#define __CREATE_ARR_CMP__(__CMP_TYPE__, __TYPE__)			\
-  int unit_arr_##__CMP_TYPE__(const __TYPE__  * lhs,			\
-			      size_t            nlhs,			\
-			      const __TYPE__  * rhs,			\
-			      size_t            nrhs,			\
-			      const char      * op)			\
-  {									\
-    size_t i;								\
-    for(i = 0; i < nlhs; i++)						\
-    {									\
-      if(i == nrhs)							\
-      {									\
-	if( !strcmp(op, "==") || !strcmp(op, "<") || !strcmp(op, "<="))	\
-	{								\
-	  return 0;							\
-	}								\
-	else								\
-	{								\
-	  return 1;							\
-	}								\
-      }									\
-      if(!unit_##__CMP_TYPE__(lhs[i], rhs[i],"=="))			\
-      {									\
-	return unit_##__CMP_TYPE__(lhs[i], rhs[i],op);			\
-      }									\
-    }									\
-    return								\
-      ( !strcmp(op, "==") && (nlhs ==  nrhs) ) ||			\
-      ( !strcmp(op, "!=") && (nlhs !=  nrhs) ) ||			\
-      ( !strcmp(op, "<")  && (nlhs <   nrhs) ) ||			\
-      ( !strcmp(op, ">")  && (nlhs >   nrhs) ) ||			\
-      ( !strcmp(op, "<=") && (nlhs <=  nrhs) ) ||			\
-      ( !strcmp(op, ">=") && (nlhs >= nrhs) );				\
-  }
-
-#define __CREATE_ASSERTION__(__CMP_TYPE__, __TYPE__, __FMT__)		\
-  assertion_t *							\
-  unit_create_assertion_##__CMP_TYPE__(unit_test_t * tst,		\
-				       const char * lhs_expr,		\
-				       const char * rhs_expr,		\
-				       __TYPE__ lhs,			\
-				       __TYPE__ rhs,			\
-				       const char * file,		\
-				       int line,			\
-				       const char * op)			\
-  {									\
-    assertion_t * ass = assertion_create(file, line);			\
-    ass->success = 0;							\
-    ass->expect = _alloc_sprintf("%s%s%s", lhs_expr, op, rhs_expr);	\
-    ass->expect_explain = _alloc_sprintf("with %s=="#__FMT__"\n"	\
-					 "     %s=="#__FMT__"",		\
-					 lhs_expr, lhs, rhs_expr, rhs);	\
-    ass->success = unit_##__CMP_TYPE__(lhs, rhs, op);			\
-    _count_assertion(tst, ass);						\
-    return ass;								\
-  }									\
-
-#define __CREATE_ASSERTION_ARR__(__CMP_TYPE__, __TYPE__, __FMT__)	\
-  assertion_t *							\
-  unit_create_assertion_arr_##__CMP_TYPE__(unit_test_t *     tst,	\
-					   const char *      lhs_expr,	\
-					   const char *      rhs_expr,	\
-					   const __TYPE__  * lhs,	\
-					   size_t            nlhs,	\
-					   const __TYPE__  * rhs,	\
-					   size_t            nrhs,	\
-					   const char *      file,	\
-					   int               line,	\
-					   const char      * op)	\
-  {									\
-    assertion_t * ass = assertion_create(file, line);			\
-    ass->success = 0;							\
-    ass->expect = _alloc_sprintf("%s%s%s", lhs_expr, op, rhs_expr);	\
-    ass->expect_explain = _alloc_sprintf("with %s==%p\n"		\
-					 "     %s==%p",			\
-					 lhs_expr, lhs, rhs_expr, rhs);	\
-    ass->success = unit_arr_##__CMP_TYPE__(lhs, nlhs, rhs, nrhs, op);	\
-    _count_assertion(tst, ass);						\
-    return ass;								\
-  }
-
-
-#define __CREATE_CHECK__(__CMP_TYPE__, __TYPE__)		\
-  int unit_create_check_##__CMP_TYPE__(unit_test_t  * tst,	\
-				     const char   * lhs_expr,	\
-				     const char   * rhs_expr,	\
-				     __TYPE__   lhs,		\
-				     __TYPE__   rhs,		\
-				     const char   * file,	\
-				     int            line,	\
-				     const char   * op,		\
-				     int            verbose)	\
-  {								\
-    if(unit_##__CMP_TYPE__(lhs, rhs, op))			\
-    {								\
-      return 1;							\
-    }								\
-    else							\
-    {								\
-      assertion_t * ass;					\
-      ass = unit_create_assertion_##__CMP_TYPE__(tst,		\
-						lhs_expr,	\
-						rhs_expr,	\
-						lhs,		\
-						rhs,		\
-						file,		\
-						line,		\
-						op);		\
-	if(tst == NULL)						\
-	{							\
-	  /* not managed by tst */				\
-	  if(verbose)						\
-	  {							\
-	    _print_assertion(stderr, ass, 1);			\
-	  }							\
-	  assertion_free(ass);					\
-	}							\
-	return 0;						\
-    }								\
-  }
-
-#define __CREATE_CHECK_ARR__(__CMP_TYPE__, __TYPE__)			\
-  int unit_create_check_arr_##__CMP_TYPE__(unit_test_t    * tst,	\
-					   const char     * lhs_expr,	\
-					   const char     * rhs_expr,	\
-					   const __TYPE__ * lhs,	\
-					   size_t           nlhs,	\
-					   const __TYPE__ * rhs,	\
-					   size_t           nrhs,	\
-					   const char     * file,	\
-					   int              line,	\
-					   const char     * op,		\
-					   int              verbose)	\
-  {									\
-    if(unit_arr_##__CMP_TYPE__(lhs, nlhs, rhs, nrhs, op))		\
-    {									\
-      return 1;								\
-    }									\
-    else								\
-    {									\
-      assertion_t * ass;						\
-      ass = unit_create_assertion_arr_##__CMP_TYPE__(tst,		\
-						     lhs_expr,		\
-						     rhs_expr,		\
-						     lhs,		\
-						     nlhs,		\
-						     rhs,		\
-						     nrhs,		\
-						     file,		\
-						     line,		\
-						     op);		\
-	if(tst == NULL)							\
-	{								\
-	  /* not managed by tst */					\
-	  if(verbose)							\
-	  {								\
-	    _print_assertion(stderr, ass, 1);				\
-	  }								\
-	  assertion_free(ass);						\
-	}								\
-	return 0;							\
-    }									\
-  }
-
-
-/*********************************************************************
- * 
- * int 
- *
- *********************************************************************/
-__CREATE_CMP__(           cmp_i, int);
-__CREATE_ARR_CMP__(       cmp_i, int);
-__CREATE_ASSERTION__(     cmp_i, int, "%d");
-__CREATE_ASSERTION_ARR__( cmp_i, int, "%d");
-__CREATE_CHECK__(         cmp_i, int);
-__CREATE_CHECK_ARR__(     cmp_i, int);
-
-/*********************************************************************
- * 
- * unsigned int 
- *
- *********************************************************************/
-__CREATE_CMP__(           cmp_u, unsigned int);
-__CREATE_ASSERTION__(     cmp_u, unsigned int, "%u");
-__CREATE_CHECK__(         cmp_u, unsigned int);
-__CREATE_ARR_CMP__(       cmp_u, unsigned int);
-__CREATE_ASSERTION_ARR__( cmp_u, unsigned int, "%u");
-__CREATE_CHECK_ARR__(     cmp_u, unsigned int);
-
-/*********************************************************************
- * 
- * pointer
- *
- *********************************************************************/
-__CREATE_CMP__(           cmp_ptr, const void *);
-__CREATE_ASSERTION__(     cmp_ptr, const void *, "%p");
-__CREATE_CHECK__(         cmp_ptr, const void *);
-__CREATE_ARR_CMP__(       cmp_ptr, const void *);
-__CREATE_ASSERTION_ARR__( cmp_ptr, const void *, "%p");
-__CREATE_CHECK_ARR__(     cmp_ptr, const void *);
-
-/*********************************************************************
- * 
- * c string
- *
- *********************************************************************/
-int unit_cmp_cstr(const char * lhs, const char * rhs, const char * op)
-{
-  return ( !strcmp(op,"==") && !strcmp(lhs, rhs)) ||
-    ( !strcmp(op,"!=") && strcmp(lhs, rhs))       ||
-    ( !strcmp(op,"<")  && strcmp(lhs, rhs)<0)     ||
-    ( !strcmp(op, ">") && strcmp(lhs, rhs)>0)     ||
-    ( !strcmp(op,"<=") && strcmp(lhs, rhs)<=0)    ||
-    ( !strcmp(op, ">=")&& strcmp(lhs, rhs)>=0);
-}
-__CREATE_ARR_CMP__(   cmp_cstr, const char *);
-__CREATE_ASSERTION__( cmp_cstr, const char *, "%s");
-__CREATE_CHECK__(     cmp_cstr, const char *);
-__CREATE_ASSERTION_ARR__( cmp_cstr, const char *, "%s");
-__CREATE_CHECK_ARR__(     cmp_cstr, const char *);
-
-
-/*********************************************************************
- * 
  * memchecker
  *
  *********************************************************************/
+/* @todo move to sep. module */
 assertion_t * unit_memchecker(unit_test_t              * tst,
                                    struct memchecker_t      * memcheck,
                                    const char               * file, 
@@ -835,7 +560,7 @@ void unit_final_report(FILE * fp,
       ctx->n_suites_deactivated;
     if(ctx->color) 
     {
-      fprintf(fp, "%s%u / %u suites deactivated%s\n", 
+      fprintf(fp, "%s%zu / %zu suites deactivated%s\n", 
               COLOR_BLUE,
               ctx->n_suites_deactivated,
               n,

@@ -37,27 +37,6 @@ static void test_check_int(unit_test_t * tst)
   unit_suite_t   * suite  = unit_create_suite(ctx, "suite1");
   unit_test_t    * tst1   = unit_create_test(suite, "test1", test_check_int);
 
-  ASSERT(tst,       unit_cmp_i(-1, -1, "=="));
-  ASSERT_FALSE(tst, unit_cmp_i(-1, -1, "!="));
-  ASSERT_FALSE(tst, unit_cmp_i(-1, -1, "<"));
-  ASSERT_FALSE(tst, unit_cmp_i(-1, -1, ">"));
-  ASSERT(tst,       unit_cmp_i(-1, -1, "<="));
-  ASSERT(tst,       unit_cmp_i(-1, -1, ">="));
-
-  ASSERT_FALSE(tst, unit_cmp_i(-1, 1, "=="));
-  ASSERT(tst,       unit_cmp_i(-1, 1, "!="));
-  ASSERT(tst,       unit_cmp_i(-1, 1, "<"));
-  ASSERT_FALSE(tst, unit_cmp_i(-1, 1, ">"));
-  ASSERT(tst,       unit_cmp_i(-1, 1, "<="));
-  ASSERT_FALSE(tst, unit_cmp_i(-1, 1, ">="));
-
-  ASSERT_FALSE(tst, unit_cmp_i(1, -1, "=="));
-  ASSERT(tst,       unit_cmp_i(1, -1, "!="));
-  ASSERT_FALSE(tst, unit_cmp_i(1, -1, "<"));
-  ASSERT(tst,       unit_cmp_i(1, -1, ">"));
-  ASSERT_FALSE(tst, unit_cmp_i(1, -1, "<="));
-  ASSERT(tst,       unit_cmp_i(1, -1, ">="));
-
   /* EQ == */
   ASSERT_EQ_I(tst, -1, -1);
   ASSERT(tst,       CHECK_EQ_I(tst1, -1, -1));
@@ -127,70 +106,6 @@ static void test_check_arr_int(unit_test_t * tst)
   const int a2[2] = { 4, 5 };
   const int a3[3] = { 1, 2, 4 };
 
-  /* {} {} */
-  ASSERT(tst,       unit_arr_cmp_i(a1, 0, a1, 0, "=="));
-  ASSERT_FALSE(tst, unit_arr_cmp_i(a1, 0, a1, 0, "!="));
-  ASSERT_FALSE(tst, unit_arr_cmp_i(a1, 0, a1, 0, "<"));
-  ASSERT_FALSE(tst, unit_arr_cmp_i(a1, 0, a1, 0, ">"));
-  ASSERT(tst,       unit_arr_cmp_i(a1, 0, a1, 0, "<="));
-  ASSERT(tst,       unit_arr_cmp_i(a1, 0, a1, 0, ">="));
-
-  /* 1,2,3   1,2,3 */
-  ASSERT(tst,       unit_arr_cmp_i(a1, 3, a1, 3, "=="));
-  ASSERT_FALSE(tst, unit_arr_cmp_i(a1, 3, a1, 3, "!="));
-  ASSERT_FALSE(tst, unit_arr_cmp_i(a1, 3, a1, 3, "<"));
-  ASSERT_FALSE(tst, unit_arr_cmp_i(a1, 3, a1, 3, ">"));
-  ASSERT(tst,       unit_arr_cmp_i(a1, 3, a1, 3, "<="));
-  ASSERT(tst,       unit_arr_cmp_i(a1, 3, a1, 3, ">="));
-
-  /* 1,2,3  4,5 */
-  ASSERT_FALSE(tst, unit_arr_cmp_i(a1, 3, a2, 2, "=="));
-  ASSERT(tst,       unit_arr_cmp_i(a1, 3, a2, 2, "!="));
-  ASSERT(tst,       unit_arr_cmp_i(a1, 3, a2, 2, "<"));
-  ASSERT_FALSE(tst, unit_arr_cmp_i(a1, 3, a2, 2, ">"));
-  ASSERT(tst,       unit_arr_cmp_i(a1, 3, a2, 2, "<="));
-  ASSERT_FALSE(tst, unit_arr_cmp_i(a1, 3, a2, 2, ">="));
-
-  /* 4,5   1,2,3 */
-  ASSERT_FALSE(tst, unit_arr_cmp_i(a2, 2, a1, 3, "=="));
-  ASSERT(tst,       unit_arr_cmp_i(a2, 2, a1, 3, "!="));
-  ASSERT_FALSE(tst, unit_arr_cmp_i(a2, 2, a1, 3, "<"));
-  ASSERT(tst,       unit_arr_cmp_i(a2, 2, a1, 3, ">"));
-  ASSERT_FALSE(tst, unit_arr_cmp_i(a2, 2, a1, 3, "<="));
-  ASSERT(tst,       unit_arr_cmp_i(a2, 2, a1, 3, ">="));
-
-  /* 1,2,3   1,2 */
-  ASSERT_FALSE(tst, unit_arr_cmp_i(a1, 3, a1, 2, "=="));
-  ASSERT(tst,       unit_arr_cmp_i(a1, 3, a1, 2, "!="));
-  ASSERT_FALSE(tst, unit_arr_cmp_i(a1, 3, a1, 2, "<"));
-  ASSERT(tst,       unit_arr_cmp_i(a1, 3, a1, 2, ">"));
-  ASSERT_FALSE(tst, unit_arr_cmp_i(a1, 3, a1, 2, "<="));
-  ASSERT(tst,       unit_arr_cmp_i(a1, 3, a1, 2, ">="));
-
-  /* 1,2   1,2,3 */
-  ASSERT_FALSE(tst, unit_arr_cmp_i(a1, 2, a1, 3, "=="));
-  ASSERT(tst,       unit_arr_cmp_i(a1, 2, a1, 3, "!="));
-  ASSERT(tst,       unit_arr_cmp_i(a1, 2, a1, 3, "<"));
-  ASSERT_FALSE(tst, unit_arr_cmp_i(a1, 2, a1, 3, ">"));
-  ASSERT(tst,       unit_arr_cmp_i(a1, 2, a1, 3, "<="));
-  ASSERT_FALSE(tst, unit_arr_cmp_i(a1, 2, a1, 3, ">="));
-
-  /* 1,2,3   1,2,4 */
-  ASSERT_FALSE(tst, unit_arr_cmp_i(a1, 3, a3, 3, "=="));
-  ASSERT(tst,       unit_arr_cmp_i(a1, 3, a3, 3, "!="));
-  ASSERT(tst,       unit_arr_cmp_i(a1, 3, a3, 3, "<"));
-  ASSERT_FALSE(tst, unit_arr_cmp_i(a1, 3, a3, 3, ">"));
-  ASSERT(tst,       unit_arr_cmp_i(a1, 3, a3, 3, "<="));
-  ASSERT_FALSE(tst, unit_arr_cmp_i(a1, 3, a3, 3, ">="));
-
-  /* 1,2,4   1,2,3 */
-  ASSERT_FALSE(tst, unit_arr_cmp_i(a3, 3, a1, 3, "=="));
-  ASSERT(tst,       unit_arr_cmp_i(a3, 3, a1, 3, "!="));
-  ASSERT_FALSE(tst, unit_arr_cmp_i(a3, 3, a1, 3, "<"));
-  ASSERT(tst,       unit_arr_cmp_i(a3, 3, a1, 3, ">"));
-  ASSERT_FALSE(tst, unit_arr_cmp_i(a3, 3, a1, 3, "<="));
-  ASSERT(tst,       unit_arr_cmp_i(a3, 3, a1, 3, ">="));
-
   /* EQ == */
   ASSERT_EQ_ARR_I(tst, a1, 3, a1, 3);
   ASSERT(tst,       CHECK_EQ_ARR_I(tst1, a1, 3, a1, 3));
@@ -256,27 +171,6 @@ static void test_check_unsigned_int(unit_test_t * tst)
   unit_context_t * ctx = unit_create_context();
   unit_suite_t   * suite  = unit_create_suite(ctx, "suite1");
   unit_test_t    * tst1   = unit_create_test(suite, "test1", test_check_unsigned_int);
-
-  ASSERT(tst,       unit_cmp_u(123, 123, "=="));
-  ASSERT_FALSE(tst, unit_cmp_u(123, 123, "!="));
-  ASSERT_FALSE(tst, unit_cmp_u(123, 123, "<"));
-  ASSERT_FALSE(tst, unit_cmp_u(123, 123, ">"));
-  ASSERT(tst,       unit_cmp_u(123, 123, "<="));
-  ASSERT(tst,       unit_cmp_u(123, 123, ">="));
-
-  ASSERT_FALSE(tst, unit_cmp_u(123, 456, "=="));
-  ASSERT(tst,       unit_cmp_u(123, 456, "!="));
-  ASSERT(tst,       unit_cmp_u(123, 456, "<"));
-  ASSERT_FALSE(tst, unit_cmp_u(123, 456, ">"));
-  ASSERT(tst,       unit_cmp_u(123, 456, "<="));
-  ASSERT_FALSE(tst, unit_cmp_u(123, 456, ">="));
-
-  ASSERT_FALSE(tst, unit_cmp_u(456, 123, "=="));
-  ASSERT(tst,       unit_cmp_u(456, 123, "!="));
-  ASSERT_FALSE(tst, unit_cmp_u(456, 123, "<"));
-  ASSERT(tst,       unit_cmp_u(456, 123, ">"));
-  ASSERT_FALSE(tst, unit_cmp_u(456, 123, "<="));
-  ASSERT(tst,       unit_cmp_u(456, 123, ">="));
 
   /* EQ == */
   ASSERT_EQ_U(tst, 1, 1);
@@ -348,70 +242,6 @@ static void test_check_arr_unsigned_int(unit_test_t * tst)
   const unsigned int a2[2] = { 4, 5 };
   const unsigned int a3[3] = { 1, 2, 4 };
 
-  /* {} {} */
-  ASSERT(tst,       unit_arr_cmp_u(a1, 0, a1, 0, "=="));
-  ASSERT_FALSE(tst, unit_arr_cmp_u(a1, 0, a1, 0, "!="));
-  ASSERT_FALSE(tst, unit_arr_cmp_u(a1, 0, a1, 0, "<"));
-  ASSERT_FALSE(tst, unit_arr_cmp_u(a1, 0, a1, 0, ">"));
-  ASSERT(tst,       unit_arr_cmp_u(a1, 0, a1, 0, "<="));
-  ASSERT(tst,       unit_arr_cmp_u(a1, 0, a1, 0, ">="));
-
-  /* 1,2,3   1,2,3 */
-  ASSERT(tst,       unit_arr_cmp_u(a1, 3, a1, 3, "=="));
-  ASSERT_FALSE(tst, unit_arr_cmp_u(a1, 3, a1, 3, "!="));
-  ASSERT_FALSE(tst, unit_arr_cmp_u(a1, 3, a1, 3, "<"));
-  ASSERT_FALSE(tst, unit_arr_cmp_u(a1, 3, a1, 3, ">"));
-  ASSERT(tst,       unit_arr_cmp_u(a1, 3, a1, 3, "<="));
-  ASSERT(tst,       unit_arr_cmp_u(a1, 3, a1, 3, ">="));
-
-  /* 1,2,3  4,5 */
-  ASSERT_FALSE(tst, unit_arr_cmp_u(a1, 3, a2, 2, "=="));
-  ASSERT(tst,       unit_arr_cmp_u(a1, 3, a2, 2, "!="));
-  ASSERT(tst,       unit_arr_cmp_u(a1, 3, a2, 2, "<"));
-  ASSERT_FALSE(tst, unit_arr_cmp_u(a1, 3, a2, 2, ">"));
-  ASSERT(tst,       unit_arr_cmp_u(a1, 3, a2, 2, "<="));
-  ASSERT_FALSE(tst, unit_arr_cmp_u(a1, 3, a2, 2, ">="));
-
-  /* 4,5   1,2,3 */
-  ASSERT_FALSE(tst, unit_arr_cmp_u(a2, 2, a1, 3, "=="));
-  ASSERT(tst,       unit_arr_cmp_u(a2, 2, a1, 3, "!="));
-  ASSERT_FALSE(tst, unit_arr_cmp_u(a2, 2, a1, 3, "<"));
-  ASSERT(tst,       unit_arr_cmp_u(a2, 2, a1, 3, ">"));
-  ASSERT_FALSE(tst, unit_arr_cmp_u(a2, 2, a1, 3, "<="));
-  ASSERT(tst,       unit_arr_cmp_u(a2, 2, a1, 3, ">="));
-
-  /* 1,2,3   1,2 */
-  ASSERT_FALSE(tst, unit_arr_cmp_u(a1, 3, a1, 2, "=="));
-  ASSERT(tst,       unit_arr_cmp_u(a1, 3, a1, 2, "!="));
-  ASSERT_FALSE(tst, unit_arr_cmp_u(a1, 3, a1, 2, "<"));
-  ASSERT(tst,       unit_arr_cmp_u(a1, 3, a1, 2, ">"));
-  ASSERT_FALSE(tst, unit_arr_cmp_u(a1, 3, a1, 2, "<="));
-  ASSERT(tst,       unit_arr_cmp_u(a1, 3, a1, 2, ">="));
-
-  /* 1,2   1,2,3 */
-  ASSERT_FALSE(tst, unit_arr_cmp_u(a1, 2, a1, 3, "=="));
-  ASSERT(tst,       unit_arr_cmp_u(a1, 2, a1, 3, "!="));
-  ASSERT(tst,       unit_arr_cmp_u(a1, 2, a1, 3, "<"));
-  ASSERT_FALSE(tst, unit_arr_cmp_u(a1, 2, a1, 3, ">"));
-  ASSERT(tst,       unit_arr_cmp_u(a1, 2, a1, 3, "<="));
-  ASSERT_FALSE(tst, unit_arr_cmp_u(a1, 2, a1, 3, ">="));
-
-  /* 1,2,3   1,2,4 */
-  ASSERT_FALSE(tst, unit_arr_cmp_u(a1, 3, a3, 3, "=="));
-  ASSERT(tst,       unit_arr_cmp_u(a1, 3, a3, 3, "!="));
-  ASSERT(tst,       unit_arr_cmp_u(a1, 3, a3, 3, "<"));
-  ASSERT_FALSE(tst, unit_arr_cmp_u(a1, 3, a3, 3, ">"));
-  ASSERT(tst,       unit_arr_cmp_u(a1, 3, a3, 3, "<="));
-  ASSERT_FALSE(tst, unit_arr_cmp_u(a1, 3, a3, 3, ">="));
-
-  /* 1,2,4   1,2,3 */
-  ASSERT_FALSE(tst, unit_arr_cmp_u(a3, 3, a1, 3, "=="));
-  ASSERT(tst,       unit_arr_cmp_u(a3, 3, a1, 3, "!="));
-  ASSERT_FALSE(tst, unit_arr_cmp_u(a3, 3, a1, 3, "<"));
-  ASSERT(tst,       unit_arr_cmp_u(a3, 3, a1, 3, ">"));
-  ASSERT_FALSE(tst, unit_arr_cmp_u(a3, 3, a1, 3, "<="));
-  ASSERT(tst,       unit_arr_cmp_u(a3, 3, a1, 3, ">="));
-
   /* EQ == */
   ASSERT_EQ_ARR_U(tst, a1, 3, a1, 3);
   ASSERT(tst,       CHECK_EQ_ARR_U(tst1, a1, 3, a1, 3));
@@ -479,27 +309,6 @@ static void test_check_ptr(unit_test_t * tst)
   unit_suite_t * suite = unit_create_suite(ctx, "suite1");
   unit_test_t * tst1   = unit_create_test(suite, "test1", test_check_unsigned_int);
   int * v = malloc(sizeof(int)*3);
-
-  ASSERT(tst,       unit_cmp_ptr(v+1, v+1, "=="));
-  ASSERT_FALSE(tst, unit_cmp_ptr(v+1, v+1, "!="));
-  ASSERT_FALSE(tst, unit_cmp_ptr(v+1, v+1, "<"));
-  ASSERT_FALSE(tst, unit_cmp_ptr(v+1, v+1, ">"));
-  ASSERT(tst,       unit_cmp_ptr(v+1, v+1, "<="));
-  ASSERT(tst,       unit_cmp_ptr(v+1, v+1, ">="));
-
-  ASSERT_FALSE(tst, unit_cmp_ptr(v+1, v+2, "=="));
-  ASSERT(tst,       unit_cmp_ptr(v+1, v+2, "!="));
-  ASSERT(tst,       unit_cmp_ptr(v+1, v+2, "<"));
-  ASSERT_FALSE(tst, unit_cmp_ptr(v+1, v+2, ">"));
-  ASSERT(tst,       unit_cmp_ptr(v+1, v+2, "<="));
-  ASSERT_FALSE(tst, unit_cmp_ptr(v+1, v+2, ">="));
-
-  ASSERT_FALSE(tst, unit_cmp_ptr(v+2, v+1, "=="));
-  ASSERT(tst,       unit_cmp_ptr(v+2, v+1, "!="));
-  ASSERT_FALSE(tst, unit_cmp_ptr(v+2, v+1, "<"));
-  ASSERT(tst,       unit_cmp_ptr(v+2, v+1, ">"));
-  ASSERT_FALSE(tst, unit_cmp_ptr(v+2, v+1, "<="));
-  ASSERT(tst,       unit_cmp_ptr(v+2, v+1, ">="));
 
   /* EQ == */
   ASSERT_EQ_PTR(tst, v+1, v+1);
@@ -585,70 +394,6 @@ static void test_check_arr_ptr(unit_test_t * tst)
   a3[1] = v + 1;
   a3[2] = v + 4;
 
-  /* {} {} */
-  ASSERT(tst,       unit_arr_cmp_ptr(a1, 0, a1, 0, "=="));
-  ASSERT_FALSE(tst, unit_arr_cmp_ptr(a1, 0, a1, 0, "!="));
-  ASSERT_FALSE(tst, unit_arr_cmp_ptr(a1, 0, a1, 0, "<"));
-  ASSERT_FALSE(tst, unit_arr_cmp_ptr(a1, 0, a1, 0, ">"));
-  ASSERT(tst,       unit_arr_cmp_ptr(a1, 0, a1, 0, "<="));
-  ASSERT(tst,       unit_arr_cmp_ptr(a1, 0, a1, 0, ">="));
-
-  /* 1,2,3   1,2,3 */
-  ASSERT(tst,       unit_arr_cmp_ptr(a1, 3, a1, 3, "=="));
-  ASSERT_FALSE(tst, unit_arr_cmp_ptr(a1, 3, a1, 3, "!="));
-  ASSERT_FALSE(tst, unit_arr_cmp_ptr(a1, 3, a1, 3, "<"));
-  ASSERT_FALSE(tst, unit_arr_cmp_ptr(a1, 3, a1, 3, ">"));
-  ASSERT(tst,       unit_arr_cmp_ptr(a1, 3, a1, 3, "<="));
-  ASSERT(tst,       unit_arr_cmp_ptr(a1, 3, a1, 3, ">="));
-
-  /* 1,2,3  4,5 */
-  ASSERT_FALSE(tst, unit_arr_cmp_ptr(a1, 3, a2, 2, "=="));
-  ASSERT(tst,       unit_arr_cmp_ptr(a1, 3, a2, 2, "!="));
-  ASSERT(tst,       unit_arr_cmp_ptr(a1, 3, a2, 2, "<"));
-  ASSERT_FALSE(tst, unit_arr_cmp_ptr(a1, 3, a2, 2, ">"));
-  ASSERT(tst,       unit_arr_cmp_ptr(a1, 3, a2, 2, "<="));
-  ASSERT_FALSE(tst, unit_arr_cmp_ptr(a1, 3, a2, 2, ">="));
-
-  /* 4,5   1,2,3 */
-  ASSERT_FALSE(tst, unit_arr_cmp_ptr(a2, 2, a1, 3, "=="));
-  ASSERT(tst,       unit_arr_cmp_ptr(a2, 2, a1, 3, "!="));
-  ASSERT_FALSE(tst, unit_arr_cmp_ptr(a2, 2, a1, 3, "<"));
-  ASSERT(tst,       unit_arr_cmp_ptr(a2, 2, a1, 3, ">"));
-  ASSERT_FALSE(tst, unit_arr_cmp_ptr(a2, 2, a1, 3, "<="));
-  ASSERT(tst,       unit_arr_cmp_ptr(a2, 2, a1, 3, ">="));
-
-  /* 1,2,3   1,2 */
-  ASSERT_FALSE(tst, unit_arr_cmp_ptr(a1, 3, a1, 2, "=="));
-  ASSERT(tst,       unit_arr_cmp_ptr(a1, 3, a1, 2, "!="));
-  ASSERT_FALSE(tst, unit_arr_cmp_ptr(a1, 3, a1, 2, "<"));
-  ASSERT(tst,       unit_arr_cmp_ptr(a1, 3, a1, 2, ">"));
-  ASSERT_FALSE(tst, unit_arr_cmp_ptr(a1, 3, a1, 2, "<="));
-  ASSERT(tst,       unit_arr_cmp_ptr(a1, 3, a1, 2, ">="));
-
-  /* 1,2   1,2,3 */
-  ASSERT_FALSE(tst, unit_arr_cmp_ptr(a1, 2, a1, 3, "=="));
-  ASSERT(tst,       unit_arr_cmp_ptr(a1, 2, a1, 3, "!="));
-  ASSERT(tst,       unit_arr_cmp_ptr(a1, 2, a1, 3, "<"));
-  ASSERT_FALSE(tst, unit_arr_cmp_ptr(a1, 2, a1, 3, ">"));
-  ASSERT(tst,       unit_arr_cmp_ptr(a1, 2, a1, 3, "<="));
-  ASSERT_FALSE(tst, unit_arr_cmp_ptr(a1, 2, a1, 3, ">="));
-
-  /* 1,2,3   1,2,4 */
-  ASSERT_FALSE(tst, unit_arr_cmp_ptr(a1, 3, a3, 3, "=="));
-  ASSERT(tst,       unit_arr_cmp_ptr(a1, 3, a3, 3, "!="));
-  ASSERT(tst,       unit_arr_cmp_ptr(a1, 3, a3, 3, "<"));
-  ASSERT_FALSE(tst, unit_arr_cmp_ptr(a1, 3, a3, 3, ">"));
-  ASSERT(tst,       unit_arr_cmp_ptr(a1, 3, a3, 3, "<="));
-  ASSERT_FALSE(tst, unit_arr_cmp_ptr(a1, 3, a3, 3, ">="));
-
-  /* 1,2,4   1,2,3 */
-  ASSERT_FALSE(tst, unit_arr_cmp_ptr(a3, 3, a1, 3, "=="));
-  ASSERT(tst,       unit_arr_cmp_ptr(a3, 3, a1, 3, "!="));
-  ASSERT_FALSE(tst, unit_arr_cmp_ptr(a3, 3, a1, 3, "<"));
-  ASSERT(tst,       unit_arr_cmp_ptr(a3, 3, a1, 3, ">"));
-  ASSERT_FALSE(tst, unit_arr_cmp_ptr(a3, 3, a1, 3, "<="));
-  ASSERT(tst,       unit_arr_cmp_ptr(a3, 3, a1, 3, ">="));
-
   /* EQ == */
   ASSERT_EQ_ARR_PTR(tst, a1, 3, a1, 3);
   ASSERT(tst,       CHECK_EQ_ARR_PTR(tst1, a1, 3, a1, 3));
@@ -715,27 +460,6 @@ static void test_check_cstr(unit_test_t * tst)
   unit_context_t * ctx = unit_create_context();
   unit_suite_t * suite = unit_create_suite(ctx, "suite1");
   unit_test_t * tst1   = unit_create_test(suite, "test1", test_check_cstr);
-
-  ASSERT(tst,       unit_cmp_cstr("abc", "abc", "=="));
-  ASSERT_FALSE(tst, unit_cmp_cstr("abc", "abc", "!="));
-  ASSERT_FALSE(tst, unit_cmp_cstr("abc", "abc", "<"));
-  ASSERT_FALSE(tst, unit_cmp_cstr("abc", "abc", ">"));
-  ASSERT(tst,       unit_cmp_cstr("abc", "abc", "<="));
-  ASSERT(tst,       unit_cmp_cstr("abc", "abc", ">="));
-
-  ASSERT_FALSE(tst, unit_cmp_cstr("abc", "def", "=="));
-  ASSERT(tst,       unit_cmp_cstr("abc", "def", "!="));
-  ASSERT(tst,       unit_cmp_cstr("abc", "def", "<"));
-  ASSERT_FALSE(tst, unit_cmp_cstr("abc", "def", ">"));
-  ASSERT(tst,       unit_cmp_cstr("abc", "def", "<="));
-  ASSERT_FALSE(tst, unit_cmp_cstr("abc", "def", ">="));
-
-  ASSERT_FALSE(tst, unit_cmp_cstr("def", "abc", "=="));
-  ASSERT(tst,       unit_cmp_cstr("def", "abc", "!="));
-  ASSERT_FALSE(tst, unit_cmp_cstr("def", "abc", "<"));
-  ASSERT(tst,       unit_cmp_cstr("def", "abc", ">"));
-  ASSERT_FALSE(tst, unit_cmp_cstr("def", "abc", "<="));
-  ASSERT(tst,       unit_cmp_cstr("def", "abc", ">="));
 
   /* EQ == */
   ASSERT_EQ_CSTR(tst, "abc", "abc");
@@ -807,70 +531,6 @@ static void test_check_arr_cstr(unit_test_t * tst)
   const char * a1[3] = { "abc", "def", "ghi" };
   const char * a2[2] = { "abc", "ghi" };
   const char * a3[3] = { "abc", "def", "xyz" };
-
-  /* {} {} */
-  ASSERT(tst,       unit_arr_cmp_cstr(a1, 0, a1, 0, "=="));
-  ASSERT_FALSE(tst, unit_arr_cmp_cstr(a1, 0, a1, 0, "!="));
-  ASSERT_FALSE(tst, unit_arr_cmp_cstr(a1, 0, a1, 0, "<"));
-  ASSERT_FALSE(tst, unit_arr_cmp_cstr(a1, 0, a1, 0, ">"));
-  ASSERT(tst,       unit_arr_cmp_cstr(a1, 0, a1, 0, "<="));
-  ASSERT(tst,       unit_arr_cmp_cstr(a1, 0, a1, 0, ">="));
-
-  /* 1,2,3   1,2,3 */
-  ASSERT(tst,       unit_arr_cmp_cstr(a1, 3, a1, 3, "=="));
-  ASSERT_FALSE(tst, unit_arr_cmp_cstr(a1, 3, a1, 3, "!="));
-  ASSERT_FALSE(tst, unit_arr_cmp_cstr(a1, 3, a1, 3, "<"));
-  ASSERT_FALSE(tst, unit_arr_cmp_cstr(a1, 3, a1, 3, ">"));
-  ASSERT(tst,       unit_arr_cmp_cstr(a1, 3, a1, 3, "<="));
-  ASSERT(tst,       unit_arr_cmp_cstr(a1, 3, a1, 3, ">="));
-
-  /* 1,2,3  4,5 */
-  ASSERT_FALSE(tst, unit_arr_cmp_cstr(a1, 3, a2, 2, "=="));
-  ASSERT(tst,       unit_arr_cmp_cstr(a1, 3, a2, 2, "!="));
-  ASSERT(tst,       unit_arr_cmp_cstr(a1, 3, a2, 2, "<"));
-  ASSERT_FALSE(tst, unit_arr_cmp_cstr(a1, 3, a2, 2, ">"));
-  ASSERT(tst,       unit_arr_cmp_cstr(a1, 3, a2, 2, "<="));
-  ASSERT_FALSE(tst, unit_arr_cmp_cstr(a1, 3, a2, 2, ">="));
-
-  /* 4,5   1,2,3 */
-  ASSERT_FALSE(tst, unit_arr_cmp_cstr(a2, 2, a1, 3, "=="));
-  ASSERT(tst,       unit_arr_cmp_cstr(a2, 2, a1, 3, "!="));
-  ASSERT_FALSE(tst, unit_arr_cmp_cstr(a2, 2, a1, 3, "<"));
-  ASSERT(tst,       unit_arr_cmp_cstr(a2, 2, a1, 3, ">"));
-  ASSERT_FALSE(tst, unit_arr_cmp_cstr(a2, 2, a1, 3, "<="));
-  ASSERT(tst,       unit_arr_cmp_cstr(a2, 2, a1, 3, ">="));
-
-  /* 1,2,3   1,2 */
-  ASSERT_FALSE(tst, unit_arr_cmp_cstr(a1, 3, a1, 2, "=="));
-  ASSERT(tst,       unit_arr_cmp_cstr(a1, 3, a1, 2, "!="));
-  ASSERT_FALSE(tst, unit_arr_cmp_cstr(a1, 3, a1, 2, "<"));
-  ASSERT(tst,       unit_arr_cmp_cstr(a1, 3, a1, 2, ">"));
-  ASSERT_FALSE(tst, unit_arr_cmp_cstr(a1, 3, a1, 2, "<="));
-  ASSERT(tst,       unit_arr_cmp_cstr(a1, 3, a1, 2, ">="));
-
-  /* 1,2   1,2,3 */
-  ASSERT_FALSE(tst, unit_arr_cmp_cstr(a1, 2, a1, 3, "=="));
-  ASSERT(tst,       unit_arr_cmp_cstr(a1, 2, a1, 3, "!="));
-  ASSERT(tst,       unit_arr_cmp_cstr(a1, 2, a1, 3, "<"));
-  ASSERT_FALSE(tst, unit_arr_cmp_cstr(a1, 2, a1, 3, ">"));
-  ASSERT(tst,       unit_arr_cmp_cstr(a1, 2, a1, 3, "<="));
-  ASSERT_FALSE(tst, unit_arr_cmp_cstr(a1, 2, a1, 3, ">="));
-
-  /* 1,2,3   1,2,4 */
-  ASSERT_FALSE(tst, unit_arr_cmp_cstr(a1, 3, a3, 3, "=="));
-  ASSERT(tst,       unit_arr_cmp_cstr(a1, 3, a3, 3, "!="));
-  ASSERT(tst,       unit_arr_cmp_cstr(a1, 3, a3, 3, "<"));
-  ASSERT_FALSE(tst, unit_arr_cmp_cstr(a1, 3, a3, 3, ">"));
-  ASSERT(tst,       unit_arr_cmp_cstr(a1, 3, a3, 3, "<="));
-  ASSERT_FALSE(tst, unit_arr_cmp_cstr(a1, 3, a3, 3, ">="));
-
-  /* 1,2,4   1,2,3 */
-  ASSERT_FALSE(tst, unit_arr_cmp_cstr(a3, 3, a1, 3, "=="));
-  ASSERT(tst,       unit_arr_cmp_cstr(a3, 3, a1, 3, "!="));
-  ASSERT_FALSE(tst, unit_arr_cmp_cstr(a3, 3, a1, 3, "<"));
-  ASSERT(tst,       unit_arr_cmp_cstr(a3, 3, a1, 3, ">"));
-  ASSERT_FALSE(tst, unit_arr_cmp_cstr(a3, 3, a1, 3, "<="));
-  ASSERT(tst,       unit_arr_cmp_cstr(a3, 3, a1, 3, ">="));
 
   /* EQ == */
   ASSERT_EQ_ARR_CSTR(tst, a1, 3, a1, 3);
@@ -964,7 +624,9 @@ static void _test_no_failures(unit_test_t * tst)
 static void _test_with_failures(unit_test_t * tst)
 {
   ASSERT_EQ_U(tst, 1,1);
-  ASSERT(tst, 0);
+  ASSERT_EQ_U(tst, 0,1);
+  /* the following assertion is not checked */
+  ASSERT_EQ_U(tst, 1,1);
 }
 
 static void _test_with_failed_checks(unit_test_t * tst)
