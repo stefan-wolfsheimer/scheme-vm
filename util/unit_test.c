@@ -1,5 +1,6 @@
 #include "unit_test.h"
 #include "xmalloc.h"
+#include "xstring.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -14,11 +15,6 @@
 #define COLOR_WHITE    "\x1B[37m"
 
 static void _print_result(FILE * fp, int success, int color);
-/* @todo remove _count_assertion use add_assertion instead */
-static void _count_assertion(unit_test_t * tst, assertion_t * ass);
-
-/* @todo replace with library functions */
-static char * _alloc_strcpy(const char * from);
 
 static int _unit_run_test(FILE * fp, unit_context_t * ctx, unit_test_t * tst);
 
@@ -30,6 +26,7 @@ static void _unit_final_report_print(FILE * fp,
                                      size_t n_passed,
                                      size_t n_failed,
                                      size_t no_results);
+
 
 
 static void _print_result(FILE * fp, int success, int color) 
@@ -46,53 +43,6 @@ static void _print_result(FILE * fp, int success, int color)
   }
 }
 
-static void _count_assertion(unit_test_t * tst, 
-                             assertion_t * assertion)
-{
-  /* @todo remove this function */
-  if(tst != NULL) 
-  {
-    if(assertion->success) tst->_passed_assertions++;
-    else tst->_failed_assertions++;
-    if(tst->last_assertion != NULL) 
-    {
-      tst->last_assertion->next = assertion;
-      tst->last_assertion       = assertion;
-    }
-    else 
-    {
-      tst->last_assertion  = assertion;
-      tst->first_assertion = assertion;
-    }
-    if((!assertion->success && 
-	tst->suite->ctx->verbose_level > 0) || 
-       tst->suite->ctx->verbose_level > 1)
-    {
-      assertion_print(tst->_fp,
-		      assertion,
-		      tst->suite->ctx->color);
-    }
-  }
-}
-
-
-static char * _alloc_strcpy(const char * from)
-{
-  if(from == NULL) 
-  {
-    return NULL;
-  }
-  else 
-  {
-    size_t len = strlen(from);
-    char * tmp = malloc(len + 1);
-    if(tmp != NULL) 
-    {
-      strcpy(tmp, from);
-    }
-    return tmp;
-  }
-}
 
 static int _unit_run_test(FILE * fp, unit_context_t * ctx, unit_test_t * tst) 
 {
@@ -305,7 +255,9 @@ unit_suite_t * unit_create_suite(unit_context_t * ctx, const char * name)
     suite->next       = NULL;
     suite->first_test = NULL;
     suite->last_test  = NULL;
-    suite->name       = _alloc_strcpy(name);
+    memcheck_disable();
+    suite->name       = alloc_strcpy(name);
+    memcheck_enable();
     suite->active     = 1;
     suite->ctx        = ctx;
   }
@@ -329,7 +281,9 @@ unit_test_t * unit_create_test(unit_suite_t         * suite,
       suite->last_test = tst;
       suite->first_test = tst;
     }
-    tst->name            = _alloc_strcpy(name);
+    memcheck_disable();
+    tst->name            = alloc_strcpy(name);
+    memcheck_enable();
     tst->func            = func;
     tst->next            = NULL;
     tst->first_assertion = NULL;
@@ -381,101 +335,6 @@ int unit_add_assertion(unit_test_t * tst, assertion_t * assertion_lst)
     current = next;
   }
   return ok;
-}
-
-assertion_t * unit_create_assertion(unit_test_t * tst,
-					 const char  * expect, 
-                                         const char  * file, 
-					 int           line, 
-                                         int           success)
-{
-  assertion_t * ass = assertion_create(file, line);
-  if(ass) 
-  {
-    ass->expect = malloc(strlen(expect)+1);
-    if(ass->expect != NULL) 
-    {
-      strcpy(ass->expect, expect);
-    }
-    ass->success = success;
-  }
-  _count_assertion(tst, ass);
-  return ass;
-}
-
-int unit_create_check(unit_test_t * tst,
-		      const char  * expect,
-		      const char  * file, 
-		      int           line,
-		      int           success,
-		      int           verbose)
-{
-  if(success) 
-  {
-    return 1;
-  }
-  else 
-  {
-    assertion_t * ass = unit_create_assertion(tst, 
-						   expect,
-						   file,
-						   line,
-						   success);
-    if(tst == NULL) 
-    {
-      /* not managed by tst */
-      if(verbose)
-      {
-	assertion_print(stderr, ass, 1);
-      }
-      assertion_free(ass);
-    }
-    return 0;
-  }
-}
-
-/*********************************************************************
- * 
- * memchecker
- *
- *********************************************************************/
-/* @todo move to sep. module */
-assertion_t * unit_memchecker(unit_test_t              * tst,
-                                   struct memchecker_t      * memcheck,
-                                   const char               * file, 
-                                   int                        line)
-{
-  size_t i;
-  memchecker_chunk_t * chunk;
-  int ret = 1;
-  char buff[512];
-  for(i = 0; i < memcheck->n_chunks; i++)
-  {
-    chunk = &memcheck->chunks[i];
-    if(chunk->alloc_file != NULL)
-    {
-      if(chunk->free_file == NULL)
-      {
-        sprintf(buff, "segment %p (allocated %s:%d) freed", 
-                chunk->ptr,
-                chunk->alloc_file,
-                chunk->alloc_line);
-	unit_create_assertion(tst, buff, file, line, 0);
-        ret = 0;
-      }
-    }
-  }
-  for(i = 0; i < memcheck->n_not_managed; i++) 
-  {
-    ret = 0;
-    unit_create_assertion(tst,memcheck->message_not_managed[i], file, line, 0);
-  }
-  for(i = 0; i < memcheck->n_double_free; i++) 
-  {
-    ret = 0;
-    unit_create_assertion(tst, memcheck->message_double_free[i], file, line, 0);
-  }
-  return unit_create_assertion(tst, "memory segmentation", file, line, ret); 
 }
 
 void unit_run(FILE * fp, unit_context_t * ctx)

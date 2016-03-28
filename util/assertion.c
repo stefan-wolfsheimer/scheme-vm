@@ -1,8 +1,11 @@
+#include "config.h"
 #include "assertion.h"
 #include "xstring.h"
 #include "xmalloc.h"
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
+#include <signal.h>
 
 #define COLOR_NORMAL   "\x1B[0m"
 #define COLOR_RED      "\x1B[31m"
@@ -12,6 +15,20 @@
 #define COLOR_MAGENTA  "\x1B[35m"
 #define COLOR_CYAN     "\x1B[36m"
 #define COLOR_WHITE    "\x1B[37m"
+
+#ifdef WITH_COLOR 
+#define ASSERTION_COLOR 1
+#else 
+#define ASSERTION_COLOR 0
+#endif 
+
+assertion_handler_t _assertion_handler = 
+{
+ handler_cb : NULL,
+ user_data  : NULL,
+ fp         : NULL,
+ use_stderr : 1
+};
 
 static void _print_result(FILE * fp, int success, int color) 
 {
@@ -48,7 +65,8 @@ assertion_t * assertion_create_message(const char * file,
 				       int          line,
 				       const char * expect,
 				       const char * explain,
-				       int          is_exception)
+				       int          is_exception,
+				       int          success)
 {
   memcheck_disable();
   assertion_t * assertion = malloc(sizeof(assertion_t));
@@ -57,7 +75,7 @@ assertion_t * assertion_create_message(const char * file,
   assertion->expect_explain = alloc_strcpy(explain);
   assertion->file           = alloc_strcpy(file);
   assertion->line           = line;
-  assertion->success        = 0;
+  assertion->success        = success;
   assertion->is_exception   = is_exception;
   assertion->next           = NULL;
   memcheck_enable();
@@ -116,7 +134,7 @@ assertion_t * assertion_invert(assertion_t * assertion)
 
 void assertion_print(FILE        * fp,
 		     assertion_t * assertion,
-		     int color)
+		     int           color)
 {
   _print_result(fp, assertion->success, color);
   if(assertion->is_exception) 
@@ -169,6 +187,52 @@ void assertion_print(FILE        * fp,
     }
   }
 }
+
+/*********************************************************************
+ * 
+ * raise exception 
+ *
+ **********************************************************************/
+void assertion_raise(assertion_t * assertion)
+{
+  if(assertion != NULL && !assertion->success) 
+  {
+    int doraise = 1;
+    if(_assertion_handler.handler_cb) 
+    {
+      doraise = _assertion_handler.handler_cb(assertion, 
+					      _assertion_handler.user_data);
+    }
+    FILE * fp = (_assertion_handler.fp == NULL && _assertion_handler.use_stderr) ?
+      stderr : 
+      _assertion_handler.fp;
+    if(fp != NULL) 
+    {
+      assertion_print(fp, assertion, ASSERTION_COLOR);
+    }
+    assertion_free(assertion);
+    if(doraise) 
+    {
+      raise(SIGABRT);
+    }
+  }
+  else if(assertion != NULL) 
+  {
+    assertion_free(assertion);
+  }
+}
+
+const assertion_handler_t 
+assertion_register_handler(const assertion_handler_t handler)
+{
+  assertion_handler_t ret       = _assertion_handler;
+  _assertion_handler.handler_cb = handler.handler_cb;
+  _assertion_handler.user_data  = handler.user_data;
+  _assertion_handler.fp         = handler.fp;
+  _assertion_handler.use_stderr = handler.use_stderr;
+  return ret;
+}
+
 
 #define __CREATE_CMP__(__CMP_TYPE__, __TYPE__)				\
   int assertion_cmp_##__CMP_TYPE__(__TYPE__ lhs, __TYPE__ rhs)		\
@@ -281,6 +345,7 @@ void assertion_print(FILE        * fp,
     }									\
 }
 
+/* @todo printers for arrays */
 #define __CREATE_ASSERTION_CMP_ARR__(__CMP_TYPE__, __TYPE__, __FMT__)	\
   assertion_t *								\
   assertion_create_cmp_arr_##__CMP_TYPE__(const char *     file,	\
@@ -316,6 +381,58 @@ void assertion_print(FILE        * fp,
       return NULL;							\
     }									\
   }
+
+
+/*********************************************************************
+ * 
+ * assertions for boolean
+ *
+ *********************************************************************/
+
+assertion_t * assertion_create_true(const char * file, 
+				    int          line,
+				    const char * expr_str,
+				    int          expr,
+				    int          only_on_failure)
+{
+  if(!expr || !only_on_failure) 
+  {
+    assertion_t * assertion = assertion_create(file, line);
+    if(!assertion) return NULL;
+    assertion->success = expr;
+    memcheck_disable();
+    assertion->expect = alloc_sprintf("%s is true", expr_str);
+    memcheck_enable();
+    return assertion;
+  }
+  else
+  {
+    return NULL;
+  }
+}
+
+assertion_t * assertion_create_false(const char * file, 
+				     int          line,
+				     const char * expr_str,
+				     int          expr,
+				     int          only_on_failure)
+{
+  if(expr || !only_on_failure) 
+  {
+    assertion_t * assertion = assertion_create(file, line);
+    if(!assertion) return NULL;
+    assertion->success = !expr;
+    memcheck_disable();
+    assertion->expect = alloc_sprintf("%s is true", expr_str);
+    memcheck_enable();
+    return assertion;
+  }
+  else
+  {
+    return NULL;
+  }
+}
+
 
 /*********************************************************************
  * 

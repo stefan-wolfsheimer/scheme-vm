@@ -5,6 +5,21 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <signal.h>
+
+static int _signal_handler(assertion_t * assertion, void * user_data)
+{
+  int * d  = (int*)user_data;
+  *d = 1;
+  return 1;
+}
+
+static int _signal_cancel_handler(assertion_t * assertion, void * user_data)
+{
+  int * d  = (int*)user_data;
+  *d = 1;
+  return 0;
+}
 
 static void test_create_assertion(unit_test_t * tst)
 {
@@ -49,6 +64,7 @@ static void test_assertion_invert(unit_test_t * tst)
   ASSERT_MEMCHECK(tst);
   memcheck_end();
 }
+
 
 /*********************************************************************
  * 
@@ -131,6 +147,83 @@ static int success(assertion_t * assertion, int expected)
 							 0),		\
 		 (__EX__)));
 
+#define ASSERT_SIGNAL(__TEST__, __EXPR__)			\
+  {								\
+    assertion_handler_t my_handler;				\
+    assertion_handler_t old_handler;				\
+    int signal_captured = 0;					\
+    my_handler.handler_cb  = _signal_cancel_handler;		\
+    my_handler.user_data   = &signal_captured;			\
+    my_handler.fp          = NULL;				\
+    my_handler.use_stderr  = 0;					\
+    old_handler = assertion_register_handler(my_handler);	\
+    __EXPR__;							\
+    assertion_register_handler(old_handler);			\
+    ASSERT(__TEST__, signal_captured);				\
+  }
+
+
+/*********************************************************************
+ * 
+ * test boolean
+ *
+ *********************************************************************/
+static void test_assertion_create_true(unit_test_t * tst)
+{
+  ASSERT(tst, success(assertion_create_true(__FILE__,
+					    __LINE__,
+					    "a",
+					    1,
+					    0), 1));
+  ASSERT(tst, success(assertion_create_true(__FILE__,
+					    __LINE__,
+					    "a",
+					    1,
+					    1), 1));
+  ASSERT(tst, success(assertion_create_true(__FILE__,
+					    __LINE__,
+					    "a",
+					    0,
+					    1), 0));
+  ASSERT(tst, success(assertion_create_true(__FILE__,
+					    __LINE__,
+					    "a",
+					    0,
+					    0), 0));
+}
+
+static void test_assertion_create_false(unit_test_t * tst)
+{
+  ASSERT(tst, success(assertion_create_false(__FILE__,
+					     __LINE__,
+					     "a",
+					     0,
+					     0), 1));
+  ASSERT(tst, success(assertion_create_false(__FILE__,
+					    __LINE__,
+					    "a",
+					    0,
+					    1), 1));
+  ASSERT(tst, success(assertion_create_false(__FILE__,
+					    __LINE__,
+					    "a",
+					    1,
+					    1), 0));
+  ASSERT(tst, success(assertion_create_false(__FILE__,
+					    __LINE__,
+					    "a",
+					    1,
+					    0), 0));
+}
+
+static void test_assertion_raise_boolean(unit_test_t * tst)
+{
+  REQUIRE(1);
+  REQUIRE_FALSE(0);
+  ASSERT_SIGNAL(tst, REQUIRE(0));
+  ASSERT_SIGNAL(tst, REQUIRE_FALSE(1));
+}
+
 /*********************************************************************
  * 
  * int test
@@ -164,6 +257,42 @@ static void test_assertion_create_cmp_i(unit_test_t * tst)
   ASSERTS_CMP(i, b, a, "<",  0);
   ASSERTS_CMP(i, b, a, ">=", 1);
   ASSERTS_CMP(i, b, a, ">",  1);
+}
+
+
+static void test_assertion_raise_cmp_i(unit_test_t * tst)
+{
+  int a = -1;
+  int b = 2;
+  /* EQ == */
+  REQUIRE_EQ_I(a, a);
+  ASSERT_SIGNAL(tst, REQUIRE_EQ_I(a,  b));
+  ASSERT_SIGNAL(tst, REQUIRE_EQ_I(b,  a));
+
+  /* NEQ != */
+  ASSERT_SIGNAL(tst, REQUIRE_NEQ_I(a, a));
+  REQUIRE_NEQ_I(a, b);
+  REQUIRE_NEQ_I(b, a);
+
+  /* GT > */
+  ASSERT_SIGNAL(tst, REQUIRE_GT_I(a, a));
+  ASSERT_SIGNAL(tst, REQUIRE_GT_I(a, b));
+  REQUIRE_GT_I(b, a);
+
+  /* GE >= */
+  REQUIRE_GE_I(a, a);
+  ASSERT_SIGNAL(tst, REQUIRE_GE_I(a, b));
+  REQUIRE_GE_I(b, a);
+     
+  /* LT < */
+  ASSERT_SIGNAL(tst, REQUIRE_LT_I(a, a));
+  REQUIRE_LT_I(a, b);
+  ASSERT_SIGNAL(tst, REQUIRE_LT_I(b, a));
+
+  /* LE <= */
+  REQUIRE_LE_I(a, a);
+  REQUIRE_LE_I(a, b);
+  ASSERT_SIGNAL(tst, REQUIRE_LE_I(b, a));
 }
 
 /*********************************************************************
@@ -212,6 +341,31 @@ static void test_assertion_create_cmp_arr_i(unit_test_t * tst)
 }
 
 
+static void test_assertion_raise_cmp_arr_i(unit_test_t * tst)
+{
+  const int a[3] = { 1, 2, 3};
+  const int b[3] = { 4, 5, 6};
+  REQUIRE_EQ_ARR_I(a,3, a, 3);
+  REQUIRE_LE_ARR_I(a,3, a, 3);
+  ASSERT_SIGNAL(tst, REQUIRE_LT_ARR_I(a,3, a, 3));
+  REQUIRE_GE_ARR_I(a,3, a, 3);
+  ASSERT_SIGNAL(tst, REQUIRE_GT_ARR_I(a,3, a, 3));
+
+  ASSERT_SIGNAL(tst,REQUIRE_EQ_ARR_I(a, 3, b, 3));
+  REQUIRE_LE_ARR_I(a, 3, b, 3);
+  REQUIRE_LT_ARR_I(a, 3, b, 3);
+  ASSERT_SIGNAL(tst,REQUIRE_GE_ARR_I(a, 3, b, 3));
+  ASSERT_SIGNAL(tst,REQUIRE_GT_ARR_I(a, 3, b, 3));
+  
+
+  ASSERT_SIGNAL(tst, REQUIRE_EQ_ARR_I(b, 3, a, 3));
+  ASSERT_SIGNAL(tst, REQUIRE_LE_ARR_I(b, 3, a, 3));
+  ASSERT_SIGNAL(tst, REQUIRE_LT_ARR_I(b, 3, a, 3));
+  REQUIRE_GE_ARR_I(b, 3, a, 3);
+  REQUIRE_GT_ARR_I(b, 3, a, 3);
+}
+
+
 /*********************************************************************
  * 
  * unsigned int 
@@ -245,6 +399,41 @@ static void test_assertion_create_cmp_u(unit_test_t * tst)
   ASSERTS_CMP(u, b, a, "<",  0);
   ASSERTS_CMP(u, b, a, ">=", 1);
   ASSERTS_CMP(u, b, a, ">",  1);
+}
+
+static void test_assertion_raise_cmp_u(unit_test_t * tst)
+{
+  int a = 1;
+  int b = 2;
+  /* EQ == */
+  REQUIRE_EQ_U(a, a);
+  ASSERT_SIGNAL(tst, REQUIRE_EQ_U(a,  b));
+  ASSERT_SIGNAL(tst, REQUIRE_EQ_U(b,  a));
+
+  /* NEQ != */
+  ASSERT_SIGNAL(tst, REQUIRE_NEQ_U(a, a));
+  REQUIRE_NEQ_U(a, b);
+  REQUIRE_NEQ_U(b, a);
+
+  /* GT > */
+  ASSERT_SIGNAL(tst, REQUIRE_GT_U(a, a));
+  ASSERT_SIGNAL(tst, REQUIRE_GT_U(a, b));
+  REQUIRE_GT_U(b, a);
+
+  /* GE >= */
+  REQUIRE_GE_U(a, a);
+  ASSERT_SIGNAL(tst, REQUIRE_GE_U(a, b));
+  REQUIRE_GE_U(b, a);
+     
+  /* LT < */
+  ASSERT_SIGNAL(tst, REQUIRE_LT_U(a, a));
+  REQUIRE_LT_U(a, b);
+  ASSERT_SIGNAL(tst, REQUIRE_LT_U(b, a));
+
+  /* LE <= */
+  REQUIRE_LE_U(a, a);
+  REQUIRE_LE_U(a, b);
+  ASSERT_SIGNAL(tst, REQUIRE_LE_U(b, a));
 }
 
 /*********************************************************************
@@ -293,6 +482,31 @@ static void test_assertion_create_cmp_arr_u(unit_test_t * tst)
   ASSERTS_CMP_ARR(u, b, 3, a, 3, ">",  1);
 }
 
+
+static void test_assertion_raise_cmp_arr_u(unit_test_t * tst)
+{
+  const unsigned int a[3] = { 1, 2, 3};
+  const unsigned int b[3] = { 4, 5, 6};
+  REQUIRE_EQ_ARR_U(a,3, a, 3);
+  REQUIRE_LE_ARR_U(a,3, a, 3);
+  ASSERT_SIGNAL(tst, REQUIRE_LT_ARR_U(a,3, a, 3));
+  REQUIRE_GE_ARR_U(a,3, a, 3);
+  ASSERT_SIGNAL(tst, REQUIRE_GT_ARR_U(a,3, a, 3));
+
+  ASSERT_SIGNAL(tst,REQUIRE_EQ_ARR_U(a, 3, b, 3));
+  REQUIRE_LE_ARR_U(a, 3, b, 3);
+  REQUIRE_LT_ARR_U(a, 3, b, 3);
+  ASSERT_SIGNAL(tst,REQUIRE_GE_ARR_U(a, 3, b, 3));
+  ASSERT_SIGNAL(tst,REQUIRE_GT_ARR_U(a, 3, b, 3));
+  
+
+  ASSERT_SIGNAL(tst, REQUIRE_EQ_ARR_U(b, 3, a, 3));
+  ASSERT_SIGNAL(tst, REQUIRE_LE_ARR_U(b, 3, a, 3));
+  ASSERT_SIGNAL(tst, REQUIRE_LT_ARR_U(b, 3, a, 3));
+  REQUIRE_GE_ARR_U(b, 3, a, 3);
+  REQUIRE_GT_ARR_U(b, 3, a, 3);
+}
+
 /*********************************************************************
  * 
  * pointer
@@ -313,24 +527,61 @@ static void test_assertion_create_cmp_ptr(unit_test_t * tst)
   const void * a = arr + 1;
   const void * b = arr + 2;
 
-  ASSERTS_CMP(u, a, a, "==", 1);
-  ASSERTS_CMP(u, a, a, "<=", 1);
-  ASSERTS_CMP(u, a, a, "<",  0);
-  ASSERTS_CMP(u, a, a, ">=", 1);
-  ASSERTS_CMP(u, a, a, ">",  0);
+  ASSERTS_CMP(ptr, a, a, "==", 1);
+  ASSERTS_CMP(ptr, a, a, "<=", 1);
+  ASSERTS_CMP(ptr, a, a, "<",  0);
+  ASSERTS_CMP(ptr, a, a, ">=", 1);
+  ASSERTS_CMP(ptr, a, a, ">",  0);
 
-  ASSERTS_CMP(u, a, b, "==", 0);
-  ASSERTS_CMP(u, a, b, "<=", 1);
-  ASSERTS_CMP(u, a, b, "<",  1);
-  ASSERTS_CMP(u, a, b, ">=", 0);
-  ASSERTS_CMP(u, a, b, ">",  0);
+  ASSERTS_CMP(ptr, a, b, "==", 0);
+  ASSERTS_CMP(ptr, a, b, "<=", 1);
+  ASSERTS_CMP(ptr, a, b, "<",  1);
+  ASSERTS_CMP(ptr, a, b, ">=", 0);
+  ASSERTS_CMP(ptr, a, b, ">",  0);
 
-  ASSERTS_CMP(u, b, a, "==", 0);
-  ASSERTS_CMP(u, b, a, "<=", 0);
-  ASSERTS_CMP(u, b, a, "<",  0);
-  ASSERTS_CMP(u, b, a, ">=", 1);
-  ASSERTS_CMP(u, b, a, ">",  1);
+  ASSERTS_CMP(ptr, b, a, "==", 0);
+  ASSERTS_CMP(ptr, b, a, "<=", 0);
+  ASSERTS_CMP(ptr, b, a, "<",  0);
+  ASSERTS_CMP(ptr, b, a, ">=", 1);
+  ASSERTS_CMP(ptr, b, a, ">",  1);
 
+  FREE(arr);
+}
+
+static void test_assertion_raise_cmp_ptr(unit_test_t * tst)
+{
+  int * arr = MALLOC(10);
+  const void * a = arr + 1;
+  const void * b = arr + 2;
+  /* EQ == */
+  REQUIRE_EQ_PTR(a, a);
+  ASSERT_SIGNAL(tst, REQUIRE_EQ_PTR(a,  b));
+  ASSERT_SIGNAL(tst, REQUIRE_EQ_PTR(b,  a));
+
+  /* NEQ != */
+  ASSERT_SIGNAL(tst, REQUIRE_NEQ_PTR(a, a));
+  REQUIRE_NEQ_PTR(a, b);
+  REQUIRE_NEQ_PTR(b, a);
+
+  /* GT > */
+  ASSERT_SIGNAL(tst, REQUIRE_GT_PTR(a, a));
+  ASSERT_SIGNAL(tst, REQUIRE_GT_PTR(a, b));
+  REQUIRE_GT_PTR(b, a);
+
+  /* GE >= */
+  REQUIRE_GE_PTR(a, a);
+  ASSERT_SIGNAL(tst, REQUIRE_GE_PTR(a, b));
+  REQUIRE_GE_PTR(b, a);
+     
+  /* LT < */
+  ASSERT_SIGNAL(tst, REQUIRE_LT_PTR(a, a));
+  REQUIRE_LT_PTR(a, b);
+  ASSERT_SIGNAL(tst, REQUIRE_LT_PTR(b, a));
+
+  /* LE <= */
+  REQUIRE_LE_PTR(a, a);
+  REQUIRE_LE_PTR(a, b);
+  ASSERT_SIGNAL(tst, REQUIRE_LE_PTR(b, a));
   FREE(arr);
 }
 
@@ -386,6 +637,25 @@ static void test_assertion_create_cmp_arr_ptr(unit_test_t * tst)
   FREE(arr);
 }
 
+static void test_assertion_raise_cmp_arr_ptr(unit_test_t * tst)
+{
+  int * arr = MALLOC(10);
+  const void * a[3] = { arr + 1, arr + 2, arr + 3};
+  const void * b[3] = { arr + 4, arr + 5, arr + 6};
+  REQUIRE_EQ_ARR_PTR(a,3, a, 3);
+  REQUIRE_LE_ARR_PTR(a,3, a, 3);
+  ASSERT_SIGNAL(tst, REQUIRE_LT_ARR_PTR(a,3, a, 3));
+  REQUIRE_GE_ARR_PTR(a,3, a, 3);
+  ASSERT_SIGNAL(tst, REQUIRE_GT_ARR_PTR(a,3, a, 3));
+
+  ASSERT_SIGNAL(tst,REQUIRE_EQ_ARR_PTR(a, 3, b, 3));
+  REQUIRE_LE_ARR_PTR(a, 3, b, 3);
+  REQUIRE_LT_ARR_PTR(a, 3, b, 3);
+  ASSERT_SIGNAL(tst,REQUIRE_GE_ARR_PTR(a, 3, b, 3));
+  ASSERT_SIGNAL(tst,REQUIRE_GT_ARR_PTR(a, 3, b, 3));
+
+  FREE(arr);
+}
 
 /*********************************************************************
  * 
@@ -422,6 +692,41 @@ static void test_assertion_create_cmp_cstr(unit_test_t * tst)
   ASSERTS_CMP(cstr, b, a, "<",  0);
   ASSERTS_CMP(cstr, b, a, ">=", 1);
   ASSERTS_CMP(cstr, b, a, ">",  1);
+}
+
+static void test_assertion_raise_cmp_cstr(unit_test_t * tst)
+{
+  const char * a = "abc";
+  const char * b = "def";
+  /* EQ == */
+  REQUIRE_EQ_CSTR(a, a);
+  ASSERT_SIGNAL(tst, REQUIRE_EQ_CSTR(a,  b));
+  ASSERT_SIGNAL(tst, REQUIRE_EQ_CSTR(b,  a));
+
+  /* NEQ != */
+  ASSERT_SIGNAL(tst, REQUIRE_NEQ_CSTR(a, a));
+  REQUIRE_NEQ_CSTR(a, b);
+  REQUIRE_NEQ_CSTR(b, a);
+
+  /* GT > */
+  ASSERT_SIGNAL(tst, REQUIRE_GT_CSTR(a, a));
+  ASSERT_SIGNAL(tst, REQUIRE_GT_CSTR(a, b));
+  REQUIRE_GT_CSTR(b, a);
+
+  /* GE >= */
+  REQUIRE_GE_CSTR(a, a);
+  ASSERT_SIGNAL(tst, REQUIRE_GE_CSTR(a, b));
+  REQUIRE_GE_CSTR(b, a);
+     
+  /* LT < */
+  ASSERT_SIGNAL(tst, REQUIRE_LT_CSTR(a, a));
+  REQUIRE_LT_CSTR(a, b);
+  ASSERT_SIGNAL(tst, REQUIRE_LT_CSTR(b, a));
+
+  /* LE <= */
+  REQUIRE_LE_CSTR(a, a);
+  REQUIRE_LE_CSTR(a, b);
+  ASSERT_SIGNAL(tst, REQUIRE_LE_CSTR(b, a));
 }
 
 /*********************************************************************
@@ -470,6 +775,23 @@ static void test_assertion_create_cmp_arr_cstr(unit_test_t * tst)
   ASSERTS_CMP_ARR(cstr, b, 3, a, 3, ">",  1);
 }
 
+static void test_assertion_raise_cmp_arr_cstr(unit_test_t * tst)
+{
+  const char * a[3] = { "1", "2", "3"};
+  const char * b[3] = { "4", "5", "6"};
+  REQUIRE_EQ_ARR_CSTR(a,3, a, 3);
+  REQUIRE_LE_ARR_CSTR(a,3, a, 3);
+  ASSERT_SIGNAL(tst, REQUIRE_LT_ARR_CSTR(a,3, a, 3));
+  REQUIRE_GE_ARR_CSTR(a,3, a, 3);
+  ASSERT_SIGNAL(tst, REQUIRE_GT_ARR_CSTR(a,3, a, 3));
+
+  ASSERT_SIGNAL(tst,REQUIRE_EQ_ARR_CSTR(a, 3, b, 3));
+  REQUIRE_LE_ARR_CSTR(a, 3, b, 3);
+  REQUIRE_LT_ARR_CSTR(a, 3, b, 3);
+  ASSERT_SIGNAL(tst,REQUIRE_GE_ARR_CSTR(a, 3, b, 3));
+  ASSERT_SIGNAL(tst,REQUIRE_GT_ARR_CSTR(a, 3, b, 3));
+}
+
 /*********************************************************************
  * 
  * print
@@ -483,8 +805,7 @@ FILE *fmemopen (void *__s, size_t __len, const char *__modes);
 static void test_assertion_print_exception(unit_test_t * tst)
 {
   memcheck_begin();
-  assertion_t * assertion = assertion_create_message("myfile.c", 27, "EXPECT","EXPLAIN\nLINE2", 1);
-  assertion->success      = 0;
+  assertion_t * assertion = assertion_create_message("myfile.c", 27, "EXPECT","EXPLAIN\nLINE2", 1,0);
   char * buffer = MALLOC(1024);
   int i;
   for(i =0; i < 1024; i++) 
@@ -571,8 +892,54 @@ static void test_assertion_print_assertion_cmp_u(unit_test_t * tst)
   memcheck_end();
 }
 
-
 #endif
+
+static void test_assertion_dont_raise(unit_test_t * tst)
+{
+  memcheck_begin();
+  assertion_t * assertion = assertion_create_message("myfile.c", 27, NULL,NULL, 1, 1);
+  assertion_raise(assertion);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
+}
+
+static void test_assertion_raise(unit_test_t * tst)
+{
+  memcheck_begin();
+  int                 signal_captured = 0;
+  assertion_handler_t my_handler;
+  my_handler.handler_cb  = _signal_handler;
+  my_handler.user_data   = &signal_captured;
+  my_handler.fp          = NULL;
+  my_handler.use_stderr  = 0;
+#ifdef HAS_FMEMOPEN
+  char * buffer = MALLOC(1024);
+  int i;
+  for(i =0; i < 1024; i++) 
+  {
+    buffer[i] = 0;
+  }
+  my_handler.fp = fmemopen(buffer, 1024, "w");
+#endif
+  void (*prev_handler)(int);
+  assertion_handler_t old_handler;
+  assertion_t * assertion;
+  old_handler = assertion_register_handler(my_handler);
+  assertion = assertion_create_message("myfile.c", 27, NULL,NULL, 0,0);
+  signal_captured = 0;
+  prev_handler = signal (SIGABRT, SIG_IGN); 
+  assertion_raise(assertion);
+  signal (SIGABRT, prev_handler);
+  assertion_register_handler(old_handler);
+  ASSERT(tst, signal_captured);
+#ifdef HAS_FMEMOPEN
+  fclose(my_handler.fp);
+  ASSERT_GT_U(tst, strlen(buffer),0);
+  FREE(buffer);
+#endif
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
+}
 
 void test_assertion(unit_context_t * ctx)
 {
@@ -580,31 +947,47 @@ void test_assertion(unit_context_t * ctx)
   TEST(suite, test_create_assertion);
   TEST(suite, test_assertion_invert);
 
+  TEST(suite, test_assertion_create_true);
+  TEST(suite, test_assertion_create_false);
+  TEST(suite, test_assertion_raise_boolean);
+
   TEST(suite, test_cmp_i);
   TEST(suite, test_assertion_create_cmp_i);
+  TEST(suite, test_assertion_raise_cmp_i);
 
   TEST(suite, test_cmp_arr_i);
   TEST(suite, test_assertion_create_cmp_arr_i);
+  TEST(suite, test_assertion_raise_cmp_arr_i);
 
   TEST(suite, test_cmp_u);
   TEST(suite, test_assertion_create_cmp_u);
+  TEST(suite, test_assertion_raise_cmp_u);
 
   TEST(suite, test_cmp_arr_u);
   TEST(suite, test_assertion_create_cmp_arr_u);
+  TEST(suite, test_assertion_raise_cmp_arr_u);
 
   TEST(suite, test_cmp_ptr);
   TEST(suite, test_assertion_create_cmp_ptr);
+  TEST(suite, test_assertion_raise_cmp_ptr);
 
   TEST(suite, test_cmp_arr_ptr);
   TEST(suite, test_assertion_create_cmp_arr_ptr);
+  TEST(suite, test_assertion_raise_cmp_arr_ptr);
 
   TEST(suite, test_cmp_cstr);
   TEST(suite, test_assertion_create_cmp_cstr);
+  TEST(suite, test_assertion_raise_cmp_cstr);
 
   TEST(suite, test_cmp_arr_cstr);
   TEST(suite, test_assertion_create_cmp_arr_cstr);
+  TEST(suite, test_assertion_raise_cmp_arr_cstr);
 
+#ifdef HAS_FMEMOPEN
   TEST(suite, test_assertion_print_exception);
   TEST(suite, test_assertion_print_assertion_cmp_i);
   TEST(suite, test_assertion_print_assertion_cmp_u);
+#endif
+  TEST(suite, test_assertion_dont_raise);
+  TEST(suite, test_assertion_raise);
 }

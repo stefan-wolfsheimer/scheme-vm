@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include "assertion.h"
 
-#define UNIT_CHECKS_VERBOSE 0
 /* @todo printer for array assertions */
 /* @todo extra library for c string */
 /* @todo extra library for assertions */
@@ -76,22 +75,6 @@ unit_test_t * unit_create_test(unit_suite_t * suite,
 int unit_add_assertion(unit_test_t * tst,
 		       assertion_t * assertion_lst);
 
-/* @todo remove use add_assertion instead */
-assertion_t * unit_create_assertion(unit_test_t * tst,
-				    const char  * expect,
-				    const char  * file,
-				    int line, 
-				    int           success);
-
-
-
-int unit_create_check(unit_test_t * tst,
-		      const char  * expect,
-		      const char  * file, 
-		      int           line, 
-		      int           success,
-		      int           verbose);
-
 /*********************************************************************
  * 
  * macros to create check and assertion function declarations and
@@ -152,6 +135,38 @@ int unit_create_check(unit_test_t * tst,
 							 (__OP__),	\
 							 1))
   
+
+/*********************************************************************
+ * 
+ * boolean
+ *
+ **********************************************************************/
+#define ASSERT(__TEST__,__EXPR__)                                       \
+  if(!unit_add_assertion((__TEST__),					\
+			 assertion_create_true(__FILE__, __LINE__,	\
+					       #__EXPR__,(__EXPR__),	\
+					       0)))			\
+  { return; }
+
+#define ASSERT_FALSE(__TEST__,__EXPR__)					\
+  if(!unit_add_assertion((__TEST__),					\
+			 assertion_create_false(__FILE__, __LINE__,	\
+					       #__EXPR__,(__EXPR__),	\
+					       0)))			\
+  { return; }
+
+#define CHECK(__TEST__, __EXPR__)                                       \
+  unit_add_assertion((__TEST__),					\
+		     assertion_create_true(__FILE__, __LINE__,		\
+					   #__EXPR__,(__EXPR__),	\
+					   1))
+
+
+#define CHECK_FALSE(__TEST__, __EXPR__)					\
+  unit_add_assertion((__TEST__),					\
+		     assertion_create_false(__FILE__, __LINE__,		\
+					    #__EXPR__,(__EXPR__),	\
+					    1))
 
 /*********************************************************************
  * 
@@ -645,34 +660,6 @@ void unit_final_report(FILE * fp,
 
 #define TEST(__SUITE__, __FUNC__)			\
   unit_create_test((__SUITE__), #__FUNC__, (__FUNC__))
-
-#define ASSERT(__TEST__,__EXPR__)                                       \
-  if(!unit_create_assertion((__TEST__),					\
-			    #__EXPR__" is true ",			\
-			    __FILE__, __LINE__,				\
-			    (__EXPR__))->success)			\
-  { return; }
-
-#define CHECK(__TEST__, __EXPR__)                                       \
-  unit_create_check((__TEST__),						\
-		    #__EXPR__" is true ",				\
-		    __FILE__, __LINE__,					\
-		    (__EXPR__),						\
-		    UNIT_CHECKS_VERBOSE)
-
-#define ASSERT_FALSE(__TEST__,__EXPR__)                                 \
-  if(!unit_create_assertion((__TEST__),					\
-			    #__EXPR__" is false ",			\
-			    __FILE__, __LINE__,				\
-			    !(__EXPR__))->success)			\
-  { return; }
-
-#define CHECK_FALSE(__TEST__,__EXPR__)                                  \
-  unit_create_check((__TEST__),						\
-		    #__EXPR__" is false ",				\
-		    __FILE__, __LINE__,					\
-		    !(__EXPR__),					\
-		    UNIT_CHECKS_VERBOSE)
 
 /*****************************************************************
  * xmalloc assertions 
