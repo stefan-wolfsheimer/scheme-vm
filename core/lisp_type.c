@@ -14,6 +14,11 @@ static int _lisp_register_object_type(lisp_vm_t         * vm,
 				      lisp_char_t       * name,
 				      lisp_destructor_t   destructor,
 				      lisp_type_id_t      new_type_id);
+
+static int _lisp_register_cons_type(lisp_vm_t         * vm,
+				    lisp_char_t       * name,
+				    lisp_type_id_t      new_type_id);
+
 #if 0
 static void _destruct_lambda(lisp_vm_t * vm,
                              void      * ptr);
@@ -55,6 +60,28 @@ int _lisp_register_object_type(lisp_vm_t         * vm,
   }
 }
 
+static int _lisp_register_cons_type(lisp_vm_t         * vm,
+				    lisp_char_t       * name,
+				    lisp_type_id_t      new_type_id)
+{
+  if(new_type_id <  LISP_TID_CONS_MASK || 
+     new_type_id > 0x7f) 
+  {
+    return LISP_TYPE_ERROR;
+  }
+  if(vm->types[new_type_id].type_id != 0) 
+  {
+    return LISP_TYPE_ERROR;
+  }
+  else 
+  {
+    vm->types[new_type_id].type_id = new_type_id;
+    vm->types[new_type_id].name = lisp_nil; /* @todo copy string */
+    vm->types[new_type_id].destructor = NULL;
+    return LISP_OK;
+  }
+}
+
 int lisp_register_object_type(lisp_vm_t         * vm,
 			      lisp_char_t       * name,
 			      lisp_destructor_t   destructor,
@@ -73,6 +100,24 @@ int lisp_register_object_type(lisp_vm_t         * vm,
   return LISP_TYPE_ERROR;
 }
 
+int lisp_register_cons_type(lisp_vm_t          * vm,
+			    lisp_char_t        * name,
+			    lisp_type_id_t     * new_type)
+{
+  size_t i;
+  *new_type = 0;
+  for(i = LISP_TID_CONS_MASK; i < 0x80; i++) 
+  {
+    if(vm->types[i].type_id == 0) 
+    {
+      *new_type = i;
+      return _lisp_register_cons_type(vm, name, i);
+    }
+  }
+  return LISP_TYPE_ERROR;
+}
+
+
 int _lisp_init_types(lisp_vm_t * vm)
 {
   int err = 0;
@@ -86,6 +131,9 @@ int _lisp_init_types(lisp_vm_t * vm)
 				    "LAMBDA", 
 				    _destruct_symbol,
 				    LISP_TID_LAMBDA);
+  err |= _lisp_register_cons_type(vm,
+				  "CONS",
+				  LISP_TID_CONS);
   if(err) 
   {
     return LISP_TYPE_ERROR;

@@ -1,4 +1,5 @@
 #include "xmalloc.h"
+#include "xstring.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -8,21 +9,15 @@ static memchecker_t ** memcheck_stack = NULL;
 static size_t          memcheck_stack_size = 0;
 
 static memchecker_chunk_t * _memcheck_find_chunk(memchecker_t * memchecker, 
-						 void * ptr, 
-						 int add_in_not_exists);
+						 void * ptr);
 static assertion_t  * _memcheck_create_assertion(memchecker_t * memchecker, 
 						 const char   * file,
 						 int            line);
 
 static memchecker_chunk_t * _memcheck_find_chunk(memchecker_t * memchecker, 
-						 void * ptr,
-						 int add_in_not_exists)
+						 void * ptr)
 {
-  size_t i,n;
-  if(!memchecker->enabled) 
-  {
-    return NULL;
-  }
+  size_t i;
   for(i = 0; i < memchecker->n_chunks; i++)
   {
     if(memchecker->chunks[i].ptr == ptr)
@@ -30,29 +25,7 @@ static memchecker_chunk_t * _memcheck_find_chunk(memchecker_t * memchecker,
       return &memchecker->chunks[i];
     }
   }
-  if(add_in_not_exists)
-  {
-    if(memchecker->n_chunks % MEMCHECK_BLOCK_SIZE == 0)
-    {
-      n = memchecker->n_chunks / MEMCHECK_BLOCK_SIZE;
-      n++;
-      memchecker->chunks = realloc(   memchecker->chunks,
-				      MEMCHECK_BLOCK_SIZE * n *
-				      sizeof(memchecker_chunk_t));
-    }
-    memchecker_chunk_t * chunk = &memchecker->chunks[memchecker->n_chunks];
-    chunk->ptr        = ptr;
-    chunk->alloc_file = NULL;
-    chunk->free_file  = NULL;
-    chunk->alloc_line = 0;
-    chunk->free_line  = 0;
-    memchecker->n_chunks++;
-    return chunk;
-  }
-  else
-  {
-    return NULL;
-  }
+  return NULL;
 }
 
 static assertion_t  * _memcheck_create_assertion(memchecker_t * memchecker, 
@@ -83,10 +56,6 @@ memchecker_t * memcheck_begin()
   memchecker->n_chunks            = 0;
   memchecker->first_assertion     = NULL;
   memchecker->last_assertion      = NULL;
-  memchecker->message_not_managed = NULL;
-  memchecker->n_not_managed       = 0;
-  memchecker->message_double_free = NULL;
-  memchecker->n_double_free       = 0;
   memchecker->next_mock           = NULL;
   memchecker->last_mock           = NULL;
   memchecker->enabled             = 1;
@@ -94,15 +63,20 @@ memchecker_t * memcheck_begin()
   return memchecker;
 }
 
-void memcheck_end()
+int memcheck_end()
 {
   size_t         i;
   memchecker_t * memchecker = memcheck_current();
+  int ret = 1;
   if(memchecker) 
   {
     memcheck_retire_mocks(memchecker);
     while(memchecker->first_assertion)
     {
+      if(!memchecker->first_assertion->success)
+      {
+	ret = 0;
+      }
       memchecker->first_assertion = assertion_free(memchecker->first_assertion);
     }
     for(i = 0; i < memchecker->n_chunks; i++)
@@ -116,16 +90,6 @@ void memcheck_end()
         free(memchecker->chunks[i].free_file);
       }
     }
-    for(i = 0; i < memchecker->n_not_managed; i++) 
-    {
-      free(memchecker->message_not_managed[i]);
-    }
-    for(i = 0; i < memchecker->n_double_free; i++) 
-    {
-      free(memchecker->message_double_free[i]);
-    }
-    free(memchecker->message_not_managed);
-    free(memchecker->message_double_free);
     free(memchecker->chunks);
     free(memchecker);
     memcheck_stack_size--;
@@ -135,6 +99,7 @@ void memcheck_end()
       memcheck_stack = NULL;
     }
   }
+  return ret;
 }
 
 memchecker_t * memcheck_current()
@@ -149,23 +114,21 @@ memchecker_t * memcheck_current()
   }
 }
 
-void memcheck_enable()
+int memcheck_enable(int enabled)
 {
   memchecker_t * memchecker = memcheck_current();
   if(memchecker) 
   {
-    memchecker->enabled = 1;
+    int ret = memchecker->enabled;
+    memchecker->enabled = enabled;
+    return ret;
+  }
+  else 
+  {
+    return 0;
   }
 }
 
-void memcheck_disable()
-{
-  memchecker_t * memchecker = memcheck_current();
-  if(memchecker) 
-  {
-    memchecker->enabled = 0;
-  }
-}
 
 /*********************************************************************
  * 
@@ -183,9 +146,9 @@ static int _memcheck_check_chunk(memchecker_t       * memchecker,
 							    chunk->alloc_file,
 							    chunk->alloc_line);
       assertion->is_exception = 1;
-      memcheck_disable();
+      int old = memcheck_enable(0);
       assertion->expect = alloc_sprintf("segment %p still reachable", chunk->ptr);      
-      memcheck_enable();
+      memcheck_enable(old);
       return 0;
     }
   }
@@ -377,10 +340,26 @@ void memcheck_register_alloc( const char * file,
   if(memchecker && memchecker->enabled) 
   {
     memchecker_chunk_t * chunk;
-    chunk = _memcheck_find_chunk(memchecker, ptr, 1);
+    chunk = _memcheck_find_chunk(memchecker, ptr);
     if(chunk == NULL) 
     {
-      return;
+      size_t n;
+      if(memchecker->n_chunks % MEMCHECK_BLOCK_SIZE == 0)
+      {
+	n = memchecker->n_chunks / MEMCHECK_BLOCK_SIZE;
+	n++;
+	memchecker->chunks = realloc(   memchecker->chunks,
+					MEMCHECK_BLOCK_SIZE * n *
+					sizeof(memchecker_chunk_t));
+	if(memchecker->chunks == NULL) return;
+      }
+      chunk = &memchecker->chunks[memchecker->n_chunks];
+      chunk->ptr        = ptr;
+      chunk->alloc_file = NULL;
+      chunk->free_file  = NULL;
+      chunk->alloc_line = 0;
+      chunk->free_line  = 0;
+      memchecker->n_chunks++;
     }
     if(chunk->free_file != NULL)
     {
@@ -394,8 +373,9 @@ void memcheck_register_alloc( const char * file,
       chunk->alloc_file = NULL;
       chunk->alloc_line = 0;
     }
-    chunk->alloc_file = malloc(strlen(file) + 1);
-    strcpy(chunk->alloc_file, file);
+    int old = memcheck_enable(0);
+    chunk->alloc_file = alloc_strcpy(file);
+    memcheck_enable(old);
     chunk->alloc_line = line;
   }
 }
@@ -407,16 +387,16 @@ int memcheck_register_freed(  const char * file,
   memchecker_t * memchecker = memcheck_current();
   if(memchecker) 
   {
-    memchecker_chunk_t * chunk = _memcheck_find_chunk(memchecker, ptr, 0);
+    memchecker_chunk_t * chunk = _memcheck_find_chunk(memchecker, ptr);
     if(chunk == NULL || chunk->alloc_file == NULL)
     {
       assertion_t * assertion = _memcheck_create_assertion(memchecker, 
 							   file,
 							   line);
       assertion->is_exception = 1;
-      memcheck_disable();
+      int old = memcheck_enable(0);
       assertion->expect = alloc_sprintf("attempt to free unmanaged %p", ptr);
-      memcheck_enable();
+      memcheck_enable(old);
       return 1;
     }
     else if(chunk->free_file != NULL) 
@@ -425,9 +405,9 @@ int memcheck_register_freed(  const char * file,
 							   file,
 							   line);
       assertion->is_exception = 1;
-      memcheck_disable();
+      int old = memcheck_enable(0);
       assertion->expect = alloc_sprintf("double free of %p", ptr);
-      memcheck_enable();
+      memcheck_enable(old);
       return 0;
     }
     else 

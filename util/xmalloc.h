@@ -32,10 +32,6 @@ typedef struct memchecker_t
   size_t                    n_chunks;
   assertion_t             * first_assertion;
   assertion_t             * last_assertion;
-  char                   ** message_not_managed;
-  size_t                    n_not_managed;
-  char                   ** message_double_free;
-  size_t                    n_double_free;
   memchecker_alloc_mock_t * next_mock;
   memchecker_alloc_mock_t * last_mock;
   int                       enabled;
@@ -64,7 +60,7 @@ memchecker_t * memcheck_begin();
 /** 
  * End a context of managed memory allocations
  */
-void memcheck_end();
+int memcheck_end();
 
 /** 
  * Get the current memcheck context.
@@ -73,8 +69,12 @@ void memcheck_end();
  */
 memchecker_t * memcheck_current();
 
-void memcheck_enable();
-void memcheck_disable();
+/** 
+ * Disable or enable allocation tracking for the current context.
+ * @return non zero if tracking was enabled 
+ */
+int memcheck_enable(int enable);
+
 
 
 /*********************************************************************

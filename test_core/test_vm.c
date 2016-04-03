@@ -114,7 +114,7 @@ static void test_register_type(unit_test_t * tst)
 					      "TEST",
 					      test_destructor,
 					      &id));
-  ASSERT(tst, (LISP_TID_OBJECT_MASK & id));
+  ASSERT(tst,       (LISP_TID_OBJECT_MASK & id));
   ASSERT_FALSE(tst, make_test_object(&obj,
 				     &flag,
 				     id));
@@ -141,13 +141,13 @@ static void test_object_without_explicit_destructor(unit_test_t * tst)
 					      &id));
   flags = 0;
   ASSERT_FALSE(tst, make_test_object(&obj, &flags, id));
-  ASSERT(tst, LISP_REFCOUNT(&obj) == 1);
+  ASSERT(tst,       LISP_REFCOUNT(&obj) == 1);
   ASSERT_FALSE(tst, lisp_unset_object(vm, &obj));
     
 
   ASSERT_FALSE(tst, make_test_object(&obj, &flags, id));
   ASSERT_FALSE(tst, lisp_copy_object_as_root(vm, &copy, &obj));
-  ASSERT(tst, LISP_REFCOUNT(&obj) == 2);
+  ASSERT(tst,       LISP_REFCOUNT(&obj) == 2);
   ASSERT_FALSE(tst, lisp_unset_object(vm, &obj));
   ASSERT_FALSE(tst, lisp_unset_object_root(vm, &copy));
   lisp_unset_object(vm, &obj);

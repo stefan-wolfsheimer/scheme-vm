@@ -47,7 +47,7 @@ static void _print_result(FILE * fp, int success, int color)
 assertion_t * assertion_create(const char * file, 
 			       int          line)
 {
-  memcheck_disable();
+  int old = memcheck_enable(0);
   assertion_t * assertion = malloc(sizeof(assertion_t));
   if(assertion == NULL) { return assertion; }
   assertion->expect         = NULL;
@@ -57,7 +57,7 @@ assertion_t * assertion_create(const char * file,
   assertion->success        = 0;
   assertion->is_exception   = 0;
   assertion->next           = NULL;
-  memcheck_enable();
+  memcheck_enable(old);
   return assertion;
 }
 
@@ -68,7 +68,7 @@ assertion_t * assertion_create_message(const char * file,
 				       int          is_exception,
 				       int          success)
 {
-  memcheck_disable();
+  int old = memcheck_enable(0);
   assertion_t * assertion = malloc(sizeof(assertion_t));
   if(assertion == NULL) { return assertion; }
   assertion->expect         = alloc_strcpy(expect);
@@ -78,7 +78,7 @@ assertion_t * assertion_create_message(const char * file,
   assertion->success        = success;
   assertion->is_exception   = is_exception;
   assertion->next           = NULL;
-  memcheck_enable();
+  memcheck_enable(old);
   return assertion;
 }
 
@@ -110,7 +110,7 @@ assertion_t * assertion_invert(assertion_t * assertion)
     if(assertion->expect) 
     {
       char * tmp = assertion->expect;
-      memcheck_disable();
+      int old = memcheck_enable(0);
       if(assertion->is_exception) 
       {
 	assertion->expect = alloc_sprintf("expected %s", tmp);
@@ -120,13 +120,13 @@ assertion_t * assertion_invert(assertion_t * assertion)
 	assertion->expect = alloc_sprintf("not (%s)", tmp);
       }
       free(tmp);
-      memcheck_enable();
+      memcheck_enable(old);
     }
     else 
     {
-      memcheck_disable();
+      int old = memcheck_enable(0);
       assertion->expect = alloc_strcpy("not (...)");
-      memcheck_enable();
+      memcheck_enable(old);
     }
   }
   return assertion;
@@ -310,7 +310,7 @@ assertion_register_handler(const assertion_handler_t handler)
 	return NULL;							\
       }									\
       assertion->success = success;					\
-      memcheck_disable();						\
+      int old = memcheck_enable(0);					\
       assertion->expect = alloc_sprintf("%s%s%s",			\
 					lhs_expr, op, rhs_expr);	\
       char * lhs_str = alloc_sprintf(#__FMT__, lhs);			\
@@ -336,7 +336,7 @@ assertion_register_handler(const assertion_handler_t handler)
       }                                          			\
       free(rhs_str);	                                                \
       free(lhs_str);	                                                \
-      memcheck_enable();						\
+      memcheck_enable(old);						\
       return assertion;							\
     }									\
     else								\
@@ -400,9 +400,9 @@ assertion_t * assertion_create_true(const char * file,
     assertion_t * assertion = assertion_create(file, line);
     if(!assertion) return NULL;
     assertion->success = expr;
-    memcheck_disable();
+    int old = memcheck_enable(0);
     assertion->expect = alloc_sprintf("%s is true", expr_str);
-    memcheck_enable();
+    memcheck_enable(old);
     return assertion;
   }
   else
@@ -422,9 +422,9 @@ assertion_t * assertion_create_false(const char * file,
     assertion_t * assertion = assertion_create(file, line);
     if(!assertion) return NULL;
     assertion->success = !expr;
-    memcheck_disable();
+    int old = memcheck_enable(0);
     assertion->expect = alloc_sprintf("%s is true", expr_str);
-    memcheck_enable();
+    memcheck_enable(old);
     return assertion;
   }
   else

@@ -285,7 +285,7 @@ int lisp_copy_n_objects_as_root( lisp_vm_t   * vm,
       return ret;
     }
   }
-  return 0;
+  return LISP_OK;
 }
 
 int lisp_unset_object(lisp_vm_t * vm,  lisp_cell_t * target)
@@ -305,7 +305,7 @@ int lisp_unset_object(lisp_vm_t * vm,  lisp_cell_t * target)
     }
   }
   *target = lisp_nil;
-  return 0;
+  return LISP_OK;
 }
 
 int lisp_unset_object_root(lisp_vm_t * vm, lisp_cell_t * target)

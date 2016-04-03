@@ -40,7 +40,7 @@ typedef struct lisp_thread_t
 
 typedef struct lisp_vm_t 
 {
-  /* @todo move to lisp_thread_t */
+  /* @todo move to continiation */
   lisp_cell_t   * data_stack;
   lisp_size_t     data_stack_top;
   lisp_size_t     data_stack_size;
@@ -105,10 +105,20 @@ void lisp_free_vm(   lisp_vm_t * vm);
  *  @param new_type the type id of the registered type
  *  @return LISP_OK or LISP_TYPE_ERROR
  */
-int lisp_register_object_type(lisp_vm_t * vm,
+int lisp_register_object_type(lisp_vm_t        * vm,
 			      lisp_char_t      * name,
 			      lisp_destructor_t  destructor,
 			      lisp_type_id_t   * new_type);
+
+/** Register a user define cons type.
+ *  @param vm the machine
+ *  @param name name of the type
+ *  @param new_type the type id of the registered type
+ *  @return LISP_OK or LISP_TYPE_ERROR
+ */
+int lisp_register_cons_type(lisp_vm_t          * vm,
+			    lisp_char_t        * name,
+			    lisp_type_id_t     * new_type);
 
 
 
@@ -386,7 +396,6 @@ int lisp_make_cons_typed_car_cdr(lisp_vm_t     * vm,
 int lisp_make_cons_root(lisp_vm_t   * vm,
                         lisp_cell_t * cell);
 
-/* @todo implement */
 int lisp_make_cons_root_car_cdr(lisp_vm_t * vm,
                                 lisp_cell_t * cell,
                                 const lisp_cell_t * car, 
@@ -398,7 +407,6 @@ int lisp_make_cons_root_typed(lisp_vm_t     * vm,
                               lisp_cell_t   * cell,
                               lisp_type_id_t  type_id);
 
-/* @todo implement */
 int lisp_make_cons_root_typed_car_cdr(lisp_vm_t     * vm,
                                       lisp_cell_t   * cell,
                                       lisp_type_id_t  type_id,
@@ -415,8 +423,6 @@ int lisp_make_cons_root_typed_car_cdr(lisp_vm_t     * vm,
  * @param  cell to be tested
  * @return reference count
  *
- * @todo rename it to lisp_root_refcount
- *       (all functions with cons_prefix should operate on conses
  */
 lisp_ref_count_t lisp_root_refcount(lisp_vm_t         * vm,
 				    const lisp_cell_t * cell);
@@ -425,10 +431,6 @@ int lisp_cons_root(lisp_vm_t * vm, lisp_cons_t * cons);
 int lisp_cons_unroot(lisp_vm_t * vm, lisp_cons_t * cons);
 
 
-
-
-
-/* @todo: implement */
 int lisp_cons_set_car_cdr(lisp_vm_t * vm, 
 			  lisp_cons_t * cons, 
 			  const lisp_cell_t * car,

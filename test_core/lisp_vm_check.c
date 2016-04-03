@@ -1,6 +1,7 @@
 #include "lisp_vm_check.h"
 #include "util/xmalloc.h"
 #include "util/unit_test.h"
+#include "util/assertion.h"
 
 void set_up_conses(unit_test_t * tst, 
 		   lisp_vm_t   * vm,
@@ -12,6 +13,7 @@ void set_up_conses(unit_test_t * tst,
 {
   lisp_size_t   n,i,j;
   lisp_cons_t * cons;
+  REQUIRE_NEQ_PTR(vm, NULL);
   while(vm->root_cons_table_size - vm->root_cons_top < n_root_conses)
   {
     vm->cons_pages = REALLOC(vm->cons_pages, 

@@ -203,6 +203,7 @@ static void test_get_different_root_cons(unit_test_t * tst)
 {
   memcheck_begin();
   lisp_vm_t    * vm = lisp_create_vm(&lisp_vm_default_param);
+  ASSERT_NEQ_PTR(tst, vm, NULL);
   lisp_size_t    n_root_conses = 10;
   set_up_conses(tst, vm, n_root_conses, 0, 0, 0, 0);
   ASSERT_EQ_PTR(tst, _get_different_cons(vm, 
@@ -323,11 +324,11 @@ static int test_new_root_cons_prepared(unit_test_t  * tst,
   {
     lisp_vm_t    * vm = lisp_create_vm(&lisp_vm_default_param);
     set_up_conses(tst, vm,
-                   n_root_conses,
-                   n_black_conses,
-                   n_gap_conses,
-                   n_grey_conses,
-                   n_white_conses);
+		  n_root_conses,
+		  n_black_conses,
+		  n_gap_conses,
+		  n_grey_conses,
+		  n_white_conses);
     lisp_cell_t    cons, car, cdr;
     if(_get_car_cdr_combination(vm, NULL, &car, &cdr, c)) 
     {
@@ -511,6 +512,265 @@ static void test_make_cons(unit_test_t * tst)
   ASSERT(tst, test_make_cons_prepared(tst, 0, 2, 2, 2, 2));
 }
 
+static void test_make_cons_failure(unit_test_t * tst)
+{
+  memcheck_begin();
+  lisp_vm_t    * vm = lisp_create_vm(&lisp_vm_default_param);
+  ASSERT(tst,        lisp_vm_check(tst, vm));
+  lisp_cell_t cons;
+  memcheck_expected_alloc(0);
+  ASSERT(tst, lisp_make_cons(vm, &cons));
+  memcheck_expected_alloc(0);
+  ASSERT(tst, lisp_make_cons_car_cdr(vm, &cons, &lisp_nil, &lisp_nil));
+  memcheck_expected_alloc(0);
+  ASSERT(tst, lisp_make_cons_root(vm, &cons));
+  memcheck_expected_alloc(0);
+  ASSERT(tst, lisp_make_cons_root_car_cdr(vm, &cons, &lisp_nil, &lisp_nil));
+  lisp_free_vm(vm);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
+}
+
+
+static void test_make_typed_cons(unit_test_t * tst) 
+{
+  memcheck_begin();
+  lisp_vm_t    * vm = lisp_create_vm(&lisp_vm_default_param);
+  lisp_type_id_t new_type = 0;
+  ASSERT_FALSE(tst, lisp_register_cons_type(vm,
+					    "MYCONS",
+					    &new_type));
+  ASSERT(tst, new_type & LISP_TID_CONS_MASK);
+  lisp_cell_t cons1, cons2, cons3, cons4;
+  ASSERT_FALSE(tst, lisp_make_cons_typed(vm,
+					 &cons1,
+					 new_type));
+  ASSERT(tst, LISP_IS_CONS_OBJECT(&cons1));
+  ASSERT_FALSE(tst, LISP_IS_CONS(&cons1));
+
+  ASSERT_FALSE(tst, lisp_make_cons_root_typed(vm,
+					      &cons2,
+					      new_type));
+  ASSERT(tst, LISP_IS_CONS_OBJECT(&cons2));
+  ASSERT_FALSE(tst, LISP_IS_CONS(&cons2));
+  
+  ASSERT_FALSE(tst, lisp_make_cons_typed_car_cdr(vm,
+						 &cons3,
+						 new_type,
+						 &lisp_nil,
+						 &lisp_nil));
+  ASSERT(tst, LISP_IS_CONS_OBJECT(&cons3));
+  ASSERT_FALSE(tst, LISP_IS_CONS(&cons3));
+
+  ASSERT_FALSE(tst, lisp_make_cons_root_typed_car_cdr(vm,
+						      &cons4,
+						      new_type,
+						      &lisp_nil,
+						      &lisp_nil));
+  lisp_free_vm(vm);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
+}
+
+static void test_root_cons(unit_test_t * tst) 
+{
+  memcheck_begin();
+  lisp_vm_t    * vm = lisp_create_vm(&lisp_vm_default_param);
+  lisp_cell_t cons1, cons2, cons3;
+  ASSERT_FALSE(tst, lisp_make_cons(vm, &cons1));
+  ASSERT(tst, lisp_is_white_cons(vm, &cons1));
+
+  ASSERT_FALSE(tst, lisp_make_cons(vm, &cons2));
+  ASSERT(tst,       lisp_is_white_cons(vm, &cons2));
+  ASSERT_FALSE(tst, lisp_make_cons_car_cdr(vm, &cons3, &cons1, &cons2));
+  ASSERT(tst,       lisp_is_white_cons(vm, &cons3));
+  ASSERT(tst,       lisp_vm_check(tst, vm));
+  ASSERT_FALSE(tst, lisp_cons_root(vm, cons3.data.cons));
+  ASSERT(tst,       lisp_is_root_cons(vm, &cons3));
+  ASSERT_FALSE(tst, lisp_is_white_cons(vm, &cons1));
+  ASSERT_FALSE(tst, lisp_is_white_cons(vm, &cons2));
+  
+  lisp_free_vm(vm);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
+}
+
+static void test_root_cons_failure(unit_test_t * tst) 
+{
+  memcheck_begin();
+  lisp_vm_t    * vm = lisp_create_vm(&lisp_vm_default_param);
+  lisp_cell_t cons1, cons2, cons3;
+  ASSERT_FALSE(tst, lisp_make_cons(vm, &cons1));
+  ASSERT(tst,       lisp_is_white_cons(vm, &cons1));
+  ASSERT_FALSE(tst, lisp_make_cons(vm, &cons2));
+  ASSERT(tst,       lisp_is_white_cons(vm, &cons2));
+  ASSERT_FALSE(tst, lisp_make_cons_car_cdr(vm, &cons3, &cons1, &cons2));
+  ASSERT(tst,       lisp_is_white_cons(vm, &cons3));
+  ASSERT(tst,       lisp_vm_check(tst, vm));
+  memcheck_expected_alloc(0);
+  ASSERT(tst,       lisp_cons_root(vm, cons3.data.cons));
+  ASSERT_FALSE(tst, lisp_is_root_cons(vm, &cons3));
+  
+  lisp_free_vm(vm);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
+}
+
+static void test_unroot_cons(unit_test_t * tst) 
+{
+  memcheck_begin();
+  lisp_vm_t    * vm = lisp_create_vm(&lisp_vm_default_param);
+  lisp_cell_t cons1, cons2, cons3;
+
+  ASSERT_FALSE(tst, lisp_make_cons(vm, &cons1));
+  ASSERT(tst, lisp_is_white_cons(vm, &cons1));
+
+  ASSERT_FALSE(tst, lisp_make_cons(vm, &cons2));
+  ASSERT(tst,       lisp_is_white_cons(vm, &cons2));
+  ASSERT_FALSE(tst, lisp_make_cons_root_car_cdr(vm, &cons3, &cons1, &cons2));
+  ASSERT(tst,       lisp_is_root_cons(vm, &cons3));
+  ASSERT(tst,       lisp_vm_check(tst, vm));
+  ASSERT_FALSE(tst, lisp_cons_unroot(vm, cons3.data.cons));
+  ASSERT(tst,       lisp_is_black_cons(vm, &cons3));
+  ASSERT_FALSE(tst, lisp_is_white_cons(vm, &cons1));
+  ASSERT_FALSE(tst, lisp_is_white_cons(vm, &cons2));
+  ASSERT_FALSE(tst, lisp_cons_unroot(vm, cons2.data.cons));
+  lisp_free_vm(vm);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
+}
+
+static void test_unroot_cons_failure(unit_test_t * tst) 
+{
+  memcheck_begin();
+  lisp_vm_t    * vm = lisp_create_vm(&lisp_vm_default_param);
+  lisp_cell_t cons1;
+  ASSERT_FALSE(tst, lisp_make_cons_root(vm, &cons1));
+  ASSERT(tst, lisp_is_root_cons(vm, &cons1));
+  memcheck_expected_alloc(0);
+  ASSERT(tst, lisp_cons_unroot(vm, cons1.data.cons));
+  ASSERT(tst, lisp_is_root_cons(vm, &cons1));
+  lisp_free_vm(vm);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
+}
+
+static void test_set_car_cdr(unit_test_t * tst) 
+{
+  memcheck_begin();
+  lisp_vm_t    * vm = lisp_create_vm(&lisp_vm_default_param);
+  lisp_cell_t cons1, cons2, cons3, unused1;
+
+  ASSERT_FALSE(tst,  lisp_make_cons(vm, &cons1));
+  ASSERT_FALSE(tst,  lisp_make_cons(vm, &unused1));
+  ASSERT_FALSE(tst,  lisp_make_cons(vm, &cons2));
+  ASSERT(tst,        lisp_is_white_cons(vm, &cons1));
+  ASSERT(tst,        lisp_is_white_cons(vm, &unused1));
+  ASSERT(tst,        lisp_is_white_cons(vm, &cons2));
+  ASSERT_FALSE(tst,  lisp_make_cons_car_cdr(vm, &cons3, &cons1, &cons2));
+  ASSERT_FALSE(tst,  lisp_cons_set_car_cdr(vm, cons3.data.cons, NULL, NULL));
+  ASSERT_EQ_PTR(tst, cons3.data.cons->car.data.cons, cons1.data.cons);
+  ASSERT_EQ_PTR(tst, cons3.data.cons->cdr.data.cons, cons2.data.cons);
+  ASSERT_FALSE(tst,  lisp_cons_set_car_cdr(vm, cons3.data.cons, 
+					   &lisp_nil,
+					   &lisp_nil));
+  ASSERT(tst,        LISP_IS_NIL(&cons3.data.cons->car));
+  ASSERT(tst,        LISP_IS_NIL(&cons3.data.cons->cdr));
+  ASSERT_FALSE(tst,  lisp_cons_set_car_cdr(vm, cons3.data.cons, 
+					   &cons1,
+					   &cons2));
+
+  ASSERT_EQ_PTR(tst, cons3.data.cons->car.data.cons, cons1.data.cons);
+  ASSERT_EQ_PTR(tst, cons3.data.cons->cdr.data.cons, cons2.data.cons);
+
+
+  ASSERT_FALSE(tst,  lisp_cons_set_car_cdr(vm, cons3.data.cons, 
+					   &lisp_nil,
+					   &lisp_nil));
+
+  ASSERT_FALSE(tst,  lisp_cons_root(vm, cons3.data.cons));
+  ASSERT(tst, lisp_is_white_cons(vm, &cons1));
+  ASSERT(tst, lisp_is_white_cons(vm, &cons2));
+  ASSERT(tst, lisp_is_root_cons(vm, &cons3));
+
+  ASSERT_FALSE(tst,  lisp_cons_set_car_cdr(vm, cons3.data.cons, 
+					   &cons1,
+					   NULL));
+  ASSERT_EQ_PTR(tst, cons3.data.cons->car.data.cons, cons1.data.cons);
+  ASSERT(tst,        LISP_IS_NIL(&cons3.data.cons->cdr));
+  ASSERT_FALSE(tst,  lisp_is_white_cons(vm, &cons1));
+  ASSERT(tst,        lisp_is_white_cons(vm, &cons2));
+  ASSERT(tst,        lisp_vm_check(tst, vm));
+
+  ASSERT_FALSE(tst,  lisp_cons_set_car_cdr(vm, cons3.data.cons, 
+					   NULL,
+					   &cons2));
+  ASSERT_EQ_PTR(tst, cons3.data.cons->car.data.cons, cons1.data.cons);
+  ASSERT_EQ_PTR(tst, cons3.data.cons->cdr.data.cons, cons2.data.cons);
+  ASSERT_FALSE(tst,  lisp_is_white_cons(vm, &cons1));
+  ASSERT_FALSE(tst,  lisp_is_white_cons(vm, &cons2));
+  ASSERT(tst,        lisp_vm_check(tst, vm));
+
+  lisp_free_vm(vm);
+
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
+}
+
+static int make_test_object(lisp_cell_t   * target, 
+			    lisp_type_id_t  id)
+{
+  int  * obj = MALLOC_OBJECT(sizeof(int), 1);
+  target->type_id = id;
+  target->data.ptr = obj;
+  return LISP_OK;
+}
+
+static void test_set_car_cdr_object(unit_test_t * tst) 
+{
+  memcheck_begin();
+  lisp_vm_t    * vm = lisp_create_vm(&lisp_vm_default_param);
+  lisp_type_id_t id = 0;
+  lisp_cell_t    obj1, obj2, cons;
+  ASSERT_NEQ_PTR(tst, vm, NULL);
+  ASSERT_FALSE(tst,   lisp_register_object_type(vm,
+						"TEST",
+						NULL,
+						&id));
+  ASSERT_FALSE(tst,   make_test_object(&obj1, id));
+  ASSERT_FALSE(tst,   make_test_object(&obj2, id));
+  ASSERT_FALSE(tst,   lisp_make_cons(vm, &cons));
+  ASSERT_EQ_U(tst,    LISP_REFCOUNT(&obj1), 1);
+  ASSERT_EQ_U(tst,    LISP_REFCOUNT(&obj2), 1);
+  ASSERT(tst,         LISP_IS_NIL(&cons.data.cons->car));
+  ASSERT(tst,         LISP_IS_NIL(&cons.data.cons->cdr));
+
+  ASSERT_FALSE(tst,   lisp_cons_set_car_cdr(vm, cons.data.cons, 
+					    &obj1,
+					    NULL));
+  ASSERT_EQ_PTR(tst,  cons.data.cons->car.data.cons, obj1.data.ptr);
+  ASSERT(tst,         LISP_IS_NIL(&cons.data.cons->cdr));
+  ASSERT_EQ_U(tst,    LISP_REFCOUNT(&obj1), 2);
+  ASSERT_EQ_U(tst,    LISP_REFCOUNT(&obj2), 1);
+
+  ASSERT_FALSE(tst,   lisp_cons_set_car_cdr(vm, cons.data.cons, 
+					    NULL,
+					    &obj2));
+  ASSERT_EQ_PTR(tst,  cons.data.cons->car.data.cons, obj1.data.ptr);
+  ASSERT_EQ_PTR(tst,  cons.data.cons->cdr.data.cons, obj2.data.ptr);
+  ASSERT_EQ_U(tst,    LISP_REFCOUNT(&obj1), 2);
+  ASSERT_EQ_U(tst,    LISP_REFCOUNT(&obj2), 2);
+  lisp_unset_object(vm, &obj1);
+  lisp_unset_object(vm, &obj2);
+  ASSERT_EQ_U(tst,    LISP_REFCOUNT(&cons.data.cons->car), 1);
+  ASSERT_EQ_U(tst,    LISP_REFCOUNT(&cons.data.cons->cdr), 1);
+
+  lisp_free_vm(vm);
+
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
+}
+
 static void test_copy_cons(unit_test_t * tst) 
 {
   memcheck_begin();
@@ -683,6 +943,15 @@ void test_cons(unit_context_t * ctx)
   TEST(suite, test_get_different_cons);
   TEST(suite, test_make_cons_root);
   TEST(suite, test_make_cons);
+  TEST(suite, test_make_cons_failure);
+  TEST(suite, test_make_typed_cons);
+  TEST(suite, test_root_cons);
+  TEST(suite, test_root_cons_failure);
+  TEST(suite, test_unroot_cons);
+  TEST(suite, test_unroot_cons_failure);
+  TEST(suite, test_set_car_cdr);
+  TEST(suite, test_set_car_cdr_object);
+
   TEST(suite, test_copy_cons);
   TEST(suite, test_black2root);
   TEST(suite, test_grey2root);

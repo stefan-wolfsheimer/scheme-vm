@@ -255,9 +255,9 @@ unit_suite_t * unit_create_suite(unit_context_t * ctx, const char * name)
     suite->next       = NULL;
     suite->first_test = NULL;
     suite->last_test  = NULL;
-    memcheck_disable();
+    int old = memcheck_enable(0);
     suite->name       = alloc_strcpy(name);
-    memcheck_enable();
+    memcheck_enable(old);
     suite->active     = 1;
     suite->ctx        = ctx;
   }
@@ -281,9 +281,9 @@ unit_test_t * unit_create_test(unit_suite_t         * suite,
       suite->last_test = tst;
       suite->first_test = tst;
     }
-    memcheck_disable();
+    int old = memcheck_enable(0);
     tst->name            = alloc_strcpy(name);
-    memcheck_enable();
+    memcheck_enable(old);
     tst->func            = func;
     tst->next            = NULL;
     tst->first_assertion = NULL;
