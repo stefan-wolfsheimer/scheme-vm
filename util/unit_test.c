@@ -204,21 +204,47 @@ void unit_free_context(unit_context_t * ctx)
   }
 }
 
-void unit_parse_argv(unit_context_t * ctx, int argc, const char ** argv)
+int unit_parse_argv(unit_context_t * ctx, int argc, const char ** argv)
 {
   int i;
   int suite_selected = 0;
+  int selection_error = 0;
+  int verbose_level = 0;
+  int color = 1;
+  int ret = UNIT_ARGV_RUN;
+  /* scan flags */
   for(i = 1; i < argc; i++) 
   {
-    if(!strcmp(argv[i], "--verbose")) 
+    if(!strcmp(argv[i], "--help") || !strcmp(argv[i], "-h")) 
     {
-      ctx->verbose_level++;
+      if(ret == UNIT_ARGV_RUN) 
+      {
+	ret = UNIT_ARGV_HELP;
+      }
+    }
+    else if(!strcmp(argv[i], "--verbose") || !strcmp(argv[i],"-v")) 
+    {
+      verbose_level++;
     }
     else if(!strcmp(argv[i], "--nocolor")) 
     {
-      ctx->color = 0;
+      color = 0;
     }
-    else 
+    else if(argv[i][0] == '-') 
+    {
+      fprintf(stderr, "invalid option %s\n", argv[i]);
+      ret = UNIT_ARGV_ERROR;
+    }
+  }
+  if(ret == UNIT_ARGV_ERROR || ret == UNIT_ARGV_HELP) 
+  {
+    return ret;
+  }
+  ctx->verbose_level = verbose_level;
+  ctx->color = color;
+  for(i = 1; i < argc; i++) 
+  {
+    if(argv[i][0] != '-') 
     {
       unit_suite_t * suite = ctx->first_suite;
       while(suite != NULL) 
@@ -231,11 +257,55 @@ void unit_parse_argv(unit_context_t * ctx, int argc, const char ** argv)
             _unit_deactivate_all_suites(ctx);
           }
           suite->active = 1;
+	  break;
         }
         suite = suite->next;
       }
-    } 
+      if(suite == NULL) 
+      {
+	selection_error = 1;
+	fprintf(stderr, "suite '%s' does not exists\n", argv[i]);
+	fprintf(stderr, "\n");
+	ret = UNIT_ARGV_ERROR;
+      }
+    }
   }
+  return ret;
+}
+
+void unit_print_help(FILE * fp, unit_context_t * ctx, const char * progr)
+{
+  fprintf(fp, "usage:\n");
+  fprintf(fp, "%s [OPTIONS] [ARGUMENTS]\n", progr);
+  fprintf(fp, "\n");
+  fprintf(fp, "OPTIONS:\n");
+  fprintf(fp, "--help, -h      show help and exit\n");
+  fprintf(fp, "--verbose, -v   increase verbose level\n");
+  fprintf(fp, "                (flag may appear multiple times)\n");
+  fprintf(fp, "--nocolor       don't use colors to report results\n");
+  fprintf(fp, "\n");
+  fprintf(fp, "ARGUMENTS:\n");
+  unit_suite_t * suite = ctx->first_suite;
+  int n = 0;
+  size_t len = 0;
+  while(suite != NULL) 
+  {
+    if(n) 
+    {
+      fprintf(fp, "|");
+    }
+    if(len > 32) 
+    {
+      fprintf(fp, "\n");
+      len = 0;
+    }
+    fprintf(fp, "%s", suite->name);
+    len += strlen(suite->name);
+    n++;
+    suite = suite->next;
+  }
+  fprintf(fp, "\n");
+  fprintf(fp, "\n");
 }
 
 unit_suite_t * unit_create_suite(unit_context_t * ctx, const char * name)

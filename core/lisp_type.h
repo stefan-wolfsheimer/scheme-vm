@@ -38,11 +38,6 @@ typedef struct lisp_string_t
   lisp_size_t end;
 } lisp_string_t;
 
-typedef struct lisp_symbol_t 
-{
-  lisp_size_t size;
-  uint32_t    code;
-} lisp_symbol_t;
 
 typedef struct lisp_cons_t 
 {
@@ -51,6 +46,14 @@ typedef struct lisp_cons_t
   lisp_cell_t car;
   lisp_cell_t cdr;
 } lisp_cons_t;
+
+typedef struct lisp_symbol_t 
+{
+  lisp_size_t   size;
+  uint32_t      code;
+  lisp_cell_t   binding;
+} lisp_symbol_t;
+
 
 typedef struct lisp_root_cons_t
 {
@@ -66,13 +69,6 @@ typedef struct lisp_vector_t
   lisp_size_t   reserved;
 } lisp_vector_t ;
 
-/*typedef struct lisp_array_t
-{
-  lisp_size_t    size;
-  lisp_size_t    size_alloc;
-  lisp_type_id_t type_id;
-} lisp_array_t; */
-
 typedef struct lisp_hash_table_t
 {
 } lisp_hash_table_t;
@@ -81,6 +77,11 @@ struct lisp_vm_t;
 
 typedef void(*lisp_destructor_t)(struct lisp_vm_t * vm, void * ptr);
 
+typedef int (*lisp_builtin_function_t)(struct lisp_vm_t * vm,
+				       lisp_cell_t      * target,
+				       lisp_cell_t      * stack);
+
+
 /** meta type */
 typedef struct lisp_type_t 
 {
@@ -88,6 +89,11 @@ typedef struct lisp_type_t
   lisp_cell_t       name;
   lisp_destructor_t destructor;
 } lisp_type_t;
+
+typedef struct lisp_builtin_lambda_t
+{
+  lisp_builtin_function_t func;
+} lisp_builtin_lambda_t;
 
 /* cons -> car, cdr */
 /* array -> a1, a2, ..., an */
@@ -111,15 +117,18 @@ extern const lisp_cell_t lisp_nil;
 
 #define LISP_TID_NIL          0x00
 #define LISP_TID_INTEGER      0x01
+#define LISP_TID_FDEFINE      0x30
 
 #define LISP_TID_CONS_MASK    0x40 /* 0x40 ... 0x7f */
 #define LISP_TID_CONS         0x40
+#define LISP_TID_EVAL_ERROR   0x41
 
-
-#define LISP_TID_LAMBDA       0x80 /* 0x80 ... 0xbf (0x80 + 0x3f) */
-#define LISP_TID_STRING       0x81
-#define LISP_TID_SYMBOL       0x82
-#define LISP_TID_PARSER       0x83
+#define LISP_TID_LAMBDA         0x80 /* 0x80 ... 0xbf (0x80 + 0x3f) */
+#define LISP_TID_STRING         0x81
+/* @todo symbol should not be an object */
+#define LISP_TID_SYMBOL         0x82
+#define LISP_TID_PARSER         0x83
+#define LISP_TID_BUILTIN_LAMBDA 0x84
 
 #define LISP_OBJECT_REFCOUNT(__OBJ__)             \
   (((lisp_ref_count_t*)(__OBJ__))[-1])
@@ -131,9 +140,10 @@ extern const lisp_cell_t lisp_nil;
   ((__CELL__)->type_id < 0x40)
   
 #define LISP_IS_OBJECT(__CELL__)                \
-  ((__CELL__)->type_id & 0x80)
+  ((__CELL__)->type_id & 0x80 && 		\
+   (__CELL__)->type_id != LISP_TID_SYMBOL)
 
-#define LISP_IS_CONS_OBJECT(__CELL__)                  \
+#define LISP_IS_CONS_OBJECT(__CELL__)		\
   ((__CELL__)->type_id & LISP_TID_CONS_MASK)
 
 #define LISP_IS_NIL(__CELL__)                   \
@@ -145,32 +155,57 @@ extern const lisp_cell_t lisp_nil;
 #define LISP_IS_CONS(__CELL__)                  \
   ((__CELL__)->type_id == LISP_TID_CONS)
 
+#define LISP_IS_EVAL_ERROR(__CELL__)		\
+  ((__CELL__)->type_id == LISP_TID_EVAL_ERROR)
+
+
 #define LISP_IS_LAMBDA(__CELL__)                  \
   ((__CELL__)->type_id == LISP_TID_LAMBDA)
+
+#define LISP_IS_FDEFINE(__CELL__)		\
+  ((__CELL__)->type_id == LISP_TID_FDEFINE)
+
+#define LISP_IS_BUILTIN_LAMBDA(__CELL__)		\
+  ((__CELL__)->type_id == LISP_TID_BUILTIN_LAMBDA)
+
+#define LISP_IS_INTEGER(__CELL__)		\
+  ((__CELL__)->type_id == LISP_TID_INTEGER)
+
+#define LISP_IS_STRING(__CELL__)		\
+  ((__CELL__)->type_id == LISP_TID_STRING)
+
+#define LISP_IS_LIST(__CELL__) \
+  (LISP_IS_NIL((__CELL__)) || LISP_IS_CONS_OBJECT((__CELL__)))
 
 #define LISP_AS(__CELL__, __TYPE__)             \
   ((__TYPE__ *)((__CELL__)->data.ptr))
 
 
-/* @todo make it possible for CONS_OBJECT as well */
-#define LISP_CAR(__CELL__)                      \
-  ((__CELL__)->type_id == LISP_TID_CONS ? &(__CELL__)->data.cons->car : NULL)
 
-#define LISP_CDR(__CELL__)                      \
-  ((__CELL__)->type_id == LISP_TID_CONS ? &(__CELL__)->data.cons->cdr : NULL)
+
+
+
+/* @todo make it possible for CONS_OBJECT as well */
+//#define LISP_CAR(__CELL__)						\
+//  ((__CELL__)->type_id == LISP_TID_CONS ? &(__CELL__)->data.cons->car : NULL)
+
+//#define LISP_CDR(__CELL__)						\
+//  ((__CELL__)->type_id == LISP_TID_CONS ? &(__CELL__)->data.cons->cdr : NULL)
 
 /* create an integer. 
  * precondition __CELL__: unintialized or atom */
-#define LISP_MAKE_INTEGER(__CELL__, __VALUE__)  \
-  { ((__CELL__))->type_id = LISP_TID_INTEGER;   \
-    ((__CELL__))->data.integer = __VALUE__; }
+//#define LISP_MAKE_INTEGER(__CELL__, __VALUE__)	\
+//  { ((__CELL__))->type_id = LISP_TID_INTEGER;		\
+//    ((__CELL__))->data.integer = __VALUE__; }
 
 
 /** Error codes */
 #define LISP_OK          0x00
 #define LISP_ALLOC_ERROR 0x01
 #define LISP_TYPE_ERROR  0x02
-
+#define LISP_EVAL_ERROR  0x03
+#define LISP_UNSUPPORTED 0x04
+#define LISP_UNDEFINED   0x05
 
 
 #endif

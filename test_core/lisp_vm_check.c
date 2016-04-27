@@ -3,6 +3,32 @@
 #include "util/unit_test.h"
 #include "util/assertion.h"
 
+void lisp_test_object_destructor(lisp_vm_t * vm, void * ptr)
+{
+  *((lisp_test_object_t*) ptr)->flags = TEST_OBJECT_STATE_FREE;
+  FREE_OBJECT(ptr);
+}
+
+int lisp_make_test_object(lisp_cell_t   * target, 
+			  int           * flags,
+			  lisp_type_id_t  id)
+{
+  lisp_test_object_t * obj = MALLOC_OBJECT(sizeof(lisp_test_object_t), 1);
+  if(obj)
+  {
+    obj->flags = flags;
+    *flags = TEST_OBJECT_STATE_INIT;
+    target->type_id = id;
+    target->data.ptr = obj;
+    return LISP_OK;
+  }
+  else 
+  {
+    return LISP_ALLOC_ERROR;
+  }
+}
+
+
 void set_up_conses(unit_test_t * tst, 
 		   lisp_vm_t   * vm,
 		   lisp_size_t   n_root_conses,

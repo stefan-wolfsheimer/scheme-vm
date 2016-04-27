@@ -515,8 +515,8 @@ static void test_make_cons(unit_test_t * tst)
 static void test_make_cons_failure(unit_test_t * tst)
 {
   memcheck_begin();
-  lisp_vm_t    * vm = lisp_create_vm(&lisp_vm_default_param);
-  ASSERT(tst,        lisp_vm_check(tst, vm));
+  lisp_vm_t * vm = lisp_create_vm(&lisp_vm_default_param);
+  ASSERT(tst, lisp_vm_check(tst, vm));
   lisp_cell_t cons;
   memcheck_expected_alloc(0);
   ASSERT(tst, lisp_make_cons(vm, &cons));

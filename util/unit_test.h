@@ -8,6 +8,10 @@
 /* @todo extra library for c string */
 /* @todo extra library for assertions */
 
+#define UNIT_ARGV_RUN   1
+#define UNIT_ARGV_HELP  2
+#define UNIT_ARGV_ERROR 3
+
 struct memchecker_t;
 struct unit_test_t;
 typedef void(*unit_test_function_t)(struct unit_test_t * tst);
@@ -59,7 +63,9 @@ unit_context_t * unit_create_context();
 
 void unit_free_context(unit_context_t * ctx);
 
-void unit_parse_argv(unit_context_t * ctx, int argc, const char ** argv);
+int unit_parse_argv(unit_context_t * ctx, int argc, const char ** argv);
+
+void unit_print_help(FILE * fp, unit_context_t * ctx, const char * progr);
 
 unit_suite_t * unit_create_suite(unit_context_t * ctx, 
                                  const char * name);
@@ -674,3 +680,4 @@ void unit_final_report(FILE * fp,
   unit_add_assertion( (__TEST__), memcheck_finalize())
 				       
 #endif
+

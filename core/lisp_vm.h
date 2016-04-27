@@ -120,14 +120,11 @@ int lisp_register_cons_type(lisp_vm_t          * vm,
 			    lisp_char_t        * name,
 			    lisp_type_id_t     * new_type);
 
-
-
-/* @todo replace with lisp_eval_lambda */
-int lisp_vm_run(    lisp_vm_t   * vm, 
-		    lisp_lambda_t * lambda);
-
-
-
+/*****************************************************************************
+ * 
+ * copy objects
+ * 
+ *****************************************************************************/
 /* @todo implement copy as root object and test if conses 
          have been rooted
    target must be atom or uninitalized
@@ -155,6 +152,17 @@ int lisp_unset_object(lisp_vm_t * vm,
 
 int lisp_unset_object_root(lisp_vm_t * vm,
 			   lisp_cell_t * target);
+
+/*****************************************************************************
+ * 
+ * compare objects
+ * 
+ *****************************************************************************/
+/**
+ * @return non zero if a and b have the same type and value 
+ */
+int lisp_eq_object(const lisp_cell_t * a,
+		   const lisp_cell_t * b);
 
 /*****************************************************************************
  * 
@@ -335,33 +343,22 @@ lisp_size_t lisp_string_length(const lisp_string_t * str);
  * symbol
  * 
  *****************************************************************************/
-int lisp_create_symbol(lisp_vm_t         * vm,
-                       lisp_cell_t       * cell,
-                       const lisp_char_t * cstr);
+int lisp_make_symbol(lisp_vm_t         * vm,
+		     lisp_cell_t       * cell,
+		     const lisp_char_t * cstr);
 
-/* Todo: */
-int lisp_create_symbol_lstring(lisp_vm_t         * vm,
-                               lisp_cell_t       * cell,
-                               lisp_cell_t       * lstr);
+int lisp_symbol_set(lisp_vm_t         * vm,
+		    lisp_symbol_t     * symbol,
+		    const lisp_cell_t * obj);
 
-/* Todo: */
-int lisp_create_symbol_sprintf(lisp_vm_t         * vm,
-                               lisp_cell_t       * cell,
-                               const lisp_char_t * fmt,
-                               ...);
-/* Todo: */
-lisp_symbol_t * lisp_get_symbol(lisp_vm_t * vm,
-                                const lisp_char_t * cstr);
+/** 
+ * get value of symbol */
+lisp_cell_t * lisp_symbol_get(lisp_vm_t           * vm,
+			      const lisp_symbol_t * symbol);
 
-/* Todo: */
-lisp_symbol_t * lisp_get_symbol_lstring(lisp_vm_t * vm,
-                                        const lisp_cell_t * lstr);
-
-/* Todo: */
-lisp_symbol_t * lisp_get_symbol_sprintf(lisp_vm_t * vm,
-                                        const lisp_char_t * fmt,
-                                        ...);
-
+int lisp_symbol_unset(lisp_vm_t * vm,
+		      lisp_symbol_t * symbol);
+		      
 /*****************************************************************
  *
  * cons objects
@@ -373,7 +370,6 @@ lisp_symbol_t * lisp_get_symbol_sprintf(lisp_vm_t * vm,
 int lisp_make_cons(lisp_vm_t   * vm,
                    lisp_cell_t * cell);
 
-/* @todo implement */
 int lisp_make_cons_car_cdr(lisp_vm_t * vm,
                            lisp_cell_t * cell,
                            const lisp_cell_t * car, 
@@ -383,15 +379,11 @@ int lisp_make_cons_typed(lisp_vm_t     * vm,
                          lisp_cell_t   * cell,
                          lisp_type_id_t  type_id);
 
-/* @todo implement */
 int lisp_make_cons_typed_car_cdr(lisp_vm_t     * vm,
                                  lisp_cell_t   * cell,
                                  lisp_type_id_t  type_id,
                                  const lisp_cell_t * car, 
                                  const lisp_cell_t * cdr);
-
-                           
-
 
 int lisp_make_cons_root(lisp_vm_t   * vm,
                         lisp_cell_t * cell);
@@ -431,17 +423,12 @@ int lisp_cons_root(lisp_vm_t * vm, lisp_cons_t * cons);
 int lisp_cons_unroot(lisp_vm_t * vm, lisp_cons_t * cons);
 
 
+/* set car and/or cdr 
+ */
 int lisp_cons_set_car_cdr(lisp_vm_t * vm, 
 			  lisp_cons_t * cons, 
 			  const lisp_cell_t * car,
 			  const lisp_cell_t * cdr);
-
-int lisp_cons_set_car(lisp_vm_t   * vm, 
-		      lisp_cons_t * cons, 
-		      const lisp_cell_t * car);
-int lisp_cons_set_cdr(lisp_vm_t   * vm, 
-		      lisp_cons_t * cons, 
-		      const lisp_cell_t * cdr);
 int lisp_set_car_cdr(lisp_vm_t * vm,
 		     const lisp_cell_t * cell,
 		     const lisp_cell_t * car,
@@ -453,6 +440,15 @@ int lisp_set_cdr(lisp_vm_t * vm,
 		 const lisp_cell_t * cell,
 		 const lisp_cell_t * cdr);
 
+
+/*****************************************************************
+ *
+ * integer
+ *
+ *****************************************************************/
+void lisp_make_integer(lisp_cell_t * cell, lisp_integer_t value);
+
+	      
 /*****************************************************************
  *
  * create basic objects

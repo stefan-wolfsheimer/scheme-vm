@@ -1,22 +1,17 @@
 #include "hash_table.h"
 #include "xmalloc.h"
-#ifndef DEBUG
-#define NDEBUG
-#endif
-#include "assert.h"
+#include "assertion.h"
 
 inline static void _remove_bucket(hash_table_t        * ht,
                                   hash_table_bucket_t * bucket)
 {
   /* bucket not empty */
-  assert(bucket->first);
-  assert(bucket->last);
-
+  REQUIRE_NEQ_PTR(bucket->first, NULL);
+  REQUIRE_NEQ_PTR(bucket->last,  NULL);
   if(ht->first_new_world == bucket) 
   {
     ht->first_new_world = bucket->next;
   }
-
   if(bucket->prev) 
   {
     bucket->prev->last->next = bucket->last->next;
@@ -566,7 +561,7 @@ void * hash_table_set_func(hash_table_t            * ht,
                           what,
                           size_required,
                           ht->user_data);
-          return new_entry;
+          return &new_entry[1];
         }
       }
       if(entry == bucket->last) 
@@ -642,7 +637,7 @@ int hash_table_recycle(hash_table_t * ht)
     hash_table_entry_t  * entry, *next;
     hash_table_bucket_t * new_bucket, * bucket;
     bucket = ht->first;
-    assert(bucket->first);    
+    REQUIRE_NEQ_PTR(bucket->first, NULL);
     entry = bucket->first;
     _remove_bucket(ht, bucket);
     while(entry) 
@@ -660,7 +655,7 @@ int hash_table_recycle(hash_table_t * ht)
     bucket->last = NULL;
     if(ht->first == ht->first_new_world) 
     {
-      assert(ht->hash_array[1-ht->current_world_index].n_elements == 0);
+      REQUIRE_EQ_U(ht->hash_array[1-ht->current_world_index].n_elements, 0);
       hash_table_array_t * array = &ht->hash_array[ht->current_world_index];
       float occ = (float)array->n_elements / (float)array->n_buckets;
       if(occ < ht->lower_occ || occ > ht->upper_occ)

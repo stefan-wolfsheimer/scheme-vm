@@ -1,7 +1,6 @@
 #include "util/unit_test.h"
 #include "util/hash_table.h"
 #include "util/xmalloc.h"
-
 #include <string.h>
 
 #define ASSERT_HT_HAS_ELEMENTS(__TEST__, __HT__, __ELEMENTS__, __NELEM__) \
@@ -37,9 +36,53 @@ static int my_strcmp(const void * a, const void * b)
   return strcmp( *((const char**)a), *((const char**)b));
 }
 
-static int ht_cmp_function(const void * a, const void * b)
+static int ht_cmp_function(const void * _a, const void * _b)
 {
-  return strcmp( (const char *) a, (const char *) b)==0;
+  /* @todo use non trivial cases with "keystr\tvaluestr" */
+  const char * a = (const char *)_a;
+  const char * b = (const char *)_b;
+  size_t la = 0;
+  size_t lb = 0;
+  size_t len = 0;
+  int    cmp;
+  while(*a) 
+  {
+    if(*a == '\t')
+    {
+      break;
+    }
+    la++;
+    a++;
+  }
+  while(*b) 
+  {
+    if(*b == '\t')
+    {
+      break;
+    }
+    lb++;
+    b++;
+  }
+  if(la < lb) len = la;
+  else        len = lb;
+  a = (const char *)_a;
+  b = (const char *)_b;
+  cmp = strncmp(a,b,len);
+  if(cmp == 0) 
+  {
+    if(la == lb) 
+    {
+      return 1;
+    }
+    else 
+    {
+      return 0;
+    }
+  }
+  else 
+  {
+    return 0;
+  }
 }
 
 static hash_code_t ht_hash_function(const void * a)
@@ -391,7 +434,15 @@ create_assertion_ht_has_elements(unit_test_t       * tst,
 
 static void test_hash_function(unit_test_t * tst)
 {
-  ASSERT_EQ_U(tst, ht_hash_function("123"), 123);
+  ASSERT_EQ_U(tst, ht_hash_function("123"),      123);
+  ASSERT_EQ_U(tst, ht_hash_function("123\tdef"), 123);
+}
+
+static void test_cmp_function(unit_test_t * tst)
+{
+  ASSERT(tst,       ht_cmp_function("123","123"));
+  ASSERT_FALSE(tst, ht_cmp_function("123", "1234"));
+  ASSERT(tst,       ht_cmp_function("123\tabc", "123\tdef"));
 }
 
 static void test_hash_table_init(unit_test_t * tst)
@@ -404,12 +455,78 @@ static void test_hash_table_init(unit_test_t * tst)
                   ht_constructor,
                   ht_destructor,
                   1);
+  ASSERT_EQ_U(tst, ht.hash_array[ht.current_world_index].n_buckets, 1);
   hash_table_finalize(&ht);
+
+  hash_table_init(&ht, 
+                  ht_cmp_function,
+                  ht_hash_function,
+                  ht_constructor,
+                  ht_destructor,
+                  0);
+  ASSERT_EQ_U(tst, ht.hash_array[ht.current_world_index].n_buckets, 1);
+  hash_table_finalize(&ht);
+
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
+}
+
+static void test_hash_table_init_failure(unit_test_t * tst)
+{
+  memcheck_begin();
+  hash_table_t ht;
+  memcheck_expected_alloc(0);
+  ASSERT(tst, hash_table_init(&ht, 
+			      ht_cmp_function,
+			      ht_hash_function,
+			      ht_constructor,
+			      ht_destructor,
+			      1));
+  memcheck_expected_alloc(1);
+  memcheck_expected_alloc(0);
+  ASSERT(tst, hash_table_init(&ht, 
+			      ht_cmp_function,
+			      ht_hash_function,
+			      ht_constructor,
+			      ht_destructor,
+			      1));
   ASSERT_MEMCHECK(tst);
   memcheck_end();
 }
 
 
+static void test_hash_table_overwrite_value(unit_test_t * tst)
+{
+  memcheck_begin();
+  hash_table_t   ht;
+  int            inserted;
+  const char * pair1 = "123\tabc";
+  const char * pair2 = "123\tdefghi";
+  const char * res1;
+  const char * res2;
+  hash_table_init(&ht, 
+                  ht_cmp_function,
+                  ht_hash_function,
+                  ht_constructor,
+                  ht_destructor,
+                  10);
+  res1 = hash_table_set(&ht, pair1, strlen(pair1)+1);
+  ASSERT_EQ_CSTR(tst, res1, pair1);
+  inserted = 1;
+  ASSERT_EQ_CSTR(tst, hash_table_find_or_insert(&ht, 
+						pair2,
+						strlen(pair2)+1,
+						&inserted),
+		 pair1);
+  ASSERT_FALSE(tst, inserted);
+  res2 = hash_table_set(&ht, pair2, strlen(pair2)+1);
+  ASSERT_EQ_CSTR(tst, res2, pair2);
+
+  hash_table_finalize(&ht);
+  ht.autoswap = 0;
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
+}
 
 static void test_hash_table_set(unit_test_t * tst,
                                 const char * elements[],
@@ -417,7 +534,7 @@ static void test_hash_table_set(unit_test_t * tst,
 {
   size_t         i,j;
   hash_table_t   ht;
-  memchecker_t * memcheck = memcheck_begin();
+  memcheck_begin();
   char **        elements_in_table = MALLOC(sizeof(char*)*n);
   for(i=0; i < n; i++) 
   {
@@ -468,8 +585,8 @@ static void test_hash_table_set(unit_test_t * tst,
 
 
 static void test_hash_table_find_or_insert(unit_test_t * tst,
-                                           const char * elements[],
-                                           size_t n)
+                                           const char  * elements[],
+                                           size_t        n)
 {
   memchecker_t * memcheck = memcheck_begin();
   size_t i,j;
@@ -523,8 +640,6 @@ static void test_hash_table_find_or_insert(unit_test_t * tst,
   memcheck_end();
 }
 
-
-
 static void test_hash_table_set_one_bucket(unit_test_t * tst)
 {
   size_t n = 10;
@@ -574,6 +689,8 @@ static void test_hash_table_set_after_swap(unit_test_t * tst)
   ASSERT_HT_HAS_ELEMENTS(tst, &ht, elements, n);
   ASSERT(tst, hash_table_swap(&ht, 3));
   ASSERT_HT_HAS_ELEMENTS(tst, &ht, elements, n);
+  /* cannot swap, old world isn't empty */
+  ASSERT_FALSE(tst, hash_table_swap(&ht, 3));
   m = 0;
   for(i = 0; i < 10; i++) 
   {
@@ -591,7 +708,32 @@ static void test_hash_table_set_after_swap(unit_test_t * tst)
 
 static void test_hash_table_find_or_insert_after_swap(unit_test_t * tst)
 {
-  /* todo */
+  /* @todo */
+  memchecker_t * memcheck = memcheck_begin();
+  hash_table_t ht;
+  int inserted;
+  size_t i,m,n = 100;
+  char ** elements = ht_init_n_elements(&ht, n);
+  ASSERT_HT_HAS_ELEMENTS(tst, &ht, elements, n);
+  ASSERT(tst, hash_table_swap(&ht, 3));
+  ASSERT_HT_HAS_ELEMENTS(tst, &ht, elements, n);
+  m = 0;
+  for(i = 0; i < 10; i++) 
+  {
+    inserted = 1;
+    hash_table_find_or_insert(&ht,
+			      elements[i],
+			      strlen(elements[i])+1,
+			      &inserted);
+    ASSERT_FALSE(tst, inserted);
+    m+= 10;
+    ASSERT_EQ_U(tst, ht.hash_array[ht.current_world_index].n_elements, m);
+    ASSERT_HT_HAS_ELEMENTS(tst, &ht, elements, n);
+  }
+  ht_free_n_elements(elements, n);
+  hash_table_finalize(&ht);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
 }
 
 static void test_hash_table_remove(unit_test_t * tst)
@@ -709,7 +851,7 @@ static void test_hash_table_remove(unit_test_t * tst)
 
 static void test_hash_table_recycle(unit_test_t * tst)
 {
-  memchecker_t * memcheck = memcheck_begin();
+  memcheck_begin();
   hash_table_t ht;
   size_t i,m,n = 100;
   char ** elements = ht_init_n_elements(&ht, n);
@@ -723,7 +865,14 @@ static void test_hash_table_recycle(unit_test_t * tst)
   ASSERT(tst, hash_table_swap(&ht, 3));
 
   m = n;
-  for(i = 0; i < 10; i++) 
+  ht.autoswap = 1;
+  ASSERT(tst, hash_table_remove(&ht, elements[99]));
+  ht.autoswap = 0;
+  /* two buckets have been recycled */
+  m-= 20;
+  n--;
+  ASSERT_HT_HAS_ELEMENTS(tst, &ht, elements, n);
+  for(i = 0; i < 8; i++) 
   {
     ASSERT_EQ_U(tst, ht.hash_array[ht.current_world_index].n_elements, n-m);
     ASSERT_EQ_U(tst, ht.hash_array[1-ht.current_world_index].n_elements, m);
@@ -733,24 +882,56 @@ static void test_hash_table_recycle(unit_test_t * tst)
   }
   ASSERT_EQ_U(tst, ht.hash_array[ht.current_world_index].n_elements, 0);
   ASSERT_EQ_U(tst, ht.hash_array[1-ht.current_world_index].n_elements, n);
-  ASSERT_EQ_U(tst, ht.hash_array[ht.current_world_index].n_buckets, 150);
-  ht_free_n_elements(elements, n);
+  ASSERT_EQ_U(tst, ht.hash_array[ht.current_world_index].n_buckets, 148);
+  /* one element was removed */
+  ht_free_n_elements(elements, n+1);
   hash_table_finalize(&ht);
   ASSERT_MEMCHECK(tst);
   memcheck_end();
 }
 
+static void test_hash_table_shrink_to_minimum(unit_test_t * tst)
+{
+  memcheck_begin();
+  hash_table_t ht;
+  hash_table_init(&ht, 
+                  ht_cmp_function,
+                  ht_hash_function,
+                  ht_constructor,
+                  ht_destructor,
+                  1);
+  ht.autoswap = 0;
+  hash_table_set(&ht, "abc", strlen("abc")+1);
+  hash_table_remove(&ht, "abc");
+  ht.autoswap = 1;
+  ASSERT(tst, hash_table_swap(&ht, 1));
+  /* @todo check if current world has min. size */
+  hash_table_finalize(&ht);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
+}
 
 void test_hash_table(unit_context_t * ctx)
 {
   unit_suite_t * suite = unit_create_suite(ctx, "hash_table");
   TEST(suite, test_hash_function);
+  TEST(suite, test_cmp_function);
   TEST(suite, test_hash_table_init);
+  TEST(suite, test_hash_table_init_failure);
+
+  TEST(suite, test_hash_table_overwrite_value);
+
   TEST(suite, test_hash_table_set_one_bucket);
   TEST(suite, test_hash_table_find_or_insert_one_bucket);
+
   TEST(suite, test_hash_table_set_different_buckets);
   TEST(suite, test_hash_table_find_or_insert_different_buckets);
+
   TEST(suite, test_hash_table_set_after_swap);
+  TEST(suite, test_hash_table_find_or_insert_after_swap);
+
   TEST(suite, test_hash_table_remove);
   TEST(suite, test_hash_table_recycle);
+  TEST(suite, test_hash_table_shrink_to_minimum);
+  /* @todo test for clear hash table */
 }

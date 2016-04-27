@@ -158,11 +158,13 @@ int _lisp_init_types(lisp_vm_t * vm)
  *****************************************************************************/
 static void _destruct_symbol(lisp_vm_t * vm, void * ptr)
 {
-  hash_table_remove_func(&vm->symbols,
-                         (char*)ptr + sizeof(lisp_symbol_t),
-                         ((lisp_symbol_t*)ptr)->code,
-                         vm->symbols.eq_function);
-
+  if(LISP_IS_NIL(& ((lisp_symbol_t*)ptr)->binding))
+  {
+    hash_table_remove_func(&vm->symbols,
+			   (char*)ptr + sizeof(lisp_symbol_t),
+			   ((lisp_symbol_t*)ptr)->code,
+			   vm->symbols.eq_function);
+  }
 }
 
 static int _construct_symbol(void        * target,
@@ -189,67 +191,8 @@ static int _symbol_eq(const void * a, const void * b)
                   (const char*)b);
 }
 
-int lisp_create_symbol(lisp_vm_t         * vm,
-                       lisp_cell_t       * cell,
-                       const lisp_char_t * cstr)
-{
-  int inserted = 1;
-  size_t len = strlen(cstr);
-  uint32_t seed = 1;
-  uint32_t code;
-  lisp_ref_count_t * ref;
-  murmur_hash3_x86_32 (  cstr,
-                         len,
-                         seed,
-                         &code);
-  ref = hash_table_find_or_insert_func(&vm->symbols,
-                                       cstr,
-                                       sizeof(lisp_symbol_t) +
-                                       sizeof(lisp_ref_count_t) + 
-                                       strlen(cstr)+1,
-                                       code,
-                                       vm->symbols.eq_function,
-                                       &inserted);
-  ref[0]++;
-  cell->type_id  =  LISP_TID_SYMBOL;
-  cell->data.ptr = &ref[1];
-  ((lisp_symbol_t*)cell->data.ptr)->code = code;
-  return 0;
-}
 
-int lisp_create_symbol_lstring(lisp_vm_t         * vm,
-                               lisp_cell_t       * cell,
-                               lisp_cell_t       * lstr)
-{
-  return 0;
-}
 
-int lisp_create_symbol_sprintf(lisp_vm_t         * vm,
-                               lisp_cell_t       * cell,
-                               const lisp_char_t * fmt,
-                               ...)
-{
-  return 0;
-}
-
-lisp_symbol_t * lisp_get_symbol(lisp_vm_t * vm,
-                                const lisp_char_t * cstr)
-{
-  return NULL;
-}
-
-lisp_symbol_t * lisp_get_symbol_lstring(lisp_vm_t * vm,
-                                        const lisp_cell_t * lstr)
-{
-  return NULL;
-}
-
-lisp_symbol_t * lisp_get_symbol_sprintf(lisp_vm_t * vm,
-                                        const lisp_char_t * fmt,
-                                        ...)
-{
-  return NULL;
-}
 
 /*****************************************************************************
  * 
@@ -276,3 +219,13 @@ static void _destruct_lambda(lisp_vm_t * vm,
 }
 #endif
 
+/*****************************************************************************
+ * 
+ * integer
+ * 
+ *****************************************************************************/
+void lisp_make_integer(lisp_cell_t * cell, lisp_integer_t value)
+{
+  cell->type_id = LISP_TID_INTEGER;
+  cell->data.integer = value;
+}

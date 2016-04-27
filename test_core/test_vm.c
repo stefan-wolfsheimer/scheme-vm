@@ -5,31 +5,10 @@
 #include "lisp_vm_check.h"
 #include <stdio.h>
 
-typedef struct test_object_t
+static void test_type_ids(unit_test_t * tst)
 {
-  int * flags;
-} test_object_t;
-
-static void test_destructor(lisp_vm_t * vm, void * ptr)
-{
-  FREE_OBJECT(ptr);
-}
-
-static int make_test_object(lisp_cell_t   * target, 
-			    int           * flags,
-			    lisp_type_id_t  id)
-{
-  test_object_t * obj = MALLOC_OBJECT(sizeof(test_object_t), 1);
-  if(obj)
-  {
-    target->type_id = id;
-    target->data.ptr = obj;
-    return LISP_OK;
-  }
-  else 
-  {
-    return LISP_ALLOC_ERROR;
-  }
+  //  printf("%d\n", (0x00 ^ 0xff));
+  //ASSERT_FALSE(tst, LISP_IS_ATOM_TID(0x00));
 }
 
 static void test_alloc_object(unit_test_t * tst)
@@ -112,12 +91,12 @@ static void test_register_type(unit_test_t * tst)
   vm = lisp_create_vm(&lisp_vm_default_param);
   ASSERT_FALSE(tst, lisp_register_object_type(vm,
 					      "TEST",
-					      test_destructor,
+					      lisp_test_object_destructor,
 					      &id));
   ASSERT(tst,       (LISP_TID_OBJECT_MASK & id));
-  ASSERT_FALSE(tst, make_test_object(&obj,
-				     &flag,
-				     id));
+  ASSERT_FALSE(tst, lisp_make_test_object(&obj,
+					  &flag,
+					  id));
   ASSERT(tst, LISP_IS_OBJECT(&obj));
   lisp_unset_object(vm, &obj);
   ASSERT(tst, LISP_IS_NIL(&obj));
@@ -140,14 +119,14 @@ static void test_object_without_explicit_destructor(unit_test_t * tst)
 					      NULL,
 					      &id));
   flags = 0;
-  ASSERT_FALSE(tst, make_test_object(&obj, &flags, id));
-  ASSERT(tst,       LISP_REFCOUNT(&obj) == 1);
+  ASSERT_FALSE(tst, lisp_make_test_object(&obj, &flags, id));
+  ASSERT_EQ_U(tst,  LISP_REFCOUNT(&obj), 1);
   ASSERT_FALSE(tst, lisp_unset_object(vm, &obj));
     
 
-  ASSERT_FALSE(tst, make_test_object(&obj, &flags, id));
+  ASSERT_FALSE(tst, lisp_make_test_object(&obj, &flags, id));
   ASSERT_FALSE(tst, lisp_copy_object_as_root(vm, &copy, &obj));
-  ASSERT(tst,       LISP_REFCOUNT(&obj) == 2);
+  ASSERT_EQ_U(tst,  LISP_REFCOUNT(&obj), 2u);
   ASSERT_FALSE(tst, lisp_unset_object(vm, &obj));
   ASSERT_FALSE(tst, lisp_unset_object_root(vm, &copy));
   lisp_unset_object(vm, &obj);
@@ -169,10 +148,10 @@ static void test_copy_object(unit_test_t * tst)
   ASSERT_NEQ_PTR(tst, vm, NULL);
   ASSERT_FALSE(tst, lisp_register_object_type(vm,
 					      "TEST",
-					      test_destructor,
+					      lisp_test_object_destructor,
 					      &id));
   flags = 0;
-  ASSERT_FALSE(tst, make_test_object(&obj, &flags, id));
+  ASSERT_FALSE(tst, lisp_make_test_object(&obj, &flags, id));
   ASSERT(tst, LISP_REFCOUNT(&obj) == 1);
   ASSERT_FALSE(tst, lisp_copy_object(vm, &copy, &obj));
   ASSERT(tst, LISP_REFCOUNT(&obj) == 2);
@@ -182,7 +161,7 @@ static void test_copy_object(unit_test_t * tst)
   ASSERT(tst, LISP_REFCOUNT(&copy) == 1);
   lisp_unset_object(vm, &copy);
     
-  ASSERT_FALSE(tst, make_test_object(&obj, &flags, id));
+  ASSERT_FALSE(tst, lisp_make_test_object(&obj, &flags, id));
   ASSERT(tst, LISP_REFCOUNT(&obj) == 1);
   ASSERT_FALSE(tst, lisp_copy_object_as_root(vm, &copy, &obj));
   ASSERT(tst, LISP_REFCOUNT(&obj) == 2);
@@ -209,19 +188,19 @@ static void _test_init_objects_to_copy(unit_test_t * tst,
   set_up_conses(tst, vm, 0, 0, 0, 0, 10);
   CHECK_FALSE(tst, lisp_register_object_type(vm,
 					     "TEST",
-					     test_destructor,
+					     lisp_test_object_destructor,
 					     &id));
   car = lisp_get_white_cons(vm, 0);
   cdr = lisp_get_white_cons(vm, 1);
   from[0] = lisp_nil;
-  CHECK_FALSE(tst, make_test_object(&from[1], &flags[1], id));
+  CHECK_FALSE(tst, lisp_make_test_object(&from[1], &flags[1], id));
   from[2] = lisp_get_white_cons(vm, 2);
   from[3] = lisp_get_white_cons(vm, 3);
   CHECK_FALSE(tst, lisp_cons_set_car_cdr(vm, 
 					 from[3].data.cons, 
 					 &car,
 					 &cdr));
-  CHECK_FALSE(tst, make_test_object(&from[4], &flags[4], id));
+  CHECK_FALSE(tst, lisp_make_test_object(&from[4], &flags[4], id));
 }
 
 static void test_copy_n_objects(unit_test_t * tst)
@@ -526,44 +505,11 @@ static void test_copy_string(unit_test_t * tst)
   memcheck_end();
 }
 
-static void test_create_symbol(unit_test_t * tst) 
-{
-  memcheck_begin();
-  lisp_vm_t * vm = lisp_create_vm(&lisp_vm_default_param);
-
-  lisp_cell_t symb_abc_1;
-  lisp_create_symbol(vm, &symb_abc_1, "abc");
-  ASSERT_EQ_U(tst, LISP_REFCOUNT(&symb_abc_1), 1);
-  ASSERT_EQ_U(tst, HASH_TABLE_SIZE(&vm->symbols), 1);
-
-  lisp_cell_t symb_def_1;
-  lisp_create_symbol(vm, &symb_def_1, "def");
-  ASSERT_EQ_U(tst, LISP_REFCOUNT(&symb_def_1), 1);
-  ASSERT_EQ_U(tst, HASH_TABLE_SIZE(&vm->symbols), 2);
-
-  lisp_cell_t symb_abc_2;
-  lisp_create_symbol(vm, &symb_abc_2, "abc");
-  ASSERT_EQ_U(tst, LISP_REFCOUNT(&symb_abc_1), 2);
-  ASSERT_EQ_U(tst, LISP_REFCOUNT(&symb_abc_2), 2);
-  ASSERT_EQ_U(tst, HASH_TABLE_SIZE(&vm->symbols), 2);
-  ASSERT_EQ_PTR(tst, symb_abc_1.data.ptr, symb_abc_2.data.ptr);
-
-  lisp_unset_object(vm, &symb_abc_1);
-  ASSERT_EQ_U(tst, LISP_REFCOUNT(&symb_abc_2), 1);
-  ASSERT_EQ_U(tst, HASH_TABLE_SIZE(&vm->symbols), 2);
-  lisp_unset_object(vm, &symb_abc_2);
-  ASSERT_EQ_U(tst, HASH_TABLE_SIZE(&vm->symbols), 1);
-  lisp_unset_object(vm, &symb_def_1);
-  ASSERT_EQ_U(tst, HASH_TABLE_SIZE(&vm->symbols), 0);
-  
-  lisp_free_vm(vm);
-  ASSERT_MEMCHECK(tst);
-  memcheck_end();
-}
 
 void test_vm(unit_context_t * ctx)
 {
   unit_suite_t * suite = unit_create_suite(ctx, "vm");
+  TEST(suite, test_type_ids);
   TEST(suite, test_alloc_object);
   TEST(suite, test_alloc_object_fail);
   TEST(suite, test_alloc_vm_fail); 
@@ -582,5 +528,4 @@ void test_vm(unit_context_t * ctx)
   TEST(suite, test_create_string);
   TEST(suite, test_sprintf);
   TEST(suite, test_copy_string);
-  TEST(suite, test_create_symbol);
 }

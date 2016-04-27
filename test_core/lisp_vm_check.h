@@ -2,6 +2,26 @@
 #define __TEST_CORE_CHECK_H__
 #include "core/lisp_vm.h"
 #include "util/unit_test.h"
+
+/** object that can be used 
+ *  for allocation tests 
+ */
+#define TEST_OBJECT_STATE_UNINIT 0
+#define TEST_OBJECT_STATE_INIT   1
+#define TEST_OBJECT_STATE_FREE   2
+
+typedef struct lisp_test_object_t
+{
+  int * flags;
+} lisp_test_object_t;
+
+void lisp_test_object_destructor(lisp_vm_t * vm, void * ptr);
+int lisp_make_test_object(lisp_cell_t   * target, 
+			  int           * flags,
+			  lisp_type_id_t  id);
+
+
+
 void set_up_conses(unit_test_t * tst, 
 		   lisp_vm_t   * vm,
 		   lisp_size_t   n_root_conses,

@@ -290,7 +290,7 @@ int lisp_copy_n_objects_as_root( lisp_vm_t   * vm,
 
 int lisp_unset_object(lisp_vm_t * vm,  lisp_cell_t * target)
 {
-  if(LISP_IS_OBJECT(target)) 
+  if(LISP_IS_OBJECT(target) || LISP_IS_SYMBOL(target)) 
   {
     if(! --LISP_REFCOUNT(target)) 
     {
@@ -310,7 +310,7 @@ int lisp_unset_object(lisp_vm_t * vm,  lisp_cell_t * target)
 
 int lisp_unset_object_root(lisp_vm_t * vm, lisp_cell_t * target)
 {
-  if(LISP_IS_OBJECT(target)) 
+  if(LISP_IS_OBJECT(target)|| LISP_IS_SYMBOL(target)) 
   {
     if(! --LISP_REFCOUNT(target)) 
     {
@@ -334,6 +334,33 @@ int lisp_unset_object_root(lisp_vm_t * vm, lisp_cell_t * target)
   *target = lisp_nil;
   return LISP_OK;
 }
+
+/*******************************************************************
+ * 
+ * string
+ * 
+ *******************************************************************/
+int lisp_eq_object(const lisp_cell_t * a,
+		   const lisp_cell_t * b)
+{
+  if(a->type_id == b->type_id) 
+  {
+    /* @todo switch statement and unit test */
+    if(LISP_IS_INTEGER(a)) 
+    {
+      return a->data.integer == b->data.integer;
+    }
+    else if(a->type_id == LISP_TID_SYMBOL) 
+    {
+      return a->data.ptr == b->data.ptr;
+    }
+  }
+  else 
+  {
+    return 0;
+  }
+}
+
 
 /*******************************************************************
  * 
