@@ -1,0 +1,118 @@
+MODULES= util core programs test_core test_util 
+MODULES_COV= util core
+SRC=
+SRC_TEST=
+SRC_MAIN=
+CC=gcc
+
+OBJDIR=obj
+BINDIR=bin
+DEPFLAGS_TEST = -MT $@ -MMD -MP -MF test/${OBJDIR}/$*.td
+DEPFLAGS_COV  = -MT $@ -MMD -MP -MF coverage/${OBJDIR}/$*.td
+DEPFLAGS      = -MT $@ -MMD -MP -MF release/${OBJDIR}/$*.td
+CFLAGS_TEST   = -g -Wall -std=c99 -Isrc -DDEBUG -lm
+CFLAGS_COV    = -g -Wall -std=c99 -Isrc -DDEBUG --coverage -lm
+CFLAGS = -O2 -Wall -Isrc -lm
+
+include $(patsubst %, src/%/module.mk, $(MODULES) )
+
+OBJ =      $(patsubst src/%.c, release/$(OBJDIR)/%.o, $(SRC) ) 
+OBJ_TEST = $(patsubst src/%.c, test/$(OBJDIR)/%.o, $(SRC_TEST) $(SRC) ) 
+OBJ_COV =  $(patsubst src/%.c, coverage/$(OBJDIR)/%.o,   $(SRC_TEST) $(SRC) ) 
+PWD     = ( pwd )
+
+all: release/liblisp.a
+
+release/liblisp.a: $(OBJ)
+	ar -cvq release/liblisp.a $(OBJ)
+
+test: test/lisp_test
+	test/lisp_test --verbose
+
+coverage: coverage/coverage.info
+	lcov --capture --no-external --directory .  --output-file coverage/$(OBJDIR)/coverage_unfiltered.info
+	lcov --remove coverage/$(OBJDIR)/coverage_unfiltered.info \
+	$(shell pwd )/'test_*/*' $(shell pwd )/'programs/*' -o coverage/$(OBJDIR)/coverage.info
+	genhtml coverage/$(OBJDIR)/coverage.info --output-directory coverage/
+
+coverage/coverage.info: coverage/lisp_test
+	coverage/lisp_test --verbose
+
+coverage/lisp_test: ${OBJ_COV} coverage/$(OBJDIR)/programs/lisp_test.o
+	mkdir -p coverage
+	${CC} ${CFLAGS_COV} ${OBJ_COV} coverage/$(OBJDIR)/programs/lisp_test.o -o $@
+
+test/lisp_test: ${OBJ_TEST} test/$(OBJDIR)/programs/lisp_test.o
+	mkdir -p test
+	${CC} ${CFLAGS_TEST} ${OBJ_TEST} test/$(OBJDIR)/programs/lisp_test.o -o $@
+
+test/${OBJDIR}/%.o : src/%.c
+	mkdir -p $(@D)
+	$(CC) ${CFLAGS_TEST} ${DEPFLAGS_TEST} -c $< -o $@
+	mv test/${OBJDIR}/$*.td test/${OBJDIR}/$*.d 
+
+coverage/${OBJDIR}/%.o : src/%.c
+	mkdir -p $(@D)
+	$(CC) ${CFLAGS_COV} ${DEPFLAGS_COV} -c $< -o $@
+	mv coverage/${OBJDIR}/$*.td coverage/${OBJDIR}/$*.d 
+
+release/${OBJDIR}/%.o : src/%.c
+	mkdir -p $(@D)
+	$(CC) ${CFLAGS} ${DEPFLAGS} -c $< -o $@
+	mv release/${OBJDIR}/$*.td release/${OBJDIR}/$*.d 
+
+%.d: ;
+.PRECIOUS: %.d
+
+-include $(patsubst %.c, test/${OBJDIR}/%.d, ${SRC_TEST})
+-include $(patsubst %.c, test/${OBJDIR}/%.d, ${SRC})
+-include $(patsubst %.c, test/${OBJDIR}/%.d, ${SRC_MAIN_TEST})
+-include $(patsubst %.c, coverage/${OBJDIR}/%.d, ${SRC_TEST})
+-include $(patsubst %.c, coverage/${OBJDIR}/%.d, ${SRC})
+-include $(patsubst %.c, coverage/${OBJDIR}/%.d, ${SRC_MAIN_TEST})
+-include $(patsubst %.c, release/${OBJDIR}/%.d, ${SRC})
+
+clean:
+	rm -f test/obj/*.o
+	rm -f test/obj/*.d
+	rm -f test/obj/*/*.o
+	rm -f test/obj/*/*.d
+	rm -f test/obj/programs/*.o
+	rm -f test/obj/programs/*.d
+	rm -f test/test_lisp
+	rm -f coverage/obj/*.o
+	rm -f coverage/obj/*.d
+	rm -f coverage/obj/*.gcda
+	rm -f coverage/obj/*.gcno
+	rm -f coverage/obj/*/*.o
+	rm -f coverage/obj/*/*.d
+	rm -f coverage/obj/*/*.gcda
+	rm -f coverage/obj/*/*.gcno
+	rm -f coverage/obj/programs/*.o
+	rm -f coverage/obj/programs/*.d
+	rm -f coverage/obj/programs/*.gcda
+	rm -f coverage/obj/programs/*.gcno
+	rm -f coverage/obj/*.info
+	rm -f coverage/test_lisp
+	rm -f coverage/*.html
+	rm -f coverage/*.css
+	rm -f release/liblisp.a
+	rm -f release/obj/*.o
+	rm -f release/obj/*.d
+	rm -f release/obj/*/*.o
+	rm -f release/obj/*/*.d
+
+	rm -rf doc/html
+	rm -rf doc/latex
+
+.PHONY: clean
+
+
+doc:
+	doxygen
+
+.PHONY: doc
+
+
+
+
