@@ -1,6 +1,13 @@
 *~
-obj
-bin
+Makefile
+autom4te.cache
+config.log
+config.status
+configure
+coverage
+release
+src/config.h
+test
 doc
 scratch
 push.sh
