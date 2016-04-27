@@ -1,5 +1,4 @@
 language: c
-before_script:
-  - autoconf
 compiler:
   - gcc
+  - clang
