@@ -2,6 +2,7 @@
 #include <string.h>
 
 void test_test(unit_context_t * ctx);
+void test_mock(unit_context_t * ctx);
 void test_xmalloc(unit_context_t * ctx);
 void test_xstring(unit_context_t * ctx);
 void test_assertion(unit_context_t * ctx);
@@ -22,6 +23,7 @@ int main(int argc, const char ** argv)
 {
   unit_context_t * ctx = unit_create_context();
   test_test(ctx);
+  test_mock(ctx);
   test_xmalloc(ctx);
   test_xstring(ctx);
   test_assertion(ctx);
