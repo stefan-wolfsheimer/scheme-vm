@@ -10,8 +10,8 @@ BINDIR=bin
 DEPFLAGS_TEST = -MT $@ -MMD -MP -MF test/${OBJDIR}/$*.td
 DEPFLAGS_COV  = -MT $@ -MMD -MP -MF coverage/${OBJDIR}/$*.td
 DEPFLAGS      = -MT $@ -MMD -MP -MF release/${OBJDIR}/$*.td
-CFLAGS_TEST   = -g -Wall -std=c99 -Isrc -DDEBUG -lm
-CFLAGS_COV    = -g -Wall -std=c99 -Isrc -DDEBUG --coverage -lm
+CFLAGS_TEST   = -g -Wall -Werror -std=c99 -Isrc -DDEBUG -DMOCK -lm
+CFLAGS_COV    = -g -Wall -std=c99 -Isrc -DDEBUG -DMOCK --coverage -lm
 CFLAGS = -O2 -Wall -Isrc -lm
 
 include $(patsubst %, src/%/module.mk, $(MODULES) )
@@ -51,7 +51,7 @@ test/${OBJDIR}/%.o : src/%.c
 	$(CC) ${CFLAGS_TEST} ${DEPFLAGS_TEST} -c $< -o $@
 	mv test/${OBJDIR}/$*.td test/${OBJDIR}/$*.d 
 
-coverage/${OBJDIR}/%.o : src/%.c
+coverage/${OBJDIR}/%.o : src/%.c 
 	mkdir -p $(@D)
 	$(CC) ${CFLAGS_COV} ${DEPFLAGS_COV} -c $< -o $@
 	mv coverage/${OBJDIR}/$*.td coverage/${OBJDIR}/$*.d 
@@ -64,13 +64,13 @@ release/${OBJDIR}/%.o : src/%.c
 %.d: ;
 .PRECIOUS: %.d
 
--include $(patsubst %.c, test/${OBJDIR}/%.d, ${SRC_TEST})
--include $(patsubst %.c, test/${OBJDIR}/%.d, ${SRC})
--include $(patsubst %.c, test/${OBJDIR}/%.d, ${SRC_MAIN_TEST})
--include $(patsubst %.c, coverage/${OBJDIR}/%.d, ${SRC_TEST})
--include $(patsubst %.c, coverage/${OBJDIR}/%.d, ${SRC})
--include $(patsubst %.c, coverage/${OBJDIR}/%.d, ${SRC_MAIN_TEST})
--include $(patsubst %.c, release/${OBJDIR}/%.d, ${SRC})
+-include $(patsubst src/%.c, test/${OBJDIR}/%.d, ${SRC_TEST})
+-include $(patsubst src/%.c, test/${OBJDIR}/%.d, ${SRC})
+-include $(patsubst src/%.c, test/${OBJDIR}/%.d, ${SRC_MAIN_TEST})
+-include $(patsubst src/%.c, coverage/${OBJDIR}/%.d, ${SRC_TEST})
+-include $(patsubst src/%.c, coverage/${OBJDIR}/%.d, ${SRC})
+-include $(patsubst src/%.c, coverage/${OBJDIR}/%.d, ${SRC_MAIN_TEST})
+-include $(patsubst src/%.c, release/${OBJDIR}/%.d, ${SRC})
 
 clean:
 	rm -f test/obj/*.o
