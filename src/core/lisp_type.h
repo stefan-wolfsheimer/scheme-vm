@@ -186,16 +186,16 @@ extern const lisp_cell_t lisp_nil;
 
 
 /* @todo make it possible for CONS_OBJECT as well */
-//#define LISP_CAR(__CELL__)						\
+//#define LISP_CAR(__CELL__)
 //  ((__CELL__)->type_id == LISP_TID_CONS ? &(__CELL__)->data.cons->car : NULL)
 
-//#define LISP_CDR(__CELL__)						\
+//#define LISP_CDR(__CELL__)
 //  ((__CELL__)->type_id == LISP_TID_CONS ? &(__CELL__)->data.cons->cdr : NULL)
 
 /* create an integer. 
  * precondition __CELL__: unintialized or atom */
-//#define LISP_MAKE_INTEGER(__CELL__, __VALUE__)	\
-//  { ((__CELL__))->type_id = LISP_TID_INTEGER;		\
+//#define LISP_MAKE_INTEGER(__CELL__, __VALUE__)
+//  { ((__CELL__))->type_id = LISP_TID_INTEGER;
 //    ((__CELL__))->data.integer = __VALUE__; }
 
 
