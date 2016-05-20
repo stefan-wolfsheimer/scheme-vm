@@ -208,7 +208,6 @@ int unit_parse_argv(unit_context_t * ctx, int argc, const char ** argv)
 {
   int i;
   int suite_selected = 0;
-  int selection_error = 0;
   int verbose_level = 0;
   int color = 1;
   int ret = UNIT_ARGV_RUN;
@@ -263,7 +262,6 @@ int unit_parse_argv(unit_context_t * ctx, int argc, const char ** argv)
       }
       if(suite == NULL) 
       {
-	selection_error = 1;
 	fprintf(stderr, "suite '%s' does not exists\n", argv[i]);
 	fprintf(stderr, "\n");
 	ret = UNIT_ARGV_ERROR;
