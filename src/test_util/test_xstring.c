@@ -1,6 +1,7 @@
 #include "util/unit_test.h"
 #include "util/xmalloc.h"
 #include "util/xstring.h"
+#include "util/mock.h"
 #include <string.h>
 
 static void test_strcpy_null(unit_test_t * tst)

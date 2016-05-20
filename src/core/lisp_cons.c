@@ -395,6 +395,8 @@ int _lisp_make_cons_root_car_cdr(lisp_vm_t     * vm,
   vm->root_cons_table[vm->root_cons_top].ref_count = 1;
   cell->type_id = type_id;
   cell->data.cons = cons;
+  cons->car = lisp_nil;
+  cons->cdr = lisp_nil;
   return _lisp_init_cons_car_cdr(vm, cons, car, cdr);
 }
 

@@ -1,5 +1,6 @@
 #include "util/unit_test.h"
 #include "util/xmalloc.h"
+#include "util/mock.h"
 
 static void test_memcheck_current(unit_test_t * tst)
 {
@@ -173,7 +174,7 @@ static void test_alloc_expected_failure_first(unit_test_t * tst)
   memchecker_t * memcheck = memcheck_begin();
   memcheck_expected_alloc(0);
   char * data1 = MALLOC(10);
-  ASSERT_EQ_PTR(tst, memcheck->next_mock, NULL);
+  ASSERT_EQ_PTR(tst, mock_get_expected(memcheck), NULL);
   ASSERT_EQ_PTR(tst, data1, NULL);
   char * data2 = MALLOC(10);
   ASSERT_NEQ_PTR(tst, data2, NULL);
@@ -188,21 +189,23 @@ static void test_alloc_expected_failure_first(unit_test_t * tst)
 static void test_alloc_expected_failure_sequence(unit_test_t * tst) 
 {
   memchecker_t * memcheck = memcheck_begin();
+  ASSERT_EQ_PTR(tst, mock_get_expected(memcheck), NULL);
   memcheck_expected_alloc(0);
+  ASSERT_NEQ_PTR(tst, mock_get_expected(memcheck), NULL);
   memcheck_expected_alloc(1);
   memcheck_expected_alloc(0);
   memcheck_expected_alloc(1);
   char * data1 = MALLOC(10);
   ASSERT_EQ_PTR(tst, data1, NULL);
-  ASSERT_NEQ_PTR(tst, memcheck->next_mock, NULL);
+  ASSERT_NEQ_PTR(tst, mock_get_expected(memcheck), NULL);
   char * data2 = REALLOC(NULL,10);
   ASSERT_NEQ_PTR(tst, data2, NULL);
-  ASSERT_NEQ_PTR(tst, memcheck->next_mock, NULL);
+  ASSERT_NEQ_PTR(tst, mock_get_expected(memcheck), NULL);
   char * data3 = REALLOC(data2, 10);
   ASSERT_EQ_PTR(tst, data3, NULL);
   char * data4 = REALLOC(data2, 10);
   ASSERT_NEQ_PTR(tst, data4, NULL);
-  ASSERT_EQ_PTR(tst, memcheck->next_mock, NULL);
+  ASSERT_EQ_PTR(tst, mock_get_expected(memcheck), NULL);
   FREE(data4);
   ASSERT_MEMCHECK(tst);
   memcheck_end();

@@ -117,7 +117,6 @@ static void test_eval_nil(unit_test_t * tst)
   memcheck_end();
 }
 
-
 static void test_eval_cons(unit_test_t * tst) 
 {
   memcheck_begin();

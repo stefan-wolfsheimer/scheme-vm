@@ -154,22 +154,21 @@ void lisp_free_cons_gc(lisp_vm_t * vm)
  * 
  *****************************************************************************/
 #ifdef DEBUG
+#include "util/mock.h"
 void * lisp_malloc_object( const char      * file,
-                             int               line, 
-                             size_t            size,
-                             lisp_ref_count_t  rcount )
+			   int               line, 
+			   size_t            size,
+			   lisp_ref_count_t  rcount )
 {
-  if(memcheck_next_mock(file, line)) 
+  memchecker_t * memchecker = memcheck_current();
+  if(memchecker && memchecker->enabled) 
   {
-    lisp_ref_count_t * obj = malloc(sizeof(lisp_ref_count_t) + size);
-    obj[0] = rcount;
-    memcheck_register_alloc(file, line, obj);
-    return &obj[1];
+    MOCK_CALL(memchecker, void*);
   }
-  else 
-  {
-    return NULL;
-  }
+  lisp_ref_count_t * obj = malloc(sizeof(lisp_ref_count_t) + size);
+  obj[0] = rcount;
+  memcheck_register_alloc(file, line, obj);
+  return &obj[1];
 }
 
 void lisp_free_object( const char    * file,

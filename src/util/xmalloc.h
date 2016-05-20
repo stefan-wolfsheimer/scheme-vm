@@ -19,21 +19,12 @@ typedef struct memchecker_chunk_t
   int     free_line;
 } memchecker_chunk_t;
 
-typedef struct memchecker_alloc_mock_t 
-{
-  int success;
-  struct memchecker_alloc_mock_t * next;
-  struct memchecker_alloc_mock_t * prev;
-} memchecker_alloc_mock_t;
-
 typedef struct memchecker_t
 {
   memchecker_chunk_t      * chunks;
   size_t                    n_chunks;
   assertion_t             * first_assertion;
   assertion_t             * last_assertion;
-  memchecker_alloc_mock_t * next_mock;
-  memchecker_alloc_mock_t * last_mock;
   int                       enabled;
 } memchecker_t;
 
@@ -106,13 +97,11 @@ assertion_t * memcheck_remove_first_assertion();
  */
 void memcheck_expected_alloc(int success);
 
-int memcheck_next_mock(const char * file, int line);
-
 /** 
  * Check if all registered mocks have been consumed 
  * @return 0 if there are pendinding mocks
- */
 int memcheck_check_mocks(memchecker_t * memchecker);
+ */
 
 /** 
  *  Remove all registered mocks from the memchecker 

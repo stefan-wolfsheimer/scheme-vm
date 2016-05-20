@@ -13,7 +13,7 @@ mock_function_t * __last_func;
 
 static mock_function_t * _mock_find_or_insert(void * func);
 static mock_function_t * _mock_find(void * func);
-static void _mock_retire_func(mock_function_t * func);
+static size_t _mock_retire_func(mock_function_t * func);
 
 static mock_function_t * _mock_find_or_insert(void * func) 
 {
@@ -57,8 +57,9 @@ static mock_function_t * _mock_find(void * func)
   return NULL;
 }
 
-static void _mock_retire_func(mock_function_t * func)
+static size_t _mock_retire_func(mock_function_t * func)
 {
+  size_t n = 0;
   while(func->first != NULL) 
   {
     mock_expected_t * nexte = func->first->next;
@@ -68,6 +69,7 @@ static void _mock_retire_func(mock_function_t * func)
     }
     free(func->first);
     func->first = nexte;
+    n++;
   }
   if(func->prev != NULL) 
   {
@@ -86,6 +88,7 @@ static void _mock_retire_func(mock_function_t * func)
     __last_func = func->prev;
   }
   free(func);
+  return n;
 }
 
 mock_expected_t * mock_register(void *                  func, 
@@ -176,13 +179,14 @@ void mock_remove(mock_expected_t * item)
   }
 }
 
-void mock_retire(void * func)
+size_t mock_retire(void * func)
 {
   mock_function_t * mockfunc = _mock_find(func);
   if(mockfunc) 
   {
-    _mock_retire_func(mockfunc);
+    return _mock_retire_func(mockfunc);
   }
+  return 0;
 }
 
 size_t mock_retire_all()

@@ -1,5 +1,6 @@
 #include "xmalloc.h"
 #include "xstring.h"
+#include "mock.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -56,8 +57,6 @@ memchecker_t * memcheck_begin()
   memchecker->n_chunks            = 0;
   memchecker->first_assertion     = NULL;
   memchecker->last_assertion      = NULL;
-  memchecker->next_mock           = NULL;
-  memchecker->last_mock           = NULL;
   memchecker->enabled             = 1;
   memcheck_stack[memcheck_stack_size-1] = memchecker;
   return memchecker;
@@ -168,6 +167,7 @@ assertion_t * memcheck_finalize()
     }
     ret = memchecker->first_assertion;
     memchecker->first_assertion = NULL;
+
   }
   return ret;
 }
@@ -193,87 +193,39 @@ assertion_t * memcheck_remove_first_assertion()
  * Mock functions 
  *
  *********************************************************************/
+static void * __memcheck_mockup(void * user_data)
+{
+  return user_data;
+}
+
 void memcheck_expected_alloc(int success)
 {
   memchecker_t * memchecker = memcheck_current();
   if(memchecker) 
   {
-    memchecker_alloc_mock_t * mock;
-    mock = malloc(sizeof(memchecker_alloc_mock_t));
-    mock->prev = memchecker->last_mock;
-    mock->next = NULL;
-    mock->success = success;
-    if(mock->prev == NULL)
+    /* @todo make use of it and free it. 
+       add user data and retire function as argument
+     */
+    if(success) 
     {
-      memchecker->next_mock = mock;
+      mock_register(memchecker,
+		    NULL,
+		    NULL,
+		    NULL);
     }
     else 
     {
-      mock->prev->next = mock;
-    }
-    memchecker->last_mock = mock;
-  }
-}
-
-int memcheck_next_mock(const char * file, int line)
-{
-  int ret = 1;
-  memchecker_t * memchecker = memcheck_current();
-  if(memchecker && memchecker->enabled && memchecker->next_mock != NULL) 
-  {
-    memchecker_alloc_mock_t * next;
-    ret = memchecker->next_mock->success;
-    next = memchecker->next_mock->next;
-    free(memchecker->next_mock);
-    memchecker->next_mock = next;
-    if(next) 
-    {
-      next->prev = NULL;
-    }
-    else 
-    {
-      memchecker->last_mock = NULL;
+      mock_register(memchecker,
+		    __memcheck_mockup,
+		    NULL,
+		    NULL);
     }
   }
-  return ret;
-}
-
-int memcheck_check_mocks(memchecker_t * memchecker)
-{
-  int ret = 1;
-  memchecker_alloc_mock_t * current_mock;
-  current_mock = memchecker->next_mock;
-  while(current_mock != NULL) 
-  {
-    ret = 0;
-    /* @todo create error message, if there 
-       are pending mocks*/   
-    current_mock = current_mock->next;
-  }
-  return ret;
 }
 
 size_t memcheck_retire_mocks()
 {
-  memchecker_t * memchecker = memcheck_current();
-  size_t ret = 0;
-  if(memchecker) 
-  {
-    memchecker_alloc_mock_t * current_mock;
-    memchecker_alloc_mock_t * next_mock;
-    current_mock = memchecker->next_mock;
-    while(current_mock != NULL) 
-    {
-      ret++;
-      /* @todo create error message, if there 
-	 are pending mocks*/   
-      next_mock = current_mock->next;
-      free(current_mock);
-      current_mock = next_mock;
-    }
-    memchecker->next_mock = NULL;
-  }
-  return ret;
+  return mock_retire(memcheck_current());
 }
 
 /*********************************************************************
@@ -285,12 +237,13 @@ void * memcheck_debug_malloc(  const char     * file,
                                int              line,
                                size_t           size)
 {
-  void * ptr = NULL;
-  if(memcheck_next_mock(file, line)) 
+  memchecker_t * memchecker = memcheck_current();
+  if(memchecker && memchecker->enabled) 
   {
-    ptr = malloc(size);
-    memcheck_register_alloc(file, line, ptr);
+    MOCK_CALL(memchecker, void*);
   }
+  void * ptr = malloc(size);
+  memcheck_register_alloc(file, line, ptr);
   return ptr;
 }
 
@@ -299,26 +252,24 @@ void * memcheck_debug_realloc( const char     * file,
                                void           * ptr,
                                size_t           size)
 {
-  if(memcheck_next_mock(file, line)) 
+  memchecker_t * memchecker = memcheck_current();
+  if(memchecker && memchecker->enabled) 
   {
-    if(ptr == NULL)
-    {
-      ptr = malloc(size);
-      memcheck_register_alloc(file, line, ptr);
-      return ptr;
-    }
-    else
-    {
-      void * old = ptr;
-      ptr = realloc(ptr,size);
-      memcheck_register_freed(file, line, old);
-      memcheck_register_alloc(file, line, ptr);
-      return ptr;
-    }
+    MOCK_CALL(memchecker, void*);
   }
-  else 
+  if(ptr == NULL)
   {
-    return NULL;
+    ptr = malloc(size);
+    memcheck_register_alloc(file, line, ptr);
+    return ptr;
+  }
+  else
+  {
+    void * old = ptr;
+    ptr = realloc(ptr,size);
+    memcheck_register_freed(file, line, old);
+    memcheck_register_alloc(file, line, ptr);
+    return ptr;
   }
 }
 

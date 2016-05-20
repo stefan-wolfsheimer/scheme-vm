@@ -51,7 +51,7 @@ mock_expected_t * mock_register(void * func,
 				mock_user_data_retire_t retire_func);
 mock_expected_t * mock_get_expected(void * func);
 void mock_remove(mock_expected_t * ret);
-void mock_retire(void * func);
+size_t mock_retire(void * func);
 size_t mock_retire_all();
 
 #endif
