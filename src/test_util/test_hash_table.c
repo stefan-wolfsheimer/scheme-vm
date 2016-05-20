@@ -180,8 +180,6 @@ static int _ht_check_bucket_entries(unit_test_t       * tst,
   /** buckets have at least one entry */
   hash_table_bucket_t * bucket  = ht->first;
   hash_table_bucket_t * prev    = NULL;
-  hash_table_entry_t  * entry;
-  hash_table_entry_t  * prev_entry = NULL;
   int linked_list_ok = 1;
   size_t dist;
   short int index = 1-ht->current_world_index;
@@ -211,49 +209,49 @@ static int _ht_check_bucket_entries(unit_test_t       * tst,
 			 bucket->prev,
 			 prev, 
 			 file,line)) 
-
+      linked_list_ok = 0;
     if(bucket == ht->last) 
     {
       /* last */
       if(!ASSERT_HT_EQ_PTR(tst, 
-                           bucket->next,
-                           NULL,
-                           file, line)) 
-        linked_list_ok = 0;
+			   bucket->next,
+			   NULL,
+			   file, line)) 
+	linked_list_ok = 0;
       if(!ASSERT_HT_EQ_PTR(tst, 
-                           bucket->last->next,
-                           NULL,
-                           file, line)) 
-        linked_list_ok = 0;
+			   bucket->last->next,
+			   NULL,
+			   file, line)) 
+	linked_list_ok = 0;
     }
     else 
     {
       /* not last */
       if(!ASSERT_HT_NEQ_PTR(tst, 
-                            bucket->next,
-                            NULL,
-                            file, line)) 
-        linked_list_ok = 0;
+			      bucket->next,
+			    NULL,
+			    file, line)) 
+	linked_list_ok = 0;
       if(!ASSERT_HT_EQ_PTR(tst, 
-                           bucket->next->prev,
-                           bucket,
-                           file, line)) 
-        linked_list_ok = 0;
+			   bucket->next->prev,
+			   bucket,
+			   file, line)) 
+	linked_list_ok = 0;
       if(!ASSERT_HT_NEQ_PTR(tst,
-                            bucket->next->first,
-                            NULL,
-                            file, line))
-        linked_list_ok = 0;
+			    bucket->next->first,
+			    NULL,
+			    file, line))
+	linked_list_ok = 0;
       if(!ASSERT_HT_EQ_PTR(tst,
-                           bucket->next->first->prev,
-                           bucket->last,
-                           file, line))
-        linked_list_ok = 0;
+			   bucket->next->first->prev,
+			   bucket->last,
+			   file, line))
+	linked_list_ok = 0;
       if(!ASSERT_HT_EQ_PTR(tst,
-                           bucket->last->next,
-                           bucket->next->first,
-                           file, line))
-        linked_list_ok = 0;
+			   bucket->last->next,
+			   bucket->next->first,
+			   file, line))
+	linked_list_ok = 0;
     }
     if(bucket == ht->first)
     {
@@ -447,7 +445,7 @@ static void test_cmp_function(unit_test_t * tst)
 
 static void test_hash_table_init(unit_test_t * tst)
 {
-  memchecker_t * memcheck = memcheck_begin();
+  memcheck_begin();
   hash_table_t ht;
   hash_table_init(&ht, 
                   ht_cmp_function,
@@ -588,7 +586,7 @@ static void test_hash_table_find_or_insert(unit_test_t * tst,
                                            const char  * elements[],
                                            size_t        n)
 {
-  memchecker_t * memcheck = memcheck_begin();
+  memcheck_begin();
   size_t i,j;
   hash_table_t ht;
   int inserted;
@@ -624,7 +622,6 @@ static void test_hash_table_find_or_insert(unit_test_t * tst,
   for(i = n; i > 0; )
   {
     i--;
-    char * tmp = elements[i];
     inserted = 1;
     ASSERT_EQ_PTR(tst, hash_table_find_or_insert(&ht,
                                                  elements[i],
@@ -682,7 +679,7 @@ static void test_hash_table_find_or_insert_different_buckets(unit_test_t * tst)
 
 static void test_hash_table_set_after_swap(unit_test_t * tst)
 {
-  memchecker_t * memcheck = memcheck_begin();
+  memcheck_begin();
   hash_table_t ht;
   size_t i,m,n = 100;
   char ** elements = ht_init_n_elements(&ht, n);
@@ -709,7 +706,7 @@ static void test_hash_table_set_after_swap(unit_test_t * tst)
 static void test_hash_table_find_or_insert_after_swap(unit_test_t * tst)
 {
   /* @todo */
-  memchecker_t * memcheck = memcheck_begin();
+  memcheck_begin();
   hash_table_t ht;
   int inserted;
   size_t i,m,n = 100;
@@ -738,9 +735,9 @@ static void test_hash_table_find_or_insert_after_swap(unit_test_t * tst)
 
 static void test_hash_table_remove(unit_test_t * tst)
 {
-  memchecker_t * memcheck = memcheck_begin();
+  memcheck_begin();
   hash_table_t ht;
-  size_t i,m,n = 100;
+  size_t i, n = 100;
   char ** elements = ht_init_n_elements(&ht, n);
   char ** active_elements = MALLOC(sizeof(char*)*n);
   for(i = 0; i < n; i++) 

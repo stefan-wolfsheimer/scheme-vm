@@ -1,4 +1,6 @@
 #include "lisp_vm.h"
+#include "util/murmur_hash3.h"
+#include <string.h>
 
 int lisp_make_symbol(lisp_vm_t         * vm,
                        lisp_cell_t       * cell,

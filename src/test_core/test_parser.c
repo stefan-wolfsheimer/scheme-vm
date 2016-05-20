@@ -83,8 +83,9 @@ static void test_parens(unit_test_t * tst)
 #endif
 void test_parser(unit_context_t * ctx)
 {
-  unit_suite_t * suite = unit_create_suite(ctx, "parser");
+  unit_create_suite(ctx, "parser");
 #if 0
+  //unit_suite_t * suite = 
   TEST(suite, test_no_expression);
   TEST(suite, test_parens); 
 #endif

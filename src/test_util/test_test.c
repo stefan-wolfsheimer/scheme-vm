@@ -104,7 +104,6 @@ static void test_check_arr_int(unit_test_t * tst)
   unit_test_t    * tst1   = unit_create_test(suite, "test1", test_check_arr_int);
   const int a1[3] = { 1, 2, 3};
   const int a2[2] = { 4, 5 };
-  const int a3[3] = { 1, 2, 4 };
 
   /* EQ == */
   ASSERT_EQ_ARR_I(tst, a1, 3, a1, 3);
@@ -240,7 +239,7 @@ static void test_check_arr_unsigned_int(unit_test_t * tst)
 					     test_check_arr_unsigned_int);
   const unsigned int a1[3] = { 1, 2, 3};
   const unsigned int a2[2] = { 4, 5 };
-  const unsigned int a3[3] = { 1, 2, 4 };
+  //const unsigned int a3[3] = { 1, 2, 4 };
 
   /* EQ == */
   ASSERT_EQ_ARR_U(tst, a1, 3, a1, 3);
@@ -382,7 +381,6 @@ static void test_check_arr_ptr(unit_test_t * tst)
   int * v = malloc(sizeof(int)*5);
   const int * a1[3] = { NULL, NULL, NULL };
   const int * a2[2] = { NULL, NULL };
-  const int * a3[3] = { NULL, NULL, NULL };
   a1[0] = v + 0;
   a1[1] = v + 1;
   a1[2] = v + 2;
@@ -390,9 +388,6 @@ static void test_check_arr_ptr(unit_test_t * tst)
   a2[0] = v + 3;
   a2[1] = v + 4;
 
-  a3[0] = v + 0;
-  a3[1] = v + 1;
-  a3[2] = v + 4;
 
   /* EQ == */
   ASSERT_EQ_ARR_PTR(tst, a1, 3, a1, 3);
@@ -530,7 +525,6 @@ static void test_check_arr_cstr(unit_test_t * tst)
   unit_test_t * tst1   = unit_create_test(suite, "test1", test_check_arr_cstr);
   const char * a1[3] = { "abc", "def", "ghi" };
   const char * a2[2] = { "abc", "ghi" };
-  const char * a3[3] = { "abc", "def", "xyz" };
 
   /* EQ == */
   ASSERT_EQ_ARR_CSTR(tst, a1, 3, a1, 3);

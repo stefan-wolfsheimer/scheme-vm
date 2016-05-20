@@ -354,6 +354,16 @@ int lisp_eq_object(const lisp_cell_t * a,
     {
       return a->data.ptr == b->data.ptr;
     }
+    else if(a->type_id == LISP_TID_STRING)
+    {
+      /* @todo substring */
+      return strcmp( (const char*) (const lisp_string_t*) a + 1,
+		     (const char*) (const lisp_string_t*) b + 1) ? 0 : 1;
+    }
+    else 
+    {
+      return 0;
+    }
   }
   else 
   {

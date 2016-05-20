@@ -70,6 +70,7 @@ typedef struct hash_table_t
   short int                         autoswap;
 } hash_table_t;
 
+
 #define HASH_TABLE_OK 0x00
 #define HASH_TABLE_ALLOC_ERROR 0x01
 /** 

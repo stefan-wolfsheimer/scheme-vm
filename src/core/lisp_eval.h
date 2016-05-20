@@ -18,14 +18,4 @@ int lisp_eval(lisp_eval_env_t   * env,
 int lisp_register_builtin_function(lisp_eval_env_t         * env,
 				   const char              * name,
 				   lisp_builtin_function_t   func);
-				   
-				   
-/* @todo move to separate module 
- * @todo typecheck for values
- * @todo overflow check and high prec. arithmetric
- */
-int lisp_builtin_plus(lisp_vm_t     * vm,
-		      lisp_cell_t   * target,
-		      lisp_cell_t   * stack);
-
 #endif

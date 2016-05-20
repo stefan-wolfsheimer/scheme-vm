@@ -489,7 +489,6 @@ void * hash_table_set_func(hash_table_t            * ht,
                            hash_code_t               code,
                            hash_table_eq_function_t  eq_func)
 {
-  size_t                n_buckets;
   hash_table_bucket_t * bucket, * new_bucket;
   hash_table_entry_t  * entry, *next;
   /* recycle old world */

@@ -1,4 +1,5 @@
 #include "lisp_eval.h"
+#include "lisp_builtin.h"
 #include "util/xmalloc.h"
 #include "util/assertion.h"
 
@@ -40,35 +41,13 @@ int lisp_register_builtin_function(lisp_eval_env_t        * env,
 {
   lisp_cell_t symbol;
   lisp_cell_t cell;
+  /* @todo error check */
   lisp_builtin_lambda_t * lambda = MALLOC_OBJECT(sizeof(lisp_builtin_lambda_t), 0);
   cell.type_id = LISP_TID_BUILTIN_LAMBDA;
   cell.data.ptr = lambda;
   lambda->func = func;
   lisp_make_symbol(env->vm, &symbol, name);
   lisp_symbol_set(env->vm, symbol.data.ptr, &cell);
-}
-
-
-/* @todo move to separate module */
-int lisp_builtin_plus(lisp_vm_t    * vm,
-		      lisp_cell_t  * target,
-		      lisp_cell_t  * stack)
-{
-  REQUIRE(LISP_IS_INTEGER(stack));
-  lisp_integer_t nargs = stack->data.integer;
-  lisp_integer_t i;
-  target->type_id = LISP_TID_INTEGER;
-  target->data.integer = 0;
-
-  for(i = 0; i < nargs; i++) 
-  {
-    if(!LISP_IS_INTEGER(&stack[i+1])) 
-    {
-      *target = lisp_nil;
-      return LISP_TYPE_ERROR;
-    }
-    target->data.integer+= stack[i+1].data.integer;
-  }
   return LISP_OK;
 }
 
@@ -79,7 +58,7 @@ static int lisp_eval_builtin(lisp_vm_t                   * vm,
 {
   /* @todo: define argument signature class
      @todo: eval instead of copy */
-  lisp_cell_t * current = args;
+  const lisp_cell_t * current = args;
   lisp_integer_t n = 0;
   while(!LISP_IS_NIL(current)) 
   {
@@ -134,7 +113,7 @@ static int lisp_eval_define(lisp_eval_env_t   * env,
     if(LISP_IS_SYMBOL(&LISP_AS(args, lisp_cons_t)->car)) 
     {
       /* (define a X) */
-      lisp_cell_t obj;
+      //lisp_cell_t obj;
       lisp_eval(env, &car_cdr_cdr, 
 		&LISP_AS(
 			 &LISP_AS(args, lisp_cons_t)->cdr,

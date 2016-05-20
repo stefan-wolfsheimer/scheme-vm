@@ -323,7 +323,7 @@ int lisp_lambda_eval(lisp_vm_t           * thr,
  * string
  * 
  *****************************************************************************/
-/* @todo rename to lisp_make_string */
+/* @todo make module */
 int lisp_make_string(lisp_vm_t         * vm,
                      lisp_cell_t       * cell,
                      const lisp_char_t * cstr);
@@ -336,6 +336,8 @@ int lisp_sprintf(lisp_vm_t         * vm,
 const char * lisp_c_string(const lisp_cell_t * cell);
 
 lisp_size_t lisp_string_length(const lisp_string_t * str);
+/* @todo implement */
+int lisp_string_cmp(const lisp_string_t * a, const lisp_string_t * b);
 
 
 /*****************************************************************************

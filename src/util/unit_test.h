@@ -463,76 +463,76 @@ int unit_add_assertion(unit_test_t * tst,
  *********************************************************************/
 #define ASSERT_EQ_ARR_PTR(__TEST__, __LHS__,__NLHS__, __RHS__,__NRHS__)	\
   __CREATE_ASSERT_ARR_CMP__(ptr, (__TEST__),				\
-			    (__LHS__),(__NLHS__),			\
-			    (__RHS__), (__NRHS__),			\
+			    (const void**)(__LHS__), (__NLHS__),	\
+			    (const void**)(__RHS__), (__NRHS__),	\
 			    "==")
 
 
 #define CHECK_EQ_ARR_PTR(__TEST__, __LHS__,__NLHS__, __RHS__,__NRHS__)	\
   __CREATE_CHECK_ARR_CMP__(ptr, (__TEST__),				\
-			   (__LHS__),(__NLHS__),			\
-			   (__RHS__), (__NRHS__), "==")
+			   (const void**)(__LHS__), (__NLHS__),		\
+			   (const void**)(__RHS__), (__NRHS__), "==")
 
 #define ASSERT_NEQ_ARR_PTR(__TEST__, __LHS__,__NLHS__, __RHS__,__NRHS__)	\
   __CREATE_ASSERT_ARR_CMP__(ptr, (__TEST__),				\
-			    (__LHS__),(__NLHS__),			\
-			    (__RHS__), (__NRHS__),			\
+			    (const void**)(__LHS__), (__NLHS__),	\
+			    (const void**)(__RHS__), (__NRHS__),	\
 			    "!=")
 
 
 #define CHECK_NEQ_ARR_PTR(__TEST__, __LHS__,__NLHS__, __RHS__,__NRHS__)	\
   __CREATE_CHECK_ARR_CMP__(ptr, (__TEST__),				\
-			   (__LHS__),(__NLHS__),			\
-			   (__RHS__), (__NRHS__), "!=")
+			   (const void**)(__LHS__), (__NLHS__),		\
+			   (const void**)(__RHS__), (__NRHS__), "!=")
 
 #define ASSERT_LT_ARR_PTR(__TEST__, __LHS__,__NLHS__, __RHS__,__NRHS__)	\
   __CREATE_ASSERT_ARR_CMP__(ptr, (__TEST__),				\
-			    (__LHS__),(__NLHS__),			\
-			    (__RHS__), (__NRHS__),			\
+			    (const void**)(__LHS__), (__NLHS__),	\
+			    (const void**)(__RHS__), (__NRHS__),	\
 			    "<")
 
 
 #define CHECK_LT_ARR_PTR(__TEST__, __LHS__,__NLHS__, __RHS__,__NRHS__)	\
   __CREATE_CHECK_ARR_CMP__(ptr, (__TEST__),				\
-			   (__LHS__),(__NLHS__),			\
-			   (__RHS__), (__NRHS__), "<")
+			   (const void**)(__LHS__), (__NLHS__),		\
+			   (const void**)(__RHS__), (__NRHS__), "<")
 
 
 #define ASSERT_LE_ARR_PTR(__TEST__, __LHS__,__NLHS__, __RHS__,__NRHS__)	\
   __CREATE_ASSERT_ARR_CMP__(ptr, (__TEST__),				\
-			    (__LHS__),(__NLHS__),			\
-			    (__RHS__), (__NRHS__),			\
+			    (const void**)(__LHS__), (__NLHS__),	\
+			    (const void**)(__RHS__), (__NRHS__),	\
 			    "<=")
 
 
 #define CHECK_LE_ARR_PTR(__TEST__, __LHS__,__NLHS__, __RHS__,__NRHS__)	\
   __CREATE_CHECK_ARR_CMP__(ptr, (__TEST__),				\
-			   (__LHS__),(__NLHS__),			\
-			   (__RHS__), (__NRHS__), "<=")
+			   (const void**)(__LHS__), (__NLHS__),		\
+			   (const void**)(__RHS__), (__NRHS__), "<=")
 
 
 #define ASSERT_GT_ARR_PTR(__TEST__, __LHS__,__NLHS__, __RHS__,__NRHS__)	\
   __CREATE_ASSERT_ARR_CMP__(ptr, (__TEST__),				\
-			    (__LHS__),(__NLHS__),			\
-			    (__RHS__), (__NRHS__),			\
+			    (const void**)(__LHS__), (__NLHS__),	\
+			    (const void**)(__RHS__), (__NRHS__),	\
 			    ">")
 
 #define CHECK_GT_ARR_PTR(__TEST__, __LHS__,__NLHS__, __RHS__,__NRHS__)	\
   __CREATE_CHECK_ARR_CMP__(ptr, (__TEST__),				\
-			   (__LHS__),(__NLHS__),			\
-			   (__RHS__), (__NRHS__), ">")
+			   (const void**)(__LHS__), (__NLHS__),		\
+			   (const void**)(__RHS__), (__NRHS__), ">")
 
 #define ASSERT_GE_ARR_PTR(__TEST__, __LHS__,__NLHS__, __RHS__,__NRHS__)	\
   __CREATE_ASSERT_ARR_CMP__(ptr, (__TEST__),				\
-			    (__LHS__),(__NLHS__),			\
-			    (__RHS__), (__NRHS__),			\
+			    (const void**)(__LHS__), (__NLHS__),	\
+			    (const void**)(__RHS__), (__NRHS__),	\
 			    ">=")
 
 
 #define CHECK_GE_ARR_PTR(__TEST__, __LHS__,__NLHS__, __RHS__,__NRHS__)	\
   __CREATE_CHECK_ARR_CMP__(ptr, (__TEST__),				\
-			   (__LHS__),(__NLHS__),			\
-			   (__RHS__), (__NRHS__), ">=")
+			   (const void**)(__LHS__), (__NLHS__),		\
+			   (const void**)(__RHS__), (__NRHS__), ">=")
 
 
 /*********************************************************************

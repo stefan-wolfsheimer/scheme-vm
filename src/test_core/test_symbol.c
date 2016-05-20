@@ -1,4 +1,5 @@
 #include "util/unit_test.h"
+#include "util/xmalloc.h"
 #include "core/lisp_vm.h" 
 #include "lisp_vm_check.h"
 
