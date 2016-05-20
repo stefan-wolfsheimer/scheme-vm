@@ -351,6 +351,19 @@ static void test_mock_retire(unit_test_t * tst)
   ASSERT_EQ_I(tst, user_data[8], 9);
 }
 
+static void test_mock_retire_unused(unit_test_t * tst)
+{
+  int user_data = 1;
+  mock_expected_t * registered, * expected;
+  registered = mock_register(mocked_int_function1,  mockup_1, 
+			     &user_data, test_retire);
+  expected = mock_get_expected(mocked_int_function1);
+  ASSERT_EQ_PTR(tst, registered, expected);
+  mock_remove(expected);
+  ASSERT_EQ_I(tst, user_data, -1);
+  ASSERT_EQ_U(tst, mock_retire_all(), 0u);
+}
+
 void test_mock(unit_context_t * ctx)
 {
   unit_suite_t * suite = unit_create_suite(ctx, "mock");
@@ -360,4 +373,5 @@ void test_mock(unit_context_t * ctx)
   TEST(suite, test_mock_remove_different_functions);
   TEST(suite, test_mock_calls);
   TEST(suite, test_mock_retire);
+  TEST(suite, test_mock_retire_unused);
 }

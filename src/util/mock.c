@@ -176,11 +176,6 @@ void mock_remove(mock_expected_t * item)
   }
 }
 
-int mock_next(void * func)
-{
-  return 0;
-}
-
 void mock_retire(void * func)
 {
   mock_function_t * mockfunc = _mock_find(func);
