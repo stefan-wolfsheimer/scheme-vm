@@ -72,7 +72,6 @@ int lisp_symbol_unset(lisp_vm_t * vm,
   if(LISP_IS_NIL(&symbol->binding))
   {
     return LISP_UNDEFINED;
-
   }
   else 
   {

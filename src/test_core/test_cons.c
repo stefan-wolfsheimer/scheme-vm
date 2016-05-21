@@ -340,8 +340,8 @@ static int test_new_root_cons_prepared(unit_test_t  * tst,
       if(LISP_IS_NIL(&car) && LISP_IS_NIL(&cdr)) 
       {
         ret&= CHECK_FALSE(tst, lisp_make_cons_root(vm, &cons));
-        ret&= CHECK(tst, LISP_IS_NIL(&cons.data.cons->car));
-        ret&= CHECK(tst, LISP_IS_NIL(&cons.data.cons->cdr));
+        ret&= CHECK(tst, LISP_IS_NIL(LISP_CAR(&cons)));
+	ret&= CHECK(tst, LISP_IS_NIL(LISP_CDR(&cons)));
       }
       else 
       {
@@ -459,8 +459,8 @@ static int test_make_cons_prepared(unit_test_t  * tst,
       if(LISP_IS_NIL(&car) && LISP_IS_NIL(&cdr)) 
       {
         ret&= CHECK_FALSE(tst, lisp_make_cons(vm, &cons));
-        ret&= CHECK(tst, LISP_IS_NIL(&cons.data.cons->car));
-        ret&= CHECK(tst, LISP_IS_NIL(&cons.data.cons->cdr));
+        ret&= CHECK(tst, LISP_IS_NIL(LISP_CAR(&cons)));
+	ret&= CHECK(tst, LISP_IS_NIL(LISP_CDR(&cons)));
       }
       else 
       {
@@ -742,14 +742,14 @@ static void test_set_car_cdr_object(unit_test_t * tst)
   ASSERT_FALSE(tst,   lisp_make_cons(vm, &cons));
   ASSERT_EQ_U(tst,    LISP_REFCOUNT(&obj1), 1);
   ASSERT_EQ_U(tst,    LISP_REFCOUNT(&obj2), 1);
-  ASSERT(tst,         LISP_IS_NIL(&cons.data.cons->car));
-  ASSERT(tst,         LISP_IS_NIL(&cons.data.cons->cdr));
+  ASSERT(tst,         LISP_IS_NIL(LISP_CAR(&cons)));
+  ASSERT(tst,         LISP_IS_NIL(LISP_CDR(&cons)));
 
   ASSERT_FALSE(tst,   lisp_cons_set_car_cdr(vm, cons.data.cons, 
 					    &obj1,
 					    NULL));
   ASSERT_EQ_PTR(tst,  cons.data.cons->car.data.cons, obj1.data.ptr);
-  ASSERT(tst,         LISP_IS_NIL(&cons.data.cons->cdr));
+  ASSERT(tst,         LISP_IS_NIL(LISP_CDR(&cons)));
   ASSERT_EQ_U(tst,    LISP_REFCOUNT(&obj1), 2);
   ASSERT_EQ_U(tst,    LISP_REFCOUNT(&obj2), 1);
 
@@ -762,8 +762,8 @@ static void test_set_car_cdr_object(unit_test_t * tst)
   ASSERT_EQ_U(tst,    LISP_REFCOUNT(&obj2), 2);
   lisp_unset_object(vm, &obj1);
   lisp_unset_object(vm, &obj2);
-  ASSERT_EQ_U(tst,    LISP_REFCOUNT(&cons.data.cons->car), 1);
-  ASSERT_EQ_U(tst,    LISP_REFCOUNT(&cons.data.cons->cdr), 1);
+  ASSERT_EQ_U(tst,    LISP_REFCOUNT(LISP_CAR(&cons)), 1);
+  ASSERT_EQ_U(tst,    LISP_REFCOUNT(LISP_CDR(&cons)),1);
 
   lisp_free_vm(vm);
 
@@ -935,6 +935,106 @@ static void test_white2root(unit_test_t * tst)
   ASSERT(tst, test_color2root_prepared(tst, 2, 2, 1, 1, 5, offset + 2));
 }
 
+static void test_make_list_empty(unit_test_t * tst)
+{
+  memcheck_begin();
+  lisp_cell_t lst;
+  lisp_vm_t * vm = lisp_create_vm(&lisp_vm_default_param);
+  ASSERT_EQ_I(tst, lisp_make_list(vm, &lst, &lisp_nil, 0), LISP_OK);
+  ASSERT(tst, LISP_IS_NIL(&lst));
+  lisp_free_vm(vm);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
+}
+
+static void test_make_list_atoms(unit_test_t * tst)
+{
+  memcheck_begin();
+  lisp_cell_t c_lst[3];
+  lisp_cell_t lst;
+  lisp_cell_t *rest;
+  lisp_vm_t * vm = lisp_create_vm(&lisp_vm_default_param);
+  lisp_make_integer(&c_lst[0], 1);
+  lisp_make_integer(&c_lst[1], 2);
+  lisp_make_integer(&c_lst[2], 3);
+  ASSERT_EQ_I(tst, lisp_make_list(vm, &lst, c_lst, 2), LISP_OK);
+  rest = &lst;
+  size_t i;
+  for(i = 0; i < 2; i++) 
+  {
+    ASSERT(tst, LISP_IS_CONS(rest));
+    ASSERT(tst, LISP_IS_INTEGER(LISP_CAR(rest)));
+    ASSERT_EQ_I(tst, LISP_CAR(rest)->data.integer, i+1);
+    rest = LISP_CDR(rest);
+  }
+  ASSERT(tst, LISP_IS_NIL(rest));
+  lisp_free_vm(vm);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
+}
+
+static void test_make_list_symbols(unit_test_t * tst)
+{
+  memcheck_begin();
+  lisp_vm_t       * vm = lisp_create_vm(&lisp_vm_default_param);
+  lisp_cell_t       lst[10];
+  lisp_cell_t       expr;
+  lisp_make_symbol(vm, &lst[0], "define");
+  lisp_make_symbol(vm, &lst[1], "a");
+  lisp_make_symbol(vm, &lst[2], "def");
+  ASSERT_EQ_U(tst, LISP_REFCOUNT(&lst[0]), 1);
+  ASSERT_EQ_U(tst, LISP_REFCOUNT(&lst[1]), 1);
+  ASSERT_EQ_U(tst, LISP_REFCOUNT(&lst[2]), 1);
+  lisp_make_list_root(vm, &expr, lst, 3);
+  ASSERT_EQ_U(tst, LISP_REFCOUNT(&lst[0]), 2);
+  ASSERT_EQ_U(tst, LISP_REFCOUNT(&lst[1]), 2);
+  ASSERT_EQ_U(tst, LISP_REFCOUNT(&lst[2]), 2);
+  lisp_unset_object(vm, &lst[0]);
+  lisp_unset_object(vm, &lst[1]);
+  lisp_unset_object(vm, &lst[2]);
+  lisp_free_vm(vm);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
+}
+
+static void test_make_list_root_empty(unit_test_t * tst)
+{
+  memcheck_begin();
+  lisp_cell_t lst;
+  lisp_vm_t * vm = lisp_create_vm(&lisp_vm_default_param);
+  ASSERT_EQ_I(tst, lisp_make_list_root(vm, &lst, &lisp_nil, 0), LISP_OK);
+  ASSERT(tst, LISP_IS_NIL(&lst));
+  lisp_free_vm(vm);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
+}
+
+static void test_make_list_root_atoms(unit_test_t * tst)
+{
+  memcheck_begin();
+  lisp_cell_t c_lst[3];
+  lisp_cell_t lst;
+  lisp_cell_t *rest;
+  lisp_vm_t * vm = lisp_create_vm(&lisp_vm_default_param);
+  lisp_make_integer(&c_lst[0], 1);
+  lisp_make_integer(&c_lst[1], 2);
+  lisp_make_integer(&c_lst[2], 3);
+  ASSERT_EQ_I(tst, lisp_make_list_root(vm, &lst, c_lst, 2), LISP_OK);
+  rest = &lst;
+  size_t i;
+  for(i = 0; i < 2; i++) 
+  {
+    ASSERT(tst, LISP_IS_CONS(rest));
+    ASSERT(tst, LISP_IS_INTEGER(LISP_CAR(rest)));
+    ASSERT_EQ_I(tst, LISP_CAR(rest)->data.integer, i+1);
+    rest = LISP_CDR(rest);
+  }
+  ASSERT(tst, LISP_IS_NIL(rest));
+  lisp_free_vm(vm);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
+}
+
 void test_cons(unit_context_t * ctx)
 {
   unit_suite_t * suite = unit_create_suite(ctx, "cons");
@@ -956,4 +1056,11 @@ void test_cons(unit_context_t * ctx)
   TEST(suite, test_black2root);
   TEST(suite, test_grey2root);
   TEST(suite, test_white2root);
+
+  TEST(suite, test_make_list_empty);
+  TEST(suite, test_make_list_atoms);
+  TEST(suite, test_make_list_symbols);
+
+  TEST(suite, test_make_list_root_empty);
+  TEST(suite, test_make_list_root_atoms);
 }

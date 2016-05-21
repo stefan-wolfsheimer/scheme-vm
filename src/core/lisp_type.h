@@ -125,7 +125,6 @@ extern const lisp_cell_t lisp_nil;
 
 #define LISP_TID_LAMBDA         0x80 /* 0x80 ... 0xbf (0x80 + 0x3f) */
 #define LISP_TID_STRING         0x81
-/* @todo symbol should not be an object */
 #define LISP_TID_SYMBOL         0x82
 #define LISP_TID_PARSER         0x83
 #define LISP_TID_BUILTIN_LAMBDA 0x84
@@ -139,9 +138,8 @@ extern const lisp_cell_t lisp_nil;
 #define LISP_IS_ATOM(__CELL__)                  \
   ((__CELL__)->type_id < 0x40)
   
-#define LISP_IS_OBJECT(__CELL__)                \
-  ((__CELL__)->type_id & 0x80 && 		\
-   (__CELL__)->type_id != LISP_TID_SYMBOL)
+#define LISP_IS_OBJECT(__CELL__)		\
+  ((__CELL__)->type_id & 0x80)
 
 #define LISP_IS_CONS_OBJECT(__CELL__)		\
   ((__CELL__)->type_id & LISP_TID_CONS_MASK)
@@ -179,6 +177,13 @@ extern const lisp_cell_t lisp_nil;
 
 #define LISP_AS(__CELL__, __TYPE__)             \
   ((__TYPE__ *)((__CELL__)->data.ptr))
+
+/* @todo check if this macro can be used consitently */
+#define LISP_CAR(__CELL__)			\
+  (&((__CELL__)->data.cons->car))
+
+#define LISP_CDR(__CELL__)			\
+  (&((__CELL__)->data.cons->cdr))
 
 
 

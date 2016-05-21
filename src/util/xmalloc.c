@@ -203,9 +203,6 @@ void memcheck_expected_alloc(int success)
   memchecker_t * memchecker = memcheck_current();
   if(memchecker) 
   {
-    /* @todo make use of it and free it. 
-       add user data and retire function as argument
-     */
     if(success) 
     {
       mock_register(memchecker,

@@ -3,6 +3,7 @@
 #include "core/lisp_vm.h" 
 #include "lisp_vm_check.h"
 
+/* @todo test copy symbol object */
 static void test_create_symbol(unit_test_t * tst) 
 {
   memcheck_begin();
@@ -123,10 +124,42 @@ static void test_symbol_unset(unit_test_t * tst)
   memcheck_end();
 }
 
+static void test_symbol_copy(unit_test_t * tst) 
+{
+  memcheck_begin();
+  lisp_vm_t * vm = lisp_create_vm(&lisp_vm_default_param);
+  lisp_cell_t abc;
+  lisp_cell_t abc_copy;
+  lisp_cell_t value;
+  lisp_make_integer(&value, 1);
+  ASSERT_FALSE(tst,  lisp_make_symbol(vm, &abc, "abc"));
+  ASSERT_EQ_U(tst, LISP_REFCOUNT(&abc), 1);
+  ASSERT_FALSE(tst,  lisp_copy_object(vm, &abc_copy, &abc));
+  ASSERT_EQ_U(tst, LISP_REFCOUNT(&abc), 2);
+  ASSERT_FALSE(tst,  lisp_symbol_set(vm, LISP_AS(&abc, lisp_symbol_t), &value));
+  ASSERT(tst,        lisp_eq_object(&value, 
+				    lisp_symbol_get(vm, 
+						    LISP_AS(&abc, 
+							    lisp_symbol_t))));
+
+  lisp_unset_object(vm, &abc);
+  lisp_unset_object(vm, &abc_copy);
+  ASSERT_FALSE(tst,  lisp_make_symbol(vm, &abc, "abc"));
+  ASSERT(tst,        lisp_eq_object(&value, 
+				    lisp_symbol_get(vm, 
+						    LISP_AS(&abc, 
+							    lisp_symbol_t))));
+  lisp_free_vm(vm);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
+
+}
+
 void test_symbol(unit_context_t * ctx)
 {
   unit_suite_t * suite = unit_create_suite(ctx, "symbol");
   TEST(suite, test_create_symbol);
   TEST(suite, test_symbol_set);
   TEST(suite, test_symbol_unset);
+  TEST(suite, test_symbol_copy);
 }

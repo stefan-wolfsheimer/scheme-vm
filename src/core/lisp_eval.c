@@ -160,7 +160,7 @@ int lisp_eval(lisp_eval_env_t   * env,
       return LISP_OK;
     }
   }
-  else if(LISP_IS_OBJECT(expr)) 
+  else if(LISP_IS_OBJECT(expr) && !LISP_IS_SYMBOL(expr)) 
   {
     ++LISP_REFCOUNT(expr);
     cell->type_id = expr->type_id;

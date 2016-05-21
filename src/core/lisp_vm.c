@@ -15,6 +15,7 @@ lisp_vm_param_t lisp_vm_default_param =
 };
 
 static void lisp_init_cons_gc(lisp_vm_t * vm);
+static void lisp_free_cons_gc_unset_car_cdr(lisp_vm_t * vm);
 static void lisp_free_cons_gc(lisp_vm_t * vm);
 static void _lisp_create_vm_cleanup(lisp_vm_t * vm);
 
@@ -85,6 +86,7 @@ void lisp_free_vm(lisp_vm_t * vm)
 {
   FREE(vm->data_stack);
   FREE(vm->call_stack);
+  lisp_free_cons_gc_unset_car_cdr(vm);
   hash_table_finalize(&vm->symbols);
   lisp_free_cons_gc(vm);
   FREE(vm->types);
@@ -111,7 +113,7 @@ void lisp_init_cons_gc(lisp_vm_t * vm)
   vm->root_cons_top        = 0;
 }
 
-void lisp_free_cons_gc(lisp_vm_t * vm)
+static void lisp_free_cons_gc_unset_car_cdr(lisp_vm_t * vm)
 {
   size_t i;
   if(vm->cons_table)
@@ -126,7 +128,6 @@ void lisp_free_cons_gc(lisp_vm_t * vm)
       lisp_unset_object(vm, &vm->cons_table[i]->car);
       lisp_unset_object(vm, &vm->cons_table[i]->cdr);
     }
-    FREE(vm->cons_table);
   }
   if(vm->root_cons_table)
   {
@@ -135,6 +136,18 @@ void lisp_free_cons_gc(lisp_vm_t * vm)
       lisp_unset_object(vm, &vm->root_cons_table[i].cons->car);
       lisp_unset_object(vm, &vm->root_cons_table[i].cons->cdr);
     }
+  }
+}
+
+static void lisp_free_cons_gc(lisp_vm_t * vm)
+{
+  size_t i;
+  if(vm->cons_table)
+  {
+    FREE(vm->cons_table);
+  }
+  if(vm->root_cons_table)
+  {
     FREE(vm->root_cons_table);
   }
   for(i = 0; i < vm->n_cons_pages; i++) 
@@ -289,7 +302,7 @@ int lisp_copy_n_objects_as_root( lisp_vm_t   * vm,
 
 int lisp_unset_object(lisp_vm_t * vm,  lisp_cell_t * target)
 {
-  if(LISP_IS_OBJECT(target) || LISP_IS_SYMBOL(target)) 
+  if(LISP_IS_OBJECT(target)) 
   {
     if(! --LISP_REFCOUNT(target)) 
     {
@@ -309,7 +322,7 @@ int lisp_unset_object(lisp_vm_t * vm,  lisp_cell_t * target)
 
 int lisp_unset_object_root(lisp_vm_t * vm, lisp_cell_t * target)
 {
-  if(LISP_IS_OBJECT(target)|| LISP_IS_SYMBOL(target)) 
+  if(LISP_IS_OBJECT(target)) 
   {
     if(! --LISP_REFCOUNT(target)) 
     {

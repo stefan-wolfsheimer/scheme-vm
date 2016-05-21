@@ -573,4 +573,50 @@ static inline void _ensure_not_white(lisp_vm_t   * vm,
   }
 }
 
+int lisp_make_list(lisp_vm_t         * vm,
+		   lisp_cell_t       * cell,
+		   const lisp_cell_t * elems,
+		   lisp_size_t         n)
+{
+  /* @todo error handling */
+  if(n == 0) 
+  {
+    *cell = lisp_nil;
+    return LISP_OK;
+  }
+  else 
+  {
+    lisp_cell_t rest;
+    lisp_make_list(vm, &rest, &elems[1], n-1);
+    lisp_make_cons_car_cdr(vm, cell, elems, &rest);
+    return LISP_OK;
+  }
+}
+
+int lisp_make_list_root(lisp_vm_t         * vm,
+			lisp_cell_t       * cell,
+			const lisp_cell_t * elems,
+			lisp_size_t         n)
+{
+  /* @todo error handling */
+  if(n == 0) 
+  {
+    *cell = lisp_nil;
+    return LISP_OK;
+  }
+  else if(n == 1) 
+  {
+    return lisp_make_cons_root_car_cdr(vm, cell, elems, &lisp_nil);
+  }
+  else 
+  {
+    lisp_cell_t rest;
+    lisp_make_list(vm, &rest, &elems[1], n-1);
+    lisp_make_cons_root_car_cdr(vm, cell, elems, &rest);
+    return LISP_OK;
+  }
+}
+
+
+
 

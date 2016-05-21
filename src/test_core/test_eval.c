@@ -133,34 +133,27 @@ static void test_eval_cons(unit_test_t * tst)
   memcheck_end();
 }
 
-
-
 static void test_eval_define_atom(unit_test_t * tst) 
 {
   memcheck_begin();
   lisp_vm_t       * vm = lisp_create_vm(&lisp_vm_default_param);
   lisp_eval_env_t * env = lisp_create_eval_env(vm);
-  lisp_cell_t       cons1;
-  lisp_cell_t       cons2;
-  lisp_cell_t       cons3;
+  lisp_cell_t       expr;
   lisp_cell_t       ctarget;
-  lisp_cell_t       integer_value;
-  lisp_cell_t       symb_a;
-  lisp_cell_t       symb_define;
-  
-  lisp_make_integer(&integer_value, 1);
-  lisp_make_symbol(vm, &symb_a, "a");
-  lisp_make_symbol(vm, &symb_define, "define");
-  /* @todo lisp_make_list with vararg */
-  lisp_make_cons_car_cdr(vm, &cons3, &integer_value,      &lisp_nil);
-  lisp_make_cons_car_cdr(vm, &cons2, &symb_a,             &cons3);
-  lisp_make_cons_car_cdr(vm, &cons1, &symb_define, &cons2);
-  ASSERT_EQ_U(tst, lisp_eval(env, &ctarget, &cons1), LISP_OK);  
-
-  ASSERT(tst,  lisp_eq_object(
-			      lisp_symbol_get(vm, 
-					      LISP_AS(&symb_a, lisp_symbol_t)),
-			      &integer_value));
+  lisp_cell_t       lst[10];
+  lisp_make_symbol(vm, &lst[0], "define");
+  lisp_make_symbol(vm, &lst[1], "a");
+  lisp_make_integer(   &lst[2], 1);
+  lisp_make_list_root(vm, &expr, lst, 3);
+  // (define a 1)
+  ASSERT_EQ_U(tst, lisp_eval(env, &ctarget, &expr), LISP_OK);  
+  ASSERT(tst, lisp_eq_object(
+  			     lisp_symbol_get(vm, 
+  					     LISP_AS(&lst[1], lisp_symbol_t)),
+  			     &lst[2]));
+  lisp_unset_object(vm, &lst[0]);
+  lisp_unset_object(vm, &lst[1]);
+  lisp_unset_object(vm, &lst[2]);
   lisp_free_eval_env(env);
   lisp_free_vm(vm);
   ASSERT_MEMCHECK(tst);
@@ -172,23 +165,16 @@ static void test_eval_builtin(unit_test_t * tst)
   memcheck_begin();
   lisp_vm_t       * vm = lisp_create_vm(&lisp_vm_default_param);
   lisp_eval_env_t * env = lisp_create_eval_env(vm);
-  lisp_cell_t       cons1;
-  lisp_cell_t       cons2;
-  lisp_cell_t       cons3;
+  lisp_cell_t       lst[10];
+  lisp_cell_t       expr;
   lisp_cell_t       ctarget;
-  lisp_cell_t       integer_1;
-  lisp_cell_t       integer_2;
-  lisp_cell_t       symb_plus;
-  /* ( + 1 2 ) */
-  lisp_make_integer(&integer_1, 1);
-  lisp_make_integer(&integer_2, 2);
-  lisp_make_symbol(vm, &symb_plus, "+");
+  lisp_make_symbol(vm, &lst[0], "+");
+  lisp_make_integer(   &lst[1], 1);
+  lisp_make_integer(   &lst[2], 2);
 
-  lisp_make_cons_car_cdr(vm, &cons3, &integer_2, &lisp_nil);
-  lisp_make_cons_car_cdr(vm, &cons2, &integer_1, &cons3);
-  lisp_make_cons_car_cdr(vm, &cons1, &symb_plus, &cons2);
-  ASSERT(tst, LISP_IS_SYMBOL(&LISP_AS(&cons1, lisp_cons_t)->car));
-  ASSERT_EQ_U(tst, lisp_eval(env, &ctarget, &cons1), LISP_OK);  
+  /* ( + 1 2 ) */
+  lisp_make_list_root(vm, &expr, lst, 3);
+  ASSERT_EQ_U(tst, lisp_eval(env, &ctarget, &expr), LISP_OK);  
   ASSERT(tst, LISP_IS_INTEGER(&ctarget));
   ASSERT_EQ_I(tst, ctarget.data.integer, 3);
 
