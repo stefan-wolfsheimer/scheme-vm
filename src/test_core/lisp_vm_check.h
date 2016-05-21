@@ -49,4 +49,6 @@ lisp_cell_t lisp_get_black_cons( lisp_vm_t * vm, lisp_size_t i);
 lisp_cell_t lisp_get_grey_cons( lisp_vm_t * vm, lisp_size_t i);
 lisp_cell_t lisp_get_white_cons( lisp_vm_t * vm, lisp_size_t i);
 
+int lisp_mock_return_alloc_error(void * user_data);
+
 #endif

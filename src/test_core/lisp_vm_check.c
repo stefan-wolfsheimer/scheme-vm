@@ -310,3 +310,7 @@ lisp_cell_t lisp_get_white_cons( lisp_vm_t * vm, lisp_size_t i)
   return ret;
 }
 
+int lisp_mock_return_alloc_error(void * user_data)
+{
+  return LISP_ALLOC_ERROR;
+}

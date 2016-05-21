@@ -54,4 +54,7 @@ void mock_remove(mock_expected_t * ret);
 size_t mock_retire(void * func);
 size_t mock_retire_all();
 
+/* @todo test mock function and use it */
+int mock_int_return(void * user_data);
+
 #endif

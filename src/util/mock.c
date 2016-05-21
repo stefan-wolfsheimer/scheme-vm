@@ -202,3 +202,8 @@ size_t mock_retire_all()
   __last_func = NULL;
   return n;
 }
+
+int mock_int_return(void * user_data)
+{
+  return *((int*)user_data);
+}

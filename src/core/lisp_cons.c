@@ -1,6 +1,7 @@
 #include "lisp_vm.h"
 #include "util/xmalloc.h"
 #include "util/assertion.h"
+#include "util/mock.h"
 
 static inline int _lisp_make_cons(lisp_vm_t     * vm,
                                   lisp_cell_t   * cell,
@@ -57,6 +58,7 @@ int lisp_make_cons_car_cdr(lisp_vm_t * vm,
                            const lisp_cell_t * car, 
                            const lisp_cell_t * cdr)
 {
+  MOCK_CALL(lisp_make_cons_car_cdr, int);
   return _lisp_make_cons_car_cdr(vm, cell, LISP_TID_CONS, car, cdr);
 }
 
@@ -92,6 +94,7 @@ int lisp_make_cons_root_car_cdr(lisp_vm_t * vm,
                                 const lisp_cell_t * car, 
                                 const lisp_cell_t * cdr)
 {
+  MOCK_CALL(lisp_make_cons_root_car_cdr, int);
   return _lisp_make_cons_root_car_cdr(vm, cell, LISP_TID_CONS, car, cdr);
 }
 
@@ -578,7 +581,7 @@ int lisp_make_list(lisp_vm_t         * vm,
 		   const lisp_cell_t * elems,
 		   lisp_size_t         n)
 {
-  /* @todo error handling */
+  MOCK_CALL(lisp_make_list, int);
   if(n == 0) 
   {
     *cell = lisp_nil;
@@ -586,9 +589,20 @@ int lisp_make_list(lisp_vm_t         * vm,
   }
   else 
   {
-    lisp_cell_t rest;
-    lisp_make_list(vm, &rest, &elems[1], n-1);
-    lisp_make_cons_car_cdr(vm, cell, elems, &rest);
+    *cell = lisp_nil;
+    lisp_cell_t tmp;
+    int ret = LISP_OK;
+    while(n > 0) 
+    {
+      ret = lisp_make_cons_car_cdr(vm, &tmp, &elems[n-1], &lisp_nil);
+      if(ret) 
+      {
+	return ret;
+      }
+      *LISP_CDR(&tmp) = *cell;
+      *cell = tmp;
+      n--;
+    }
     return LISP_OK;
   }
 }
@@ -598,21 +612,24 @@ int lisp_make_list_root(lisp_vm_t         * vm,
 			const lisp_cell_t * elems,
 			lisp_size_t         n)
 {
-  /* @todo error handling */
+  *cell = lisp_nil;
   if(n == 0) 
   {
-    *cell = lisp_nil;
     return LISP_OK;
-  }
-  else if(n == 1) 
-  {
-    return lisp_make_cons_root_car_cdr(vm, cell, elems, &lisp_nil);
   }
   else 
   {
-    lisp_cell_t rest;
-    lisp_make_list(vm, &rest, &elems[1], n-1);
-    lisp_make_cons_root_car_cdr(vm, cell, elems, &rest);
+    lisp_cell_t rest = lisp_nil;
+    int ret = lisp_make_list(vm, &rest, &elems[1], n-1);
+    if(ret) 
+    {
+      return ret;
+    }
+    ret = lisp_make_cons_root_car_cdr(vm, cell, elems, &rest);
+    if(ret)
+    {
+      return ret;
+    }
     return LISP_OK;
   }
 }

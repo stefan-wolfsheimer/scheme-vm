@@ -1,5 +1,6 @@
 #include "util/xmalloc.h"
 #include "util/unit_test.h"
+#include "util/mock.h"
 #include "core/lisp_vm.h" 
 #include "lisp_vm_check.h"
 #include <stdio.h>
@@ -997,6 +998,29 @@ static void test_make_list_symbols(unit_test_t * tst)
   memcheck_end();
 }
 
+static void test_make_list_failure(unit_test_t * tst)
+{
+  memcheck_begin();
+  lisp_vm_t       * vm = lisp_create_vm(&lisp_vm_default_param);
+  lisp_cell_t       lst[10];
+  lisp_cell_t       expr;
+  lisp_make_integer(&lst[0], 1);
+  lisp_make_integer(&lst[1], 2);
+  lisp_make_integer(&lst[2], 3);
+  mock_register(lisp_make_cons_car_cdr, NULL, NULL, NULL);
+  mock_register(lisp_make_cons_car_cdr, 
+                lisp_mock_return_alloc_error, NULL, NULL);
+  mock_register(lisp_make_cons_car_cdr, 
+                lisp_mock_return_alloc_error, NULL, NULL);
+  ASSERT_EQ_I(tst, lisp_make_list(vm, &expr, lst, 3), LISP_ALLOC_ERROR);
+
+  ASSERT_EQ_U(tst, 1u, mock_retire(lisp_make_cons_car_cdr));
+  lisp_unset_object(vm, &expr);
+  lisp_free_vm(vm);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
+}
+
 static void test_make_list_root_empty(unit_test_t * tst)
 {
   memcheck_begin();
@@ -1035,6 +1059,38 @@ static void test_make_list_root_atoms(unit_test_t * tst)
   memcheck_end();
 }
 
+static void test_make_list_root_failure(unit_test_t * tst)
+{
+  memcheck_begin();
+  lisp_vm_t       * vm = lisp_create_vm(&lisp_vm_default_param);
+  lisp_cell_t       lst[10];
+  lisp_cell_t       expr;
+  lisp_make_integer(&lst[0], 1);
+  lisp_make_integer(&lst[1], 2);
+  lisp_make_integer(&lst[2], 3);
+  mock_register(lisp_make_list, 
+                lisp_mock_return_alloc_error, NULL, NULL);
+  mock_register(lisp_make_cons_root_car_cdr, 
+                lisp_mock_return_alloc_error, NULL, NULL);
+  ASSERT_EQ_I(tst, lisp_make_list_root(vm, &expr, lst, 3), LISP_ALLOC_ERROR);
+  ASSERT_EQ_U(tst, 0u, mock_retire(lisp_make_list));
+  ASSERT_EQ_U(tst, 1u, mock_retire(lisp_make_cons_root_car_cdr));
+  lisp_unset_object(vm, &expr);
+
+  mock_register(lisp_make_list, 
+                NULL, NULL, NULL);
+  mock_register(lisp_make_cons_root_car_cdr, 
+                lisp_mock_return_alloc_error, NULL, NULL);
+  ASSERT_EQ_I(tst, lisp_make_list_root(vm, &expr, lst, 3), LISP_ALLOC_ERROR);
+  ASSERT_EQ_U(tst, 0u, mock_retire(lisp_make_list));
+  ASSERT_EQ_U(tst, 0u, mock_retire(lisp_make_cons_root_car_cdr));
+  lisp_unset_object(vm, &expr);
+
+  lisp_free_vm(vm);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
+}
+
 void test_cons(unit_context_t * ctx)
 {
   unit_suite_t * suite = unit_create_suite(ctx, "cons");
@@ -1060,7 +1116,8 @@ void test_cons(unit_context_t * ctx)
   TEST(suite, test_make_list_empty);
   TEST(suite, test_make_list_atoms);
   TEST(suite, test_make_list_symbols);
-
+  TEST(suite, test_make_list_failure);
   TEST(suite, test_make_list_root_empty);
   TEST(suite, test_make_list_root_atoms);
+  TEST(suite, test_make_list_root_failure);
 }
