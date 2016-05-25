@@ -30,6 +30,7 @@ static void test_create_eval_env_failure(unit_test_t * tst)
 
 static void test_eval_atom(unit_test_t * tst) 
 {
+  /* ATOM */
   memcheck_begin();
   lisp_vm_t       * vm = lisp_create_vm(&lisp_vm_default_param);
   lisp_eval_env_t * env = lisp_create_eval_env(vm);
@@ -61,6 +62,7 @@ static void test_eval_atom(unit_test_t * tst)
 
 static void test_eval_symbol(unit_test_t * tst) 
 {
+  /* ABC */
   memcheck_begin();
   lisp_vm_t          * vm = lisp_create_vm(&lisp_vm_default_param);
   lisp_eval_env_t    * env = lisp_create_eval_env(vm);
@@ -105,6 +107,7 @@ static void test_eval_symbol(unit_test_t * tst)
 
 static void test_eval_nil(unit_test_t * tst) 
 {
+  /* NIL */
   memcheck_begin();
   lisp_vm_t          * vm = lisp_create_vm(&lisp_vm_default_param);
   lisp_eval_env_t    * env = lisp_create_eval_env(vm);
@@ -119,6 +122,7 @@ static void test_eval_nil(unit_test_t * tst)
 
 static void test_eval_cons(unit_test_t * tst) 
 {
+  /* (NIL . NIL) */
   memcheck_begin();
   lisp_vm_t       * vm = lisp_create_vm(&lisp_vm_default_param);
   lisp_eval_env_t * env = lisp_create_eval_env(vm);
@@ -135,6 +139,7 @@ static void test_eval_cons(unit_test_t * tst)
 
 static void test_eval_define_atom(unit_test_t * tst) 
 {
+  /* (DEFINE A 1) */
   memcheck_begin();
   lisp_vm_t       * vm = lisp_create_vm(&lisp_vm_default_param);
   lisp_eval_env_t * env = lisp_create_eval_env(vm);
@@ -145,7 +150,7 @@ static void test_eval_define_atom(unit_test_t * tst)
   lisp_make_symbol(vm, &lst[1], "a");
   lisp_make_integer(   &lst[2], 1);
   lisp_make_list_root(vm, &expr, lst, 3);
-  // (define a 1)
+
   ASSERT_EQ_U(tst, lisp_eval(env, &ctarget, &expr), LISP_OK);  
   ASSERT(tst, lisp_eq_object(
   			     lisp_symbol_get(vm, 
@@ -162,6 +167,7 @@ static void test_eval_define_atom(unit_test_t * tst)
 
 static void test_eval_builtin(unit_test_t * tst) 
 {
+  /* (+ 1 2) */
   memcheck_begin();
   lisp_vm_t       * vm = lisp_create_vm(&lisp_vm_default_param);
   lisp_eval_env_t * env = lisp_create_eval_env(vm);
@@ -172,7 +178,6 @@ static void test_eval_builtin(unit_test_t * tst)
   lisp_make_integer(   &lst[1], 1);
   lisp_make_integer(   &lst[2], 2);
 
-  /* ( + 1 2 ) */
   lisp_make_list_root(vm, &expr, lst, 3);
   ASSERT_EQ_U(tst, lisp_eval(env, &ctarget, &expr), LISP_OK);  
   ASSERT(tst, LISP_IS_INTEGER(&ctarget));

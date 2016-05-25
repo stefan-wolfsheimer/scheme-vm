@@ -435,78 +435,6 @@ static void test_unset_root_fail(unit_test_t * tst)
   memcheck_end();
 }
 
-
-
-/**************************************************************/
-/* @todo create mock object type and move test_create_string 
-   to separate file */
-static void test_create_string(unit_test_t * tst)
-{
-  memcheck_begin();
-  lisp_vm_t * vm = lisp_create_vm(&lisp_vm_default_param);
-  lisp_cell_t str;
-  lisp_make_string(vm, &str, "abc");
-  ASSERT_EQ_CSTR(tst, lisp_c_string(&str), "abc");
-  ASSERT(        tst, LISP_IS_OBJECT(&str));
-  ASSERT(        tst, LISP_REFCOUNT(&str) == 1);
-  ASSERT_FALSE(tst, lisp_unset_object(vm, &str));
-  ASSERT(        tst, LISP_IS_NIL(&str));
-  lisp_free_vm(vm);
-  ASSERT_MEMCHECK(tst);
-  memcheck_end();
-}
-
-static void test_sprintf(unit_test_t * tst) 
-{
-  memcheck_begin();
-  lisp_vm_t * vm = lisp_create_vm(&lisp_vm_default_param);
-  lisp_cell_t str;
-  lisp_sprintf(vm, &str, "%d %x %s", 1,0xff, "abc");
-  ASSERT(tst, LISP_IS_OBJECT(&str));
-  ASSERT_EQ_CSTR(tst, lisp_c_string(&str), "1 ff abc");
-  ASSERT(tst, LISP_REFCOUNT(&str) == 1);
-  ASSERT_FALSE(tst, lisp_unset_object(vm, &str));
-  ASSERT(tst, LISP_IS_NIL(&str));
-  lisp_free_vm(vm);
-  ASSERT_MEMCHECK(tst);
-  memcheck_end();
-}
-
-static void test_copy_string(unit_test_t * tst) 
-{
-  memcheck_begin();
-  lisp_vm_t * vm = lisp_create_vm(&lisp_vm_default_param);
-  lisp_cell_t str, copy1, copy2;
-  lisp_make_string(vm, &str, "abc");
-  ASSERT(tst, LISP_REFCOUNT(&str) == 1);
-  lisp_copy_object(vm, &copy1, &str);
-  ASSERT(tst, LISP_REFCOUNT(&str) == 2);
-  ASSERT(tst, LISP_REFCOUNT(&copy1) == 2);
-  lisp_copy_object(vm, &copy2, &copy1);
-  ASSERT(tst, LISP_REFCOUNT(&str) == 3);
-  ASSERT(tst, LISP_REFCOUNT(&copy1) == 3);
-  ASSERT(tst, LISP_REFCOUNT(&copy2) == 3);
-  ASSERT_EQ_CSTR(tst, lisp_c_string(&str),   "abc");
-  ASSERT_EQ_CSTR(tst, lisp_c_string(&copy1), "abc");
-  ASSERT_EQ_CSTR(tst, lisp_c_string(&copy2), "abc");  
-  ASSERT_FALSE(tst, lisp_unset_object(vm, &str));
-  ASSERT(tst, LISP_IS_NIL(&str));
-  ASSERT(tst, LISP_REFCOUNT(&copy1) == 2);
-  ASSERT(tst, LISP_REFCOUNT(&copy2) == 2);
-  ASSERT_EQ_CSTR(tst, lisp_c_string(&copy1), "abc");
-  ASSERT_EQ_CSTR(tst, lisp_c_string(&copy2), "abc");  
-  ASSERT_FALSE(tst, lisp_unset_object(vm, &copy2));
-  ASSERT(tst, LISP_REFCOUNT(&copy1) == 1);
-  ASSERT_FALSE(tst, lisp_copy_object(vm, &copy2, &copy1));
-  ASSERT(tst, LISP_REFCOUNT(&copy1) == 2);
-  ASSERT_FALSE(tst, lisp_unset_object(vm, &copy1));
-  ASSERT_FALSE(tst, lisp_unset_object(vm, &copy2));
-  lisp_free_vm(vm);
-  ASSERT_MEMCHECK(tst);
-  memcheck_end();
-}
-
-
 void test_vm(unit_context_t * ctx)
 {
   unit_suite_t * suite = unit_create_suite(ctx, "vm");
@@ -523,10 +451,4 @@ void test_vm(unit_context_t * ctx)
   TEST(suite, test_unset_root_fail);
   TEST(suite, test_copy_n_object_as_root);
   TEST(suite, test_copy_n_object_as_root_fail);
-
-
-  /* @todo move the following to another file */
-  TEST(suite, test_create_string);
-  TEST(suite, test_sprintf);
-  TEST(suite, test_copy_string);
 }

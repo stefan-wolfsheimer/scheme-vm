@@ -129,6 +129,95 @@ static int lisp_eval_define(lisp_eval_env_t   * env,
   return LISP_OK;
 }
 
+static int _lisp_eval_atom(lisp_eval_env_t   * env,
+			   lisp_cell_t       * cell,
+			   const lisp_cell_t * expr)
+{
+  if(LISP_IS_NIL(expr)) 
+  {
+    /* @todo add message to exception */
+    int ret = lisp_make_cons_root_typed_car_cdr(env->vm,
+						cell,
+						LISP_TID_EVAL_ERROR,
+						expr,
+						NULL);
+    if(ret) 
+    {
+      return ret;
+    }
+    else 
+    {
+      return LISP_EVAL_ERROR;
+    }
+  }
+  else 
+  {
+    cell->type_id = expr->type_id;
+    cell->data = expr->data;
+    return LISP_OK;
+  }
+}
+
+static int _lisp_eval_symbol(lisp_eval_env_t   * env,
+			     lisp_cell_t       * cell,
+			     const lisp_cell_t * expr)
+{
+  const lisp_cell_t * obj = lisp_symbol_get(env->vm, 
+					    LISP_AS(expr, lisp_symbol_t));
+  if(obj == NULL) 
+  {
+    /* @todo undefine symbol exception */
+    return LISP_UNDEFINED;
+  }
+  else 
+  {
+    /* @todo check if cell needs to be root object ???*/
+    return lisp_copy_object( env->vm,
+			     cell,
+			     obj);
+  }
+}
+
+
+static int _lisp_eval_object(lisp_eval_env_t   * env,
+			     lisp_cell_t       * cell,
+			     const lisp_cell_t * expr)
+{
+  ++LISP_REFCOUNT(expr);
+  cell->type_id = expr->type_id;
+  cell->data    = expr->data;
+  return LISP_OK;
+}
+
+static int _lisp_eval_cons(lisp_eval_env_t   * env,
+			   lisp_cell_t       * cell,
+			   const lisp_cell_t * expr)
+{
+  lisp_cell_t car;
+  int ret = LISP_UNSUPPORTED;
+  lisp_eval(env, &car, &LISP_AS(expr, lisp_cons_t)->car);
+  switch(car.type_id) 
+  {
+  case LISP_TID_BUILTIN_LAMBDA:
+    ret = lisp_eval_builtin(env->vm,
+			    cell,
+			    LISP_AS(&car, lisp_builtin_lambda_t),
+			    &LISP_AS(expr, lisp_cons_t)->cdr);
+    break;
+  case LISP_TID_LAMBDA:
+    /* @todo */
+    break;
+  case LISP_TID_FDEFINE:
+    ret = lisp_eval_define(env, &LISP_AS(expr, lisp_cons_t)->cdr);
+    break;
+  default:
+    break;
+  }
+  /* @todo check if car is root object */
+  lisp_unset_object(env->vm, &car);
+  return ret;
+}
+
 int lisp_eval(lisp_eval_env_t   * env,
 	      lisp_cell_t       * cell,
 	      const lisp_cell_t * expr)
@@ -136,80 +225,25 @@ int lisp_eval(lisp_eval_env_t   * env,
   *cell = lisp_nil;
   if(LISP_IS_ATOM(expr)) 
   {
-    if(LISP_IS_NIL(expr)) 
-    {
-      /* @todo add message to exception */
-      int ret = lisp_make_cons_root_typed_car_cdr(env->vm,
-						  cell,
-						  LISP_TID_EVAL_ERROR,
-						  expr,
-						  NULL);
-      if(ret) 
-      {
-	return ret;
-      }
-      else 
-      {
-	return LISP_EVAL_ERROR;
-      }
-    }
-    else 
-    {
-      cell->type_id = expr->type_id;
-      cell->data = expr->data;
-      return LISP_OK;
-    }
-  }
-  else if(LISP_IS_OBJECT(expr) && !LISP_IS_SYMBOL(expr)) 
-  {
-    ++LISP_REFCOUNT(expr);
-    cell->type_id = expr->type_id;
-    cell->data    = expr->data;
-    return LISP_OK;
+    return _lisp_eval_atom(env,cell,expr);
   }
   else if(LISP_IS_SYMBOL(expr)) 
   {
-    const lisp_cell_t * obj = lisp_symbol_get(env->vm, 
-					      LISP_AS(expr, lisp_symbol_t));
-    if(obj == NULL) 
-    {
-      /* @todo undefine symbol exception */
-      return LISP_UNDEFINED;
-    }
-    else 
-    {
-      /* @todo check if cell needs to be root object ???*/
-      return lisp_copy_object( env->vm,
-			       cell,
-			       obj);
-    }
+    /* needs to be checked before object because 
+       symbol is object as well */
+    return _lisp_eval_symbol(env,cell,expr);
+  }
+  else if(LISP_IS_OBJECT(expr)) 
+  {
+    return _lisp_eval_object(env,cell,expr);
   }
   else if(LISP_IS_CONS(expr)) 
   {
-    lisp_cell_t car;
-    int ret = LISP_UNSUPPORTED;
-    lisp_eval(env, &car, &LISP_AS(expr, lisp_cons_t)->car);
-    switch(car.type_id) 
-    {
-    case LISP_TID_BUILTIN_LAMBDA:
-      ret = lisp_eval_builtin(env->vm,
-			      cell,
-			      LISP_AS(&car, lisp_builtin_lambda_t),
-			      &LISP_AS(expr, lisp_cons_t)->cdr);
-      break;
-    case LISP_TID_LAMBDA:
-      /* @todo */
-      break;
-    case LISP_TID_FDEFINE:
-      ret = lisp_eval_define(env, &LISP_AS(expr, lisp_cons_t)->cdr);
-      break;
-    default:
-      break;
-    }
-    /* @todo check if car is root object */
-    lisp_unset_object(env->vm, &car);
-    return ret;
+    return _lisp_eval_cons(env,cell,expr);
   }
-  /* @todo exception */
-  return LISP_UNSUPPORTED;
+  else 
+  {
+    /* @todo exception */
+    return LISP_UNSUPPORTED;
+  }
 }

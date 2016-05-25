@@ -32,6 +32,8 @@ static int _construct_symbol(void       * target,
 
 static int _symbol_eq(const void * a, const void * b);
 
+static void _destruct_string(lisp_vm_t * vm, void * ptr);
+
 /*****************************************************************************
  * 
  * types
@@ -127,10 +129,17 @@ int _lisp_init_types(lisp_vm_t * vm)
 				    "SYMBOL", 
 				    _destruct_symbol,
 				    LISP_TID_SYMBOL);
+
   err |= _lisp_register_object_type(vm, 
 				    "LAMBDA", 
 				    _destruct_symbol,
 				    LISP_TID_LAMBDA);
+
+  err |= _lisp_register_object_type(vm,
+				    "STRING",
+				    _destruct_string,
+				    LISP_TID_STRING);
+
   err |= _lisp_register_cons_type(vm,
 				  "CONS",
 				  LISP_TID_CONS);
@@ -192,6 +201,19 @@ static int _symbol_eq(const void * a, const void * b)
 }
 
 
+/*****************************************************************************
+ * 
+ * string
+ * 
+ *****************************************************************************/
+static void _destruct_string(lisp_vm_t * vm, void * ptr)
+{
+  if(!-- ((lisp_ref_count_t*)((lisp_string_t*)ptr)->data)[-1]) 
+  {
+    FREE_OBJECT( ((lisp_string_t*)ptr)->data);
+  }
+  FREE_OBJECT(ptr);
+}
 
 
 /*****************************************************************************

@@ -11,6 +11,7 @@ void test_vm(unit_context_t * ctx);
 
 void test_cons(unit_context_t * ctx);
 void test_symbol(unit_context_t * ctx);
+void test_string(unit_context_t * ctx);
 void test_eval(unit_context_t * ctx);
 
 void test_asm(unit_context_t * ctx);
@@ -32,6 +33,7 @@ int main(int argc, const char ** argv)
   test_vm(ctx);
   test_cons(ctx);
   test_symbol(ctx);
+  test_string(ctx);
   test_eval(ctx);
   /* 
      @todo refactor 

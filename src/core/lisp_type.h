@@ -34,8 +34,9 @@ typedef struct lisp_lambda_t
 
 typedef struct lisp_string_t 
 {
-  lisp_size_t begin;
-  lisp_size_t end;
+  lisp_size_t   begin;
+  lisp_size_t   end;
+  lisp_char_t * data;
 } lisp_string_t;
 
 
@@ -112,16 +113,16 @@ extern const lisp_cell_t lisp_nil;
  *    128  64 32 16 8 4 2 1
  *     80  40 20 10 8 4 2 1
 */
-#define LISP_TID_ATOM_MASK    0x00
-#define LISP_TID_OBJECT_MASK  0x80
+#define LISP_TID_ATOM_MASK      0x00
+#define LISP_TID_OBJECT_MASK    0x80
 
-#define LISP_TID_NIL          0x00
-#define LISP_TID_INTEGER      0x01
-#define LISP_TID_FDEFINE      0x30
+#define LISP_TID_NIL            0x00
+#define LISP_TID_INTEGER        0x01
+#define LISP_TID_FDEFINE        0x30
 
-#define LISP_TID_CONS_MASK    0x40 /* 0x40 ... 0x7f */
-#define LISP_TID_CONS         0x40
-#define LISP_TID_EVAL_ERROR   0x41
+#define LISP_TID_CONS_MASK      0x40 /* 0x40 ... 0x7f */
+#define LISP_TID_CONS           0x40
+#define LISP_TID_EVAL_ERROR     0x41
 
 #define LISP_TID_LAMBDA         0x80 /* 0x80 ... 0xbf (0x80 + 0x3f) */
 #define LISP_TID_STRING         0x81
@@ -211,6 +212,7 @@ extern const lisp_cell_t lisp_nil;
 #define LISP_EVAL_ERROR  0x03
 #define LISP_UNSUPPORTED 0x04
 #define LISP_UNDEFINED   0x05
+#define LISP_RANGE_ERROR 0x06
 
 
 #endif

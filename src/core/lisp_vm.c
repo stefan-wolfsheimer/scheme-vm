@@ -372,6 +372,10 @@ int lisp_eq_object(const lisp_cell_t * a,
       return strcmp( (const char*) (const lisp_string_t*) a + 1,
 		     (const char*) (const lisp_string_t*) b + 1) ? 0 : 1;
     }
+    else if(LISP_IS_OBJECT(a)) 
+    {
+      return a->data.ptr == b->data.ptr;
+    }
     else 
     {
       return 0;
@@ -384,57 +388,6 @@ int lisp_eq_object(const lisp_cell_t * a,
 }
 
 
-/*******************************************************************
- * 
- * string
- * 
- *******************************************************************/
-int lisp_make_string(lisp_vm_t         * vm,
-                     lisp_cell_t       * cell,
-                     const lisp_char_t * cstr)
-{
-  size_t size = strlen(cstr);
-  lisp_string_t * str = MALLOC_OBJECT(sizeof(lisp_string_t) + 
-                                      sizeof(char) * (size+1),
-                                      1);
-  str->begin = 0;
-  str->end   = size;
-  strcpy( (char*) &str[1], cstr);
-  cell->type_id = LISP_TID_STRING;
-  cell->data.ptr = str;
-  return 0;
-}
-
-
-int lisp_sprintf(lisp_vm_t         * vm,
-                 lisp_cell_t       * cell,
-                 const lisp_char_t * fmt,
-                 ...)
-{
-  int ret;
-  int size;
-  va_list ap1, ap2;
-  va_start(ap1, fmt);
-  va_copy(ap2, ap1);
-  size = vsnprintf(NULL, 0, fmt, ap1);
-  va_end(ap1);
-  lisp_string_t * str = MALLOC_OBJECT(sizeof(lisp_string_t) + 
-                                      sizeof(char) * (size+1),
-                                      1);
-  str->begin = 0;
-  str->end   = size;
-  ret = vsprintf((char*)&str[1], fmt, ap2);  
-  va_end(ap2);
-  cell->type_id = LISP_TID_STRING;
-  cell->data.ptr = str;
-
-  return ret;
-}
-
-const char * lisp_c_string(const lisp_cell_t * cell)
-{
-  return (char*)((const lisp_string_t*)cell->data.ptr + 1);
-}
 
 
 
