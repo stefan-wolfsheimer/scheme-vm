@@ -48,6 +48,10 @@ int main(int argc, const char ** argv)
     unit_run(stdout, ctx);
     unit_final_report(stdout, ctx);
   }
+  else if(parse_result == UNIT_ARGV_LIST) 
+  {
+    unit_list_suites(stdout, ctx);
+  }
   else if(parse_result == UNIT_ARGV_ERROR) 
   {
     unit_print_help(stderr, ctx, argv[0]);

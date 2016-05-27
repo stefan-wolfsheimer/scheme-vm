@@ -94,9 +94,16 @@ static int _unit_run_test(FILE * fp, unit_context_t * ctx, unit_test_t * tst)
 static void _unit_deactivate_all_suites(unit_context_t * ctx) 
 {
   unit_suite_t * suite = ctx->first_suite;
+  unit_test_t * tst;
   while(suite != NULL) 
   {
     suite->active = 0;
+    tst           = suite->first_test;
+    while(tst != NULL) 
+    {
+      tst->active = 0;
+      tst = tst->next;
+    }
     suite = suite->next;
   }
 }
@@ -204,14 +211,153 @@ void unit_free_context(unit_context_t * ctx)
   }
 }
 
+size_t _get_suite_name_length(const char * name)
+{
+  size_t ret = 0;
+  while(*name) 
+  {
+    if(*name == ':') 
+    {
+      name++;
+      ret++;
+      if(*name == ':') 
+      {
+	return ret-1;
+      }
+    }
+    else 
+    {
+      ret++;
+      name++;
+    }
+  }
+  return ret;
+}
+
+unit_suite_t * unit_find_suite_by_name(unit_context_t * ctx, const char * name)
+{
+  size_t suite_name_length = _get_suite_name_length(name);
+  unit_suite_t * suite = ctx->first_suite;
+  while(suite != NULL) 
+  {
+    if(!strncmp(suite->name, name, suite_name_length)) 
+    {
+      return suite;
+    }
+    suite = suite->next;
+  }
+  return NULL;
+}
+
+unit_test_t * unit_find_test_by_name(unit_suite_t * suite, const char * name)
+{
+  if(suite == NULL) 
+  {
+    return NULL;
+  }
+  else 
+  {
+    unit_test_t * tst = suite->first_test;
+    while(tst) 
+    {
+      if(!strcmp(name, tst->name)) 
+      {
+	return tst;
+      }
+      tst = tst->next;
+    }
+    return NULL;
+  }
+}
+
+const char * unit_extract_test_name(const char * suite_test_name)
+{
+  int state = 0;
+  while(*suite_test_name) 
+  {
+    if(state == 0 && *suite_test_name == ':') 
+    {
+      state = 1;
+    }
+    else if(state == 1 && *suite_test_name == ':')
+    {
+      state = 2;
+    }
+    else if(state == 2)
+    {
+      break;
+    }
+    suite_test_name++;
+  }
+  if(state == 2) 
+  {
+    return suite_test_name;
+  }
+  else 
+  {
+    return NULL;
+  }
+}
+
+static int _check_argument_name(unit_context_t * ctx, const char * name) 
+{
+  unit_suite_t * suite = unit_find_suite_by_name(ctx, name);
+  if(suite) 
+  {
+    const char * test_name = unit_extract_test_name(name);
+    if(test_name != NULL) 
+    {
+      if(unit_find_test_by_name(suite, test_name) == NULL)
+      {
+	fprintf(stderr, "undefined test %s\n", name);
+	return 0;
+      }
+    }
+  }
+  else 
+  {
+    fprintf(stderr, "undefined suite %s\n", name);
+    return 0;
+  }
+  return 1;
+}
+
+static void _activate_tests(unit_context_t * ctx, const char * name)
+{
+  unit_suite_t * suite = unit_find_suite_by_name(ctx, name);
+  if(suite) 
+  {
+    suite->active = 1;
+    const char * test_name = unit_extract_test_name(name);
+    unit_test_t * tst;
+    if(test_name == NULL) 
+    {
+      tst = suite->first_test;
+      while(tst) 
+      {
+	tst->active = 1;
+	tst = tst->next;
+      }
+    }
+    else 
+    {
+      tst = unit_find_test_by_name(suite, test_name);
+      if(tst) 
+      {
+	tst->active = 1;
+      }
+    }
+  }
+}
+
 int unit_parse_argv(unit_context_t * ctx, int argc, const char ** argv)
 {
+  int is_filtered = 0;
   int i;
-  int suite_selected = 0;
   int verbose_level = 0;
   int color = 1;
   int ret = UNIT_ARGV_RUN;
-  /* scan flags */
+  /* scan flags */  
   for(i = 1; i < argc; i++) 
   {
     if(!strcmp(argv[i], "--help") || !strcmp(argv[i], "-h")) 
@@ -219,6 +365,13 @@ int unit_parse_argv(unit_context_t * ctx, int argc, const char ** argv)
       if(ret == UNIT_ARGV_RUN) 
       {
 	ret = UNIT_ARGV_HELP;
+      }
+    }
+    else if(!strcmp(argv[i],"--list") || !strcmp(argv[i],"-l")) 
+    {
+      if(ret == UNIT_ARGV_RUN) 
+      {
+	ret = UNIT_ARGV_LIST;
       }
     }
     else if(!strcmp(argv[i], "--verbose") || !strcmp(argv[i],"-v")) 
@@ -234,37 +387,29 @@ int unit_parse_argv(unit_context_t * ctx, int argc, const char ** argv)
       fprintf(stderr, "invalid option %s\n", argv[i]);
       ret = UNIT_ARGV_ERROR;
     }
+    else 
+    {
+      is_filtered = 1;
+      if(!_check_argument_name(ctx, argv[i])) 
+      {
+	ret = UNIT_ARGV_ERROR;
+      }
+    }
   }
   if(ret == UNIT_ARGV_ERROR || ret == UNIT_ARGV_HELP) 
   {
     return ret;
   }
   ctx->verbose_level = verbose_level;
-  ctx->color = color;
-  for(i = 1; i < argc; i++) 
+  ctx->color         = color;
+  if(is_filtered) 
   {
-    if(argv[i][0] != '-') 
+    _unit_deactivate_all_suites(ctx);
+    for(i = 1; i < argc; i++) 
     {
-      unit_suite_t * suite = ctx->first_suite;
-      while(suite != NULL) 
+      if(argv[i][0] != '-') 
       {
-        if(!strcmp(suite->name, argv[i])) 
-        {
-          if(!suite_selected) 
-          {
-            suite_selected = 1;
-            _unit_deactivate_all_suites(ctx);
-          }
-          suite->active = 1;
-	  break;
-        }
-        suite = suite->next;
-      }
-      if(suite == NULL) 
-      {
-	fprintf(stderr, "suite '%s' does not exists\n", argv[i]);
-	fprintf(stderr, "\n");
-	ret = UNIT_ARGV_ERROR;
+	_activate_tests(ctx, argv[i]);
       }
     }
   }
@@ -280,6 +425,10 @@ void unit_print_help(FILE * fp, unit_context_t * ctx, const char * progr)
   fprintf(fp, "--help, -h      show help and exit\n");
   fprintf(fp, "--verbose, -v   increase verbose level\n");
   fprintf(fp, "                (flag may appear multiple times)\n");
+  fprintf(fp, "--list,-l       list all suites (or tests)\n");
+  fprintf(fp, "                if --verbose is set list all tests\n");
+  fprintf(fp, "                if suites are given as ARGUMENTS, only the\n");
+  fprintf(fp, "                test tests of that suite are listed\n");
   fprintf(fp, "--nocolor       don't use colors to report results\n");
   fprintf(fp, "\n");
   fprintf(fp, "ARGUMENTS:\n");
@@ -302,6 +451,7 @@ void unit_print_help(FILE * fp, unit_context_t * ctx, const char * progr)
     n++;
     suite = suite->next;
   }
+  fprintf(fp, "\nOR\nSUITE::TEST_NAME\n");
   fprintf(fp, "\n");
   fprintf(fp, "\n");
 }
@@ -431,7 +581,14 @@ void unit_run(FILE * fp, unit_context_t * ctx)
       {
         while(tst != NULL) 
         {
-          suite_passed&= _unit_run_test(fp, ctx, tst); 
+	  if(tst->active) 
+	  {
+	    suite_passed&= _unit_run_test(fp, ctx, tst); 
+	  }
+	  else 
+	  {
+	    ctx->n_tests_deactivated++;
+	  }
           tst = tst->next;
         }
         if(suite_passed) 
@@ -467,6 +624,34 @@ void unit_run(FILE * fp, unit_context_t * ctx)
     suite = suite->next;
   }
 }
+
+void unit_list_suites(FILE * fp, 
+		      unit_context_t * ctx)
+{
+  unit_suite_t * suite = ctx->first_suite;
+  while(suite != NULL) 
+  {
+    if(suite->active) 
+    {
+      if(!ctx->verbose_level) 
+      {
+	fprintf(fp, "%s\n", suite->name);
+      }
+      else 
+      {
+	unit_test_t * tst = suite->first_test;
+	while(tst != NULL) 
+	{
+	  fprintf(fp, "%s::%s\n", suite->name, tst->name);
+          tst = tst->next;
+	}
+
+      }
+    }
+    suite = suite->next;
+  }
+}
+
 
                                      
 void unit_final_report(FILE * fp,

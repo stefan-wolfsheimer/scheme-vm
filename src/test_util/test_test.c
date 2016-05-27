@@ -703,6 +703,111 @@ static void test_with_failed_checks(unit_test_t * tst)
   unit_free_context(ctx);
 }
 
+/******************************************************
+ * test helper functions 
+ */
+static void test_unit_extract_test_name(unit_test_t * tst)
+{
+  ASSERT_EQ_PTR(tst, unit_extract_test_name("suite1"), NULL);
+  ASSERT_EQ_PTR(tst, unit_extract_test_name("suite1:"), NULL);
+  ASSERT_EQ_CSTR(tst, unit_extract_test_name("suite1::"), "");
+  ASSERT_EQ_CSTR(tst, unit_extract_test_name("suite1::test"), "test");
+}
+
+struct __unit_test_ctx_t
+{
+  unit_context_t * ctx;  
+  unit_suite_t   * suite1; 
+  unit_test_t    * test11; 
+  unit_test_t    * test12; 
+  unit_suite_t   * suite2; 
+  unit_test_t    * test21; 
+  unit_test_t    * test22; 
+};
+
+static struct __unit_test_ctx_t __init_test_ctx() 
+{
+  struct __unit_test_ctx_t ret;
+  ret.ctx     = unit_create_context();
+  ret.suite1  = unit_create_suite(ret.ctx, "suite1");
+  ret.test11  = unit_create_test(ret.suite1, "test1", NULL);
+  ret.test12  = unit_create_test(ret.suite1, "test2", NULL);
+  ret.suite2  = unit_create_suite(ret.ctx, "suite2");
+  ret.test21  = unit_create_test(ret.suite2, "test1", NULL);
+  ret.test22  = unit_create_test(ret.suite2, "test2", NULL);
+  return ret;
+};
+
+
+static void test_find_suite_by_name(unit_test_t * tst)
+{
+  struct __unit_test_ctx_t d = __init_test_ctx();
+  ASSERT_EQ_PTR(tst, unit_find_suite_by_name(d.ctx, "suite1"),       d.suite1);
+  ASSERT_EQ_PTR(tst, unit_find_suite_by_name(d.ctx, "suite1::"),     d.suite1);
+  ASSERT_EQ_PTR(tst, unit_find_suite_by_name(d.ctx, "suite1::test"), d.suite1);
+  ASSERT_EQ_PTR(tst, unit_find_suite_by_name(d.ctx, "suite2"),       d.suite2);
+  ASSERT_EQ_PTR(tst, unit_find_suite_by_name(d.ctx, "suite3"),       NULL);
+  unit_free_context(d.ctx);
+}
+
+static void test_find_test_by_name(unit_test_t * tst)
+{
+  unit_context_t * ctx    = unit_create_context();
+  unit_suite_t   * suite1 = unit_create_suite(ctx, "suite1");
+  unit_test_t    * test11 = unit_create_test(suite1, "test1", NULL);
+  unit_test_t    * test12 = unit_create_test(suite1, "test2", NULL);
+  ASSERT_EQ_PTR(tst, unit_find_test_by_name(suite1, "test1"), test11);
+  ASSERT_EQ_PTR(tst, unit_find_test_by_name(suite1, "test2"), test12);
+  ASSERT_EQ_PTR(tst, unit_find_test_by_name(suite1, "undef"), NULL);
+  ASSERT_EQ_PTR(tst, unit_find_test_by_name(NULL, "test1"), NULL);
+  unit_free_context(ctx);
+}
+
+static void test_parse_argv_all_active(unit_test_t * tst)
+{
+  struct __unit_test_ctx_t d;
+  const char * args0[] = { "progr" };
+  d = __init_test_ctx();
+  ASSERT_EQ_I(tst, unit_parse_argv(d.ctx, 1, args0), UNIT_ARGV_RUN);
+  ASSERT(tst,      d.suite1->active);
+  ASSERT(tst,      d.suite2->active);
+  ASSERT(tst,      d.test11->active);
+  ASSERT(tst,      d.test12->active);
+  ASSERT(tst,      d.test21->active);
+  ASSERT(tst,      d.test22->active);
+  unit_free_context(d.ctx);  
+}
+
+static void test_parse_argv_select_suite(unit_test_t * tst)
+{
+  struct __unit_test_ctx_t d;
+  const char * args0[] = { "progr", "suite1" };
+  d = __init_test_ctx();
+  ASSERT_EQ_I(tst, unit_parse_argv(d.ctx, 2, args0), UNIT_ARGV_RUN);
+  ASSERT(tst,       d.suite1->active);
+  ASSERT_FALSE(tst, d.suite2->active);
+  ASSERT(tst,       d.test11->active);
+  ASSERT(tst,       d.test12->active);
+  ASSERT_FALSE(tst, d.test21->active);
+  ASSERT_FALSE(tst, d.test22->active);
+  unit_free_context(d.ctx);  
+}
+
+static void test_parse_argv_select_test(unit_test_t * tst)
+{
+  struct __unit_test_ctx_t d;
+  const char * args0[] = { "progr", "suite1::test2" };
+  d = __init_test_ctx();
+  ASSERT_EQ_I(tst, unit_parse_argv(d.ctx, 2, args0), UNIT_ARGV_RUN);
+  ASSERT(tst,       d.suite1->active);
+  ASSERT_FALSE(tst, d.suite2->active);
+  ASSERT_FALSE(tst, d.test11->active);
+  ASSERT(tst,       d.test12->active);
+  ASSERT_FALSE(tst, d.test21->active);
+  ASSERT_FALSE(tst, d.test22->active);
+  unit_free_context(d.ctx);  
+}
+
 void test_test(unit_context_t * ctx)
 {
   unit_suite_t * suite = unit_create_suite(ctx, "test");
@@ -720,4 +825,11 @@ void test_test(unit_context_t * ctx)
   TEST(suite, test_no_failures);
   TEST(suite, test_with_failures);
   TEST(suite, test_with_failed_checks);
+
+  TEST(suite, test_unit_extract_test_name);
+  TEST(suite, test_find_suite_by_name);
+  TEST(suite, test_find_test_by_name);
+  TEST(suite, test_parse_argv_all_active);
+  TEST(suite, test_parse_argv_select_suite);
+  TEST(suite, test_parse_argv_select_test);
 }

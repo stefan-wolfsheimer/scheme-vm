@@ -11,6 +11,7 @@
 #define UNIT_ARGV_RUN   1
 #define UNIT_ARGV_HELP  2
 #define UNIT_ARGV_ERROR 3
+#define UNIT_ARGV_LIST  4
 
 struct memchecker_t;
 struct unit_test_t;
@@ -73,6 +74,10 @@ unit_suite_t * unit_create_suite(unit_context_t * ctx,
 unit_test_t * unit_create_test(unit_suite_t * suite, 
                                const char * name, 
                                unit_test_function_t func);
+
+const char * unit_extract_test_name(const char * suite_test_name);
+unit_suite_t * unit_find_suite_by_name(unit_context_t * ctx, const char * name);
+unit_test_t * unit_find_test_by_name(unit_suite_t * suite, const char * name);
 
 /** 
  *  Add a list of assertion (or a single assertion to the test).
@@ -660,6 +665,9 @@ assertion_t * unit_memchecker(unit_test_t              * tst,
                                          
 void unit_run(FILE * fp,
               unit_context_t * ctx);
+
+void unit_list_suites(FILE * fp, 
+		      unit_context_t * ctx);
 
 void unit_final_report(FILE * fp,
                        unit_context_t * ctx);
