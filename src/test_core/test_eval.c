@@ -189,6 +189,35 @@ static void test_eval_builtin(unit_test_t * tst)
   memcheck_end();
 }
 
+static void test_eval_nested_builtin(unit_test_t * tst) 
+{
+  /* (+ 1 (+ 2 3) ) */
+  memcheck_begin();
+  lisp_vm_t       * vm = lisp_create_vm(&lisp_vm_default_param);
+  lisp_eval_env_t * env = lisp_create_eval_env(vm);
+  lisp_cell_t       lst1[3], lst2[3];
+  lisp_cell_t       expr1, expr2;
+  lisp_cell_t       ctarget;
+  lisp_make_symbol(vm,    &lst1[0], "+");
+  lisp_make_integer(      &lst1[1], 2);
+  lisp_make_integer(      &lst1[2], 3);
+  lisp_make_list(vm,      &expr1, lst1, 3);
+  
+  lisp_make_symbol(vm,    &lst2[0], "+");
+  lisp_make_integer(      &lst2[1], 1);
+  lisp_copy_object(vm,    &lst2[2], &expr1);
+  lisp_make_list_root(vm, &expr2, lst2, 3);
+
+  ASSERT_EQ_U(tst, lisp_eval(env, &ctarget, &expr2), LISP_OK);  
+  ASSERT(tst, LISP_IS_INTEGER(&ctarget));
+  ASSERT_EQ_I(tst, ctarget.data.integer, 6);
+
+  lisp_free_eval_env(env);
+  lisp_free_vm(vm);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
+}
+
 void test_eval(unit_context_t * ctx)
 {
   unit_suite_t * suite = unit_create_suite(ctx, "eval");
@@ -202,4 +231,5 @@ void test_eval(unit_context_t * ctx)
  
   TEST(suite, test_eval_define_atom);
   TEST(suite, test_eval_builtin);
+  TEST(suite, test_eval_nested_builtin);
 }

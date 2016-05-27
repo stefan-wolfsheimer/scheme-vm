@@ -51,7 +51,7 @@ int lisp_register_builtin_function(lisp_eval_env_t        * env,
   return LISP_OK;
 }
 
-static int lisp_eval_builtin(lisp_vm_t                   * vm,
+static int lisp_eval_builtin(lisp_eval_env_t             * env,
 			     lisp_cell_t                 * cell,
 			     const lisp_builtin_lambda_t * func,
 			     const lisp_cell_t           * args)
@@ -81,9 +81,8 @@ static int lisp_eval_builtin(lisp_vm_t                   * vm,
   {
     if(LISP_IS_CONS_OBJECT(current)) 
     {
-      /* @todo eval arguements instead of copy */
-      lisp_copy_object_as_root(vm, &stack_frame[n], 
-			       &LISP_AS(current, lisp_cons_t)->car);
+      /* @todo error handling */
+      lisp_eval(env, &stack_frame[n], &LISP_AS(current, lisp_cons_t)->car);
       current = &LISP_AS(current, lisp_cons_t)->cdr;
       n++;
     }
@@ -92,7 +91,7 @@ static int lisp_eval_builtin(lisp_vm_t                   * vm,
       /* @todo error */
     }
   }
-  func->func(vm, 
+  func->func(env->vm, 
 	     cell,
 	     stack_frame);
   /* @todo unset root objects */
@@ -172,9 +171,9 @@ static int _lisp_eval_symbol(lisp_eval_env_t   * env,
   else 
   {
     /* @todo check if cell needs to be root object ???*/
-    return lisp_copy_object( env->vm,
-			     cell,
-			     obj);
+    return lisp_copy_object_as_root( env->vm,
+				     cell,
+				     obj);
   }
 }
 
@@ -199,7 +198,7 @@ static int _lisp_eval_cons(lisp_eval_env_t   * env,
   switch(car.type_id) 
   {
   case LISP_TID_BUILTIN_LAMBDA:
-    ret = lisp_eval_builtin(env->vm,
+    ret = lisp_eval_builtin(env,
 			    cell,
 			    LISP_AS(&car, lisp_builtin_lambda_t),
 			    &LISP_AS(expr, lisp_cons_t)->cdr);
