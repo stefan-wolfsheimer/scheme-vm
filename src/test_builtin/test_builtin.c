@@ -1,6 +1,5 @@
 #include "util/unit_test.h"
 #include "util/xmalloc.h"
-#include "lisp_vm_check.h"
 #include "core/lisp_builtin.h"
 #include "core/lisp_eval.h"
 
@@ -41,8 +40,9 @@ static void test_builtin_plus(unit_test_t * tst)
   memcheck_end();
 }
 
+
 void test_builtin(unit_context_t * ctx)
 {
-  unit_suite_t * suite = unit_create_suite(ctx, "eval");
+  unit_suite_t * suite = unit_create_suite(ctx, "builtin");
   TEST(suite, test_builtin_plus);
 }

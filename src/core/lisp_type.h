@@ -171,6 +171,9 @@ extern const lisp_cell_t lisp_nil;
 #define LISP_IS_LAMBDA(__CELL__)                  \
   ((__CELL__)->type_id == LISP_TID_LAMBDA)
 
+#define LISP_IS_BUILTIN_LAMBDA(__CELL__)		\
+  ((__CELL__)->type_id == LISP_TID_BUILTIN_LAMBDA)
+  
 #define LISP_IS_FDEFINE(__CELL__)		\
   ((__CELL__)->type_id == LISP_TID_FDEFINE)
 

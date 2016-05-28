@@ -69,6 +69,7 @@ int lisp_register_builtin_function(lisp_eval_env_t        * env,
   lisp_cell_t symbol;
   lisp_cell_t cell;
   /* @todo error check */
+  /* @todo create lisp_builtin_function without regististration */
   lisp_builtin_lambda_t * lambda = MALLOC_OBJECT(sizeof(lisp_builtin_lambda_t), 0);
   cell.type_id = LISP_TID_BUILTIN_LAMBDA;
   cell.data.ptr = lambda;
@@ -86,6 +87,12 @@ static int lisp_eval_builtin(lisp_eval_env_t             * env,
      @todo: eval instead of copy */
   const lisp_cell_t * current = args;
   lisp_integer_t n = 0;
+  lisp_size_t i;
+  for(i = 0; i < env->n_values; i++) 
+  {
+    lisp_unset_object_root(env->vm, &env->values[i]);
+  }
+  env->n_values = 0;
   while(!LISP_IS_NIL(current)) 
   {
     if(LISP_IS_CONS_OBJECT(current)) 
@@ -120,7 +127,10 @@ static int lisp_eval_builtin(lisp_eval_env_t             * env,
   }
   func->func(env, 
 	     stack_frame);
-  /* @todo unset root objects */
+  for(i = 0; i < n; i++) 
+  {
+    lisp_unset_object_root(env->vm, &stack_frame[i]);
+  }
   FREE(stack_frame);
   return LISP_OK;
 }
@@ -209,6 +219,7 @@ static int _lisp_eval_object(lisp_eval_env_t   * env,
   ++LISP_REFCOUNT(expr);
   env->values->type_id = expr->type_id;
   env->values->data    = expr->data;
+  env->n_values        = 1;
   return LISP_OK;
 }
 
@@ -219,12 +230,14 @@ static int _lisp_eval_cons(lisp_eval_env_t   * env,
   int ret = LISP_UNSUPPORTED;
   lisp_eval(env, &LISP_AS(expr, lisp_cons_t)->car);
   lisp_copy_object_as_root(env->vm, &car, env->values);
-  switch(car.type_id) 
+  switch(env->values->type_id) 
   {
   case LISP_TID_BUILTIN_LAMBDA:
+    /* @todo optimize copy */
     ret = lisp_eval_builtin(env,
 			    LISP_AS(&car, lisp_builtin_lambda_t),
 			    &LISP_AS(expr, lisp_cons_t)->cdr);
+    //lisp_unset_object_root(env->vm, &car);
     break;
   case LISP_TID_LAMBDA:
     /* @todo */
@@ -236,19 +249,20 @@ static int _lisp_eval_cons(lisp_eval_env_t   * env,
     break;
   }
   /* @todo check if car is root object */
-  lisp_unset_object(env->vm, &car);
+  lisp_unset_object_root(env->vm, &car);
   return ret;
 }
 
 int lisp_eval(lisp_eval_env_t   * env,
 	      const lisp_cell_t * expr)
 {
-  //*cell = lisp_nil;
+  /* reset old values */
   lisp_size_t i;
   for(i = 0; i < env->n_values; i++) 
   {
     lisp_unset_object_root(env->vm, &env->values[i]);
   }
+  env->n_values = 0;
   if(LISP_IS_ATOM(expr)) 
   {
     return _lisp_eval_atom(env,expr);

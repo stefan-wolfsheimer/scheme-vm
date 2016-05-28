@@ -1,5 +1,6 @@
-MODULES= util core programs test_core test_util 
-MODULES_COV= util core
+MODULES= util core builtin programs\
+         test_core test_util test_builtin
+MODULES_COV= util core builtin
 SRC=
 SRC_TEST=
 SRC_MAIN=

@@ -7,9 +7,9 @@ int lisp_builtin_plus(lisp_eval_env_t * env,
   REQUIRE(LISP_IS_INTEGER(stack));
   lisp_integer_t nargs = stack->data.integer;
   lisp_integer_t i;
-  env->values->type_id = LISP_TID_INTEGER;
+  env->values->type_id      = LISP_TID_INTEGER;
   env->values->data.integer = 0;
-
+  env->n_values             = 1;
   for(i = 0; i < nargs; i++) 
   {
     if(!LISP_IS_INTEGER(&stack[i+1])) 

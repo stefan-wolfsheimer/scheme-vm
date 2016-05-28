@@ -169,6 +169,26 @@ int lisp_eq_object(const lisp_cell_t * a,
  * lambda
  * 
  *****************************************************************************/
+int lisp_make_builtin_lambda(lisp_vm_t              * vm,
+			     lisp_cell_t            * cell,
+			     lisp_size_t              args_size,
+			     lisp_cell_t            * args,
+			     lisp_builtin_function_t  func);
+
+int lisp_make_builtin_lambda_opt_args(lisp_vm_t   * vm,
+				      lisp_cell_t * cell,
+				      lisp_size_t   args_size,
+				      lisp_cell_t * args,
+				      lisp_size_t   opt_args_size,
+				      lisp_cell_t * opt_args,
+				      lisp_size_t   named_args_size,
+				      lisp_cell_t * named_args,
+				      lisp_cell_t * named_args_values,
+				      int           has_rest_args,
+				      lisp_builtin_function_t  func);
+				      
+
+/* @todo refactor */
 int lisp_make_lambda_instr(lisp_vm_t          * vm, 
                            lisp_cell_t        * cell, 
                            lisp_size_t          args_size,
@@ -176,6 +196,7 @@ int lisp_make_lambda_instr(lisp_vm_t          * vm,
                            lisp_size_t          data_size,
                            const lisp_instr_t * instr);
 
+/* @todo refactor */
 int lisp_make_lambda_n_instr(lisp_vm_t          * vm, 
                              lisp_cell_t        * cell, 
                              lisp_size_t          args_size,

@@ -1,7 +1,50 @@
 #include "lisp_vm.h"
 #include "lisp_asm.h"
 #include <string.h>
-/*******************************************************/
+
+/*******************************************************************
+ * 
+ * lambda
+ * 
+ *******************************************************************/
+
+int lisp_make_builtin_lambda(lisp_vm_t   * vm,
+			     lisp_cell_t * cell,
+			     lisp_size_t   args_size,
+			     lisp_cell_t * args,
+			     lisp_builtin_function_t  func)
+{
+  lisp_builtin_lambda_t * lambda = MALLOC_OBJECT(sizeof(lisp_builtin_lambda_t),
+						 1);
+  cell->type_id  = LISP_TID_BUILTIN_LAMBDA;
+  cell->data.ptr = lambda;
+  lambda->func   = func;
+  /* @todo alloc check */
+  /* @todo arguments */
+  return LISP_OK;
+}
+
+int lisp_make_builtin_lambda_opt_args(lisp_vm_t   * vm,
+				      lisp_cell_t * cell,
+				      lisp_size_t   args_size,
+				      lisp_cell_t * args,
+				      lisp_size_t   opt_args_size,
+				      lisp_cell_t * opt_args,
+				      lisp_size_t   named_args_size,
+				      lisp_cell_t * named_args,
+				      lisp_cell_t * named_args_values,
+				      int           has_rest_args,
+				      lisp_builtin_function_t  func)
+{
+  /* @todo implement */
+  return LISP_OK;
+}
+
+
+
+/*******************************************************
+@todo refactor rest
+********************************************************/
 int lisp_make_lambda_instr(lisp_vm_t          * vm, 
                            lisp_cell_t        * cell, 
                            lisp_size_t          args_size,

@@ -349,7 +349,7 @@ int lisp_unset_object_root(lisp_vm_t * vm, lisp_cell_t * target)
 
 /*******************************************************************
  * 
- * string
+ * object compare
  * 
  *******************************************************************/
 int lisp_eq_object(const lisp_cell_t * a,

@@ -3,6 +3,28 @@
 #include "core/lisp_eval.h" 
 #include "lisp_vm_check.h"
 
+static int lisp_builtin_test_function(lisp_eval_env_t * env,
+				      lisp_cell_t     * stack)
+{
+  REQUIRE(LISP_IS_INTEGER(stack));
+  lisp_integer_t nargs = stack->data.integer;
+  lisp_integer_t i;
+  env->values->type_id      = LISP_TID_INTEGER;
+  env->values->data.integer = 0;
+  env->n_values             = 1;
+  for(i = 0; i < nargs; i++) 
+  {
+    if(!LISP_IS_INTEGER(&stack[i+1])) 
+    {
+      *env->values = lisp_nil;
+      return LISP_TYPE_ERROR;
+    }
+    env->values->data.integer+= stack[i+1].data.integer;
+  }
+  return LISP_OK;
+}
+
+
 static void test_create_eval_env(unit_test_t * tst) 
 {
   memcheck_begin();
@@ -29,7 +51,6 @@ static void test_create_eval_env_failure(unit_test_t * tst)
   env = lisp_create_eval_env(vm);
   ASSERT_EQ_PTR(tst, env, NULL);
   
-
   lisp_free_vm(vm);
   ASSERT_MEMCHECK(tst);
   memcheck_end();
@@ -172,6 +193,42 @@ static void test_eval_define_atom(unit_test_t * tst)
 
 static void test_eval_builtin(unit_test_t * tst) 
 {
+  /* @todo make independent of "+" with own test function */
+  /* (+ 1 2) */
+  memcheck_begin();
+  lisp_vm_t       * vm = lisp_create_vm(&lisp_vm_default_param);
+  lisp_eval_env_t * env = lisp_create_eval_env(vm);
+  lisp_cell_t       lst[10];
+  lisp_cell_t       expr;
+  ASSERT_FALSE(tst, lisp_make_builtin_lambda(vm,
+					     &lst[0],
+					     2,
+					     NULL, /* @todo argument symbols */
+					     lisp_builtin_test_function));
+  /* @todo test creation in test_lambda instead of here */
+  ASSERT(tst, LISP_IS_BUILTIN_LAMBDA(&lst[0]));
+  ASSERT_EQ_U(tst, LISP_REFCOUNT(&lst[0]), 1);
+  lisp_make_integer(   &lst[1], 1);
+  lisp_make_integer(   &lst[2], 2);
+  lisp_make_list_root(vm, &expr, lst, 3);
+  ASSERT_EQ_U(tst, LISP_REFCOUNT(&lst[0]), 2);
+  ASSERT_EQ_U(tst, lisp_eval(env, &expr), LISP_OK);  
+  ASSERT_EQ_U(tst, LISP_REFCOUNT(&lst[0]), 2);
+  lisp_unset_object_root(vm, &lst[0]);
+  ASSERT_EQ_U(tst, env->n_values, 1u);
+  ASSERT(tst,      LISP_IS_INTEGER(env->values));
+  ASSERT_EQ_I(tst, env->values->data.integer, 3);
+
+  lisp_free_eval_env(env);
+  lisp_free_vm(vm);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
+}
+
+
+static void test_eval_registered_builtin(unit_test_t * tst) 
+{
+  /* @todo make independent of "+" with own test function */
   /* (+ 1 2) */
   memcheck_begin();
   lisp_vm_t       * vm = lisp_create_vm(&lisp_vm_default_param);
@@ -194,8 +251,9 @@ static void test_eval_builtin(unit_test_t * tst)
   memcheck_end();
 }
 
-static void test_eval_nested_builtin(unit_test_t * tst) 
+static void test_eval_nested_registered_builtin(unit_test_t * tst) 
 {
+  /* @todo make independent of "+" with own test function */
   /* (+ 1 (+ 2 3) ) */
   memcheck_begin();
   lisp_vm_t       * vm = lisp_create_vm(&lisp_vm_default_param);
@@ -237,5 +295,6 @@ void test_eval(unit_context_t * ctx)
  
   TEST(suite, test_eval_define_atom);
   TEST(suite, test_eval_builtin);
-  TEST(suite, test_eval_nested_builtin);
+  TEST(suite, test_eval_registered_builtin);
+  TEST(suite, test_eval_nested_registered_builtin);
 }
