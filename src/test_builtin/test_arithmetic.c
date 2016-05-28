@@ -1,9 +1,9 @@
 #include "util/unit_test.h"
 #include "util/xmalloc.h"
-#include "core/lisp_builtin.h"
+#include "builtin/lisp_arithmetic.h"
 #include "core/lisp_eval.h"
 
-static void test_builtin_plus(unit_test_t * tst)
+static void test_plus(unit_test_t * tst)
 {
   memcheck_begin();
   lisp_vm_t       * vm = lisp_create_vm(&lisp_vm_default_param);
@@ -41,8 +41,8 @@ static void test_builtin_plus(unit_test_t * tst)
 }
 
 
-void test_builtin(unit_context_t * ctx)
+void test_builtin_arithmetic(unit_context_t * ctx)
 {
-  unit_suite_t * suite = unit_create_suite(ctx, "builtin");
-  TEST(suite, test_builtin_plus);
+  unit_suite_t * suite = unit_create_suite(ctx, "builtin_arithmetic");
+  TEST(suite, test_plus);
 }

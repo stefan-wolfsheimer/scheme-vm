@@ -18,6 +18,10 @@ int lisp_eval(lisp_eval_env_t   * env,
 	      const lisp_cell_t * expr);
 
 
+int lisp_eval_builtin(lisp_eval_env_t             * env,
+		      const lisp_builtin_lambda_t * func,
+		      const lisp_cell_t           * args);
+
 /*@todo function signature */
 int lisp_register_builtin_function(lisp_eval_env_t         * env,
 				   const char              * name,

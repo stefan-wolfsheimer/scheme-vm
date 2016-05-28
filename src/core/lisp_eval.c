@@ -1,5 +1,4 @@
 #include "lisp_eval.h"
-#include "lisp_builtin.h"
 #include "util/xmalloc.h"
 #include "util/assertion.h"
 #include "config.h"
@@ -38,9 +37,9 @@ lisp_eval_env_t * lisp_create_eval_env(lisp_vm_t * vm)
     env->n_values   = 0;
     env->values     = values;
 
-    /* @todo registration function in separate module */
-    lisp_register_builtin_function(env, "+", 
-				   &lisp_builtin_plus);
+    /// @todo registration function in separate module 
+    //lisp_register_builtin_function(env, "+", 
+    //				   &lisp_builtin_plus);
     register_form(vm, "define", LISP_TID_FDEFINE);
   }
   else 
@@ -62,6 +61,7 @@ void lisp_free_eval_env(lisp_eval_env_t * env)
   FREE(env);
 }
 
+/* @todo refactor */
 int lisp_register_builtin_function(lisp_eval_env_t        * env,
 				   const char             * name,
 				   lisp_builtin_function_t  func)
@@ -79,9 +79,9 @@ int lisp_register_builtin_function(lisp_eval_env_t        * env,
   return LISP_OK;
 }
 
-static int lisp_eval_builtin(lisp_eval_env_t             * env,
-			     const lisp_builtin_lambda_t * func,
-			     const lisp_cell_t           * args)
+int lisp_eval_builtin(lisp_eval_env_t             * env,
+		      const lisp_builtin_lambda_t * func,
+		      const lisp_cell_t           * args)
 {
   /* @todo: define argument signature class
      @todo: eval instead of copy */

@@ -18,7 +18,8 @@ void test_asm(unit_context_t * ctx);
 void test_parser(unit_context_t * ctx);
 void test_lambda(unit_context_t * ctx);
 
-void test_builtin(unit_context_t * ctx);
+
+void test_builtin_arithmetic(unit_context_t * ctx);
 void test_builtin_values(unit_context_t * ctx);
 
 int main(int argc, const char ** argv)
@@ -37,7 +38,7 @@ int main(int argc, const char ** argv)
   test_string(ctx);
   test_eval(ctx);
 
-  test_builtin(ctx);
+  test_builtin_arithmetic(ctx);
   test_builtin_values(ctx);
   /* 
      @todo refactor 

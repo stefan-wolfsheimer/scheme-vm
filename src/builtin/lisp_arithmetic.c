@@ -1,5 +1,6 @@
-#include "lisp_builtin.h"
+#include "lisp_arithmetic.h"
 #include "util/assertion.h"
+#include "core/lisp_vm.h"
 
 int lisp_builtin_plus(lisp_eval_env_t * env,
 		      lisp_cell_t     * stack)

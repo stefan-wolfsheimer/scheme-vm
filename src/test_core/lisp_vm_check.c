@@ -2,6 +2,7 @@
 #include "util/xmalloc.h"
 #include "util/unit_test.h"
 #include "util/assertion.h"
+#include "util/mock.h"
 
 void lisp_test_object_destructor(lisp_vm_t * vm, void * ptr)
 {
@@ -313,4 +314,69 @@ lisp_cell_t lisp_get_white_cons( lisp_vm_t * vm, lisp_size_t i)
 int lisp_mock_return_alloc_error(void * user_data)
 {
   return LISP_ALLOC_ERROR;
+}
+
+/* mock for lambda calls */
+void lisp_init_lambda_mock(lisp_lambda_mock_t * mock, 
+			   lisp_vm_t          * vm,
+			   size_t               n_values)
+{
+  size_t i;
+  mock->vm       = vm;
+  mock->n_values = n_values;
+  mock->values   = MALLOC(sizeof(lisp_cell_t)*n_values);
+  mock->n_args   = 0;
+  mock->args     = NULL;
+  for(i = 0; i < mock->n_values; i++) 
+  {
+    mock->values[i] = lisp_nil;
+  }
+}
+
+void lisp_free_lambda_mock(lisp_lambda_mock_t * mock)
+{
+  size_t i;
+  for(i = 0; i < mock->n_values; i++) 
+  {
+    lisp_unset_object_root(mock->vm, &mock->values[i]);
+  }
+  if(mock->values != NULL) 
+  {
+    FREE(mock->values);
+  }
+  for(i = 0; i < mock->n_args; i++) 
+  {
+    lisp_unset_object_root(mock->vm, &mock->args[i]);
+  }
+  if(mock->args != NULL) 
+  {
+    FREE(mock->args);
+  }
+}
+
+int lisp_lambda_mock_function(lisp_eval_env_t * env,
+			      lisp_cell_t     * stack)
+{
+  REQUIRE(LISP_IS_INTEGER(stack));
+  mock_expected_t * expected;
+  expected = mock_get_expected(lisp_lambda_mock_function);
+  if(expected != NULL)
+  {
+    lisp_lambda_mock_t * ret = expected->user_data;
+    size_t i;
+    ret->n_args = stack->data.integer;
+    ret->args   = MALLOC(sizeof(lisp_cell_t) * ret->n_args);
+    for(i = 0; i < ret->n_args; i++) 
+    {
+      lisp_copy_object_as_root(env->vm, &ret->args[i], &stack[i+1]);
+    }
+    env->n_values = ret->n_values;
+    /* @todo call resize value register if n_values > max_values */
+    for(i = 0; i < ret->n_values; i++) 
+    {
+      lisp_copy_object_as_root(env->vm, &env->values[i], &ret->values[i]);
+    }
+    mock_remove(expected);				       
+  }
+  return LISP_OK;
 }
