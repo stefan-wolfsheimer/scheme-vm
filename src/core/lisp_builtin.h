@@ -5,8 +5,7 @@
  * @todo typecheck for values
  * @todo overflow check and high prec. arithmetric
  */
-int lisp_builtin_plus(lisp_vm_t     * vm,
-		      lisp_cell_t   * target,
-		      lisp_cell_t   * stack);
+int lisp_builtin_plus(lisp_eval_env_t * env,
+		      lisp_cell_t     * stack);
 
 #endif

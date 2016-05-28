@@ -1,2 +1,7 @@
 #define HAS_FMEMOPEN
 #define WITH_COLOR
+
+/* Default max. size of values register
+ * The values register is reallocated on demand
+ */
+#define LISP_EVAL_DEFAULT_MAX_VALUES 10

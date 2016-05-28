@@ -2,15 +2,19 @@
 #define __LISP_EVAL_H__
 #include "lisp_vm.h"
 
-typedef struct lisp_eval_env_t
-{
-  lisp_vm_t * vm;
-} lisp_eval_env_t;
 
+/** Create a enviornment for evaluation 
+ */
 lisp_eval_env_t * lisp_create_eval_env(lisp_vm_t * vm);
+
+/** Free the enviornment for evalutation 
+ */
 void lisp_free_eval_env(lisp_eval_env_t * env);
+
+/** Evaluates a lisp expression and stores the 
+ *  result to env->values
+ */
 int lisp_eval(lisp_eval_env_t   * env,
-	      lisp_cell_t       * cell,
 	      const lisp_cell_t * expr);
 
 

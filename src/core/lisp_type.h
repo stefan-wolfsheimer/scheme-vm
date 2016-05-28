@@ -76,11 +76,21 @@ typedef struct lisp_hash_table_t
 
 struct lisp_vm_t;
 
+typedef struct lisp_eval_env_t
+{
+  struct lisp_vm_t   * vm;
+  lisp_cell_t * values;
+  lisp_size_t   n_values;
+  lisp_size_t   max_values;
+} lisp_eval_env_t;
+
 typedef void(*lisp_destructor_t)(struct lisp_vm_t * vm, void * ptr);
 
-typedef int (*lisp_builtin_function_t)(struct lisp_vm_t * vm,
-				       lisp_cell_t      * target,
-				       lisp_cell_t      * stack);
+/** Call back for builtin functions. 
+ *  The result is written to value register of env
+ */
+typedef int (*lisp_builtin_function_t)(struct lisp_eval_env_t * env,
+				       lisp_cell_t            * stack);
 
 
 /** meta type */
