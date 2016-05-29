@@ -1,5 +1,4 @@
 #include "lisp_vm.h"
-#include "lisp_asm.h"
 #include "util/xmalloc.h"
 #include "util/murmur_hash3.h"
 #include <stdlib.h>
@@ -25,8 +24,6 @@ int _lisp_init_types(lisp_vm_t * vm);
 /* cleanup on failure */
 static void _lisp_create_vm_cleanup(lisp_vm_t * vm)
 {
-  if(vm->data_stack != NULL) FREE(vm->data_stack);
-  if(vm->call_stack != NULL) FREE(vm->call_stack);
   if(vm->types      != NULL) FREE(vm->types);
   FREE(vm);
 }
@@ -39,26 +36,11 @@ lisp_vm_t * lisp_create_vm(lisp_vm_param_t * param)
   {
     return NULL;
   }
-  /* @todo create continuations with own stack each */
-  ret->data_stack      = NULL;
-  ret->data_stack_size = param->data_stack_size;
-  ret->data_stack_top  = 0;
-  ret->data_stack      = MALLOC(sizeof(lisp_cell_t) * param->data_stack_size);
-  ret->call_stack      = NULL;
-  ret->call_stack_size = param->call_stack_size;
-  ret->call_stack      = MALLOC(sizeof(lisp_call_t) * param->call_stack_size);
-  ret->call_stack_top  = 0;
-
-  /* @todo remove this, last value is pushed onto stack */
-  ret->value = lisp_nil;
-
   /* init type system */
   ret->types      = NULL;
   ret->types_size = 255;
   ret->types      = MALLOC(sizeof(lisp_type_t) * ret->types_size);
-  if(ret->call_stack == NULL || 
-     ret->data_stack == NULL || 
-     ret->types      == NULL) 
+  if(ret->types      == NULL) 
   {
     _lisp_create_vm_cleanup(ret);
     return NULL;
@@ -84,8 +66,6 @@ lisp_vm_t * lisp_create_vm(lisp_vm_param_t * param)
 
 void lisp_free_vm(lisp_vm_t * vm)
 {
-  FREE(vm->data_stack);
-  FREE(vm->call_stack);
   lisp_free_cons_gc_unset_car_cdr(vm);
   hash_table_finalize(&vm->symbols);
   lisp_free_cons_gc(vm);

@@ -19,6 +19,7 @@ void test_parser(unit_context_t * ctx);
 void test_lambda(unit_context_t * ctx);
 
 
+void test_builtin_forms(unit_context_t * ctx);
 void test_builtin_arithmetic(unit_context_t * ctx);
 void test_builtin_values(unit_context_t * ctx);
 
@@ -38,14 +39,9 @@ int main(int argc, const char ** argv)
   test_string(ctx);
   test_eval(ctx);
 
+  test_builtin_forms(ctx);
   test_builtin_arithmetic(ctx);
   test_builtin_values(ctx);
-  /* 
-     @todo refactor 
-  test_asm(ctx);
-  test_parser(ctx);
-  test_lambda(ctx);
-  */
 
   int parse_result = unit_parse_argv(ctx, argc, argv);
   if(parse_result == UNIT_ARGV_RUN) 

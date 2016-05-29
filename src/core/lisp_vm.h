@@ -20,37 +20,17 @@
 #include "lisp_type.h"
 #include "util/hash_table.h"
 
-typedef struct lisp_call_t 
-{
-  lisp_instr_t    pc_next;
-  lisp_instr_t    nargs;
-  lisp_lambda_t * lambda;
-} lisp_call_t;
-
-typedef struct lisp_thread_t
-{
-  struct lisp_vm_t * vm;
-  lisp_cell_t   * data_stack;
-  lisp_size_t     data_stack_top;
-  lisp_size_t     data_stack_size;
-  lisp_call_t   * call_stack;
-  lisp_size_t     call_stack_top;
-  lisp_size_t     call_stack_size;
-} lisp_thread_t;
-
 typedef struct lisp_vm_t 
 {
   /* @todo move to continiation */
   lisp_cell_t   * data_stack;
   lisp_size_t     data_stack_top;
   lisp_size_t     data_stack_size;
-  lisp_call_t   * call_stack;
+  //lisp_call_t   * call_stack;
   lisp_size_t     call_stack_top;
   lisp_size_t     call_stack_size;
   /* @todo */
   lisp_size_t     program_counter;
-  /* @todo remove (use stack instead */
-  lisp_cell_t     value;
 
   lisp_type_t   * types;
   lisp_size_t     types_size;
@@ -175,6 +155,18 @@ int lisp_make_builtin_lambda(lisp_vm_t              * vm,
 			     lisp_cell_t            * args,
 			     lisp_builtin_function_t  func);
 
+int lisp_make_builtin_form(lisp_vm_t                * vm,
+			   lisp_cell_t              * cell,
+			   lisp_size_t                args_size,
+			   lisp_cell_t              * args,
+			   lisp_builtin_function_t    func);
+
+int lisp_make_builtin_c_str(lisp_vm_t                * vm,
+			    lisp_cell_t              * cell,
+			    lisp_size_t                args_size,
+			    const char              ** args,
+			    lisp_builtin_function_t    func);
+
 int lisp_make_builtin_lambda_opt_args(lisp_vm_t   * vm,
 				      lisp_cell_t * cell,
 				      lisp_size_t   args_size,
@@ -186,7 +178,16 @@ int lisp_make_builtin_lambda_opt_args(lisp_vm_t   * vm,
 				      lisp_cell_t * named_args_values,
 				      int           has_rest_args,
 				      lisp_builtin_function_t  func);
-				      
+
+int lisp_eval_lambda(lisp_eval_env_t    * env,
+		     lisp_lambda_t      * lambda,
+		     lisp_cell_t        * rest);
+
+int lisp_eval_form(lisp_eval_env_t    * env,
+		   lisp_lambda_t      * lambda,
+		   lisp_cell_t        * rest);
+		     
+
 
 /* @todo refactor */
 int lisp_make_lambda_instr(lisp_vm_t          * vm, 
@@ -212,132 +213,6 @@ int lisp_create_lambda_n_instr(lisp_vm_t          * vm,
                                lisp_size_t          data_size,
                                lisp_size_t          instr_size,
                                const lisp_instr_t * instr);
-
-
-/* @todo implement 
- * evaluates the lambda function and returns the number of values 
- * added to the stack.
- * @todo encode error in lisp_size_t 
- * effect remove nargs element from stack and 
- * pushes return value on the stack.
- */
-int lisp_lambda_eval(lisp_vm_t           * thr,
-                     const lisp_lambda_t * lambda,
-                     lisp_size_t           nargs);
-
-/*  @todo implement excecution machine
- *
- ***********************************************************
- * (lambda () 1)
- *
- * precondition: [&ret, 0 ]
- *
- * 1  PUSHD 1     ; [&ret, 0, 1]
- * 2  RET         ; [1] SHIFT(2+0), JUMP(&ret)
- *
- * optimized:
- * 1  SHIFT 3
- * 2  PUSHD 1
- *
- ***********************************************************
- * (lambda () (+ 1 2))
- *
- * precondition:  [&ret, 0 ]
- *
- * 1 PUSHD 1    ; [&ret, 0, 1 ]
- * 2 PUSHD 2    ; [&ret, 0, 1, 2 ]
- * 3 #+    2    ; [&ret, 0, 3 ]
- * 4 RET        ; [3], SHIFT(2+0), JUMP(&ret)
- *
- ***********************************************************
- * (lambda (x) (+ x 1))
- *
- * precondition: [&ret, y, 1]
- *                        |
- *                       arg
- * 1 PUSHA 0         ; [&ret, y, 1, y]
- * 2 PUSHD 1         ; [&ret, y, 1, y, 1]
- * 3 #+    2         ; [&ret, y, 1, y + 1 ]
- * 4 RET             ; [y+1], SHIFT(2+1), JUMP(&ret)
- *
- ***********************************************************
- * (lambda () (+ (+ 1 2) (+ 3 4)))
- *
- * precondition: [&ret, 0]
- *
- * 1 PUSHD 1          ; [&ret, 0, 1]
- * 2 PUSHD 2          ; [&ret, 0, 1,2]
- * 3 #+    2          ; [&ret, 0, 3]
- * 4 PUSHD 3          ; [&ret, 0, 3,3]
- * 5 PUSHD 4          ; [&ret, 0, 3,3,4]
- * 6 #+    2          ; [&ret, 0, 3,7]
- * 7 #+    2          ; [&ret, 0, 10]
- * 8 RET              ; [10], SHIFT(2+0), JUMP(&ret)
- *                                    |
- *                                 stack_top-1
- ***********************************************************
- * ( lambda () 
- *   ( (lambda (x y) (+ x y)) 2 3) )
- *
- * precondition: [&c, &a, 0]
- *
- * main: 1  PUSHR &4        ; [&ret, 0, &6]
- *       2  PUSHD 2         ; [&ret, 0, &6, 2]
- *       3  PUSHD 3         ; [&ret, 0, &6, 2, 3]
- *       4  PUSHN 2         ; [&ret, 0, &6, 2, 3, 2]  
- *       5  CALL  &l1       ; 
- *       6  RET             ; [5], SHIFT(2+0), JUMP(&ret)       
- * l1:   7  PUSHS 3         ; [&ret, 0, &6, 2, 3, 2, 2]
- *                          ; stack-top-3+1
- *       8  PUSHS 3         ; [&ret, 0, &6, 2, 3, 2, 2, 3]
-         9  PUSHN 2         ; [&ret, 0, &6, 2, 3, 2, 2, 3, 2]
- *       10 #+              ; [&ret, 0, &6, 2, 3, 2, 5]
- *       11 RET             ; [&ret, 0, 5 ], SHIFT(2+2), JUMP(&6)
- *                                                   |
- *                                               stack_top-1
- *                         
- ********************************************************
- * (lambda (x) (let ((a 1)
- *                   (b 2)) 
- *             (+ b x a 10)))
- *
- * precondition: [&ret, y]
- *
- * 1 PUSHR &???           ; [&ret, y, &?? ]
- * 1 PUSHD 1              ; [&ret, y, &??, 1 ]
- * 2 PUSHD 2              ; [&ret, y, &??, 2 ]
- * 3 PUSHN 2              ; [&ret, y, &??, 2, 2]
- * 4 #let                 ; [&ret,
- *                             (#let,  2, &next))
- * 2  PUSHD(1)             ->  [y, 1 ]
- * 3  PUSHD(2)             ->  [y, 1, 2]
- * 4  PUSHC(#+, 4)         -> ((#null, 1, &stop),
- *                             (#let,  2, &next),
- *                             (#+,    4, &next))
- * 5  PUSHA(1)             ->  [y, 1, 2, 2]
- * 6  PUSHA(4)             ->  [y, 1, 2, 2, y]
- * 7  PUSHA(4)             ->  [y, 1, 2, 2, y, 1]
- * 8  PUSHD(1)             ->  [y, 1, 2, 2, y, 1, 10]
- * 9  EVAL                 ->  [y, 1, 2, 13+y]
- *                            ((#null, 1, &stop),
- *                             (#let,  2, &next),
- * 10 EVAL                 ->  [y, 13+y]
- *                            ((#null, 1, &stop))
- * 11 RET                  ->  [13+y]
- *                             pc:= &stop
- *                             
- ********************************************************
- * (get-value (v n) #instr)
- *
- * 
- * (lambda () (get-value (make-tuple 2 nil) 0)
- */
-
-/* @todo make private */
-#define LISP_LAMBDA_DATA(__LAMBDA__)                                    \
-  ((lisp_cell_t*)( ((char*)(__LAMBDA__)) +                              \
-                   sizeof(lisp_lambda_t) +                              \
-                   (__LAMBDA__)->instr_size * sizeof(lisp_instr_t)))    \
 
 /*****************************************************************************
  * 

@@ -174,34 +174,6 @@ static void test_eval_cons(unit_test_t * tst)
   memcheck_end();
 }
 
-static void test_eval_define_atom(unit_test_t * tst) 
-{
-  /* (DEFINE A 1) */
-  memcheck_begin();
-  lisp_vm_t       * vm = lisp_create_vm(&lisp_vm_default_param);
-  lisp_eval_env_t * env = lisp_create_eval_env(vm);
-  lisp_cell_t       expr;
-  lisp_cell_t       lst[10];
-  lisp_make_symbol(vm, &lst[0], "define");
-  lisp_make_symbol(vm, &lst[1], "a");
-  lisp_make_integer(   &lst[2], 1);
-  lisp_make_list_root(vm, &expr, lst, 3);
-
-  ASSERT_EQ_U(tst, lisp_eval(env, &expr), LISP_OK);  
-  ASSERT_EQ_U(tst, env->n_values, 1u);
-  ASSERT(tst, lisp_eq_object(
-  			     lisp_symbol_get(vm, 
-  					     LISP_AS(&lst[1], lisp_symbol_t)),
-  			     &lst[2]));
-  lisp_unset_object(vm, &lst[0]);
-  lisp_unset_object(vm, &lst[1]);
-  lisp_unset_object(vm, &lst[2]);
-  lisp_free_eval_env(env);
-  lisp_free_vm(vm);
-  ASSERT_MEMCHECK(tst);
-  memcheck_end();
-}
-
 static void test_eval_builtin(unit_test_t * tst) 
 {
   memcheck_begin();
@@ -222,10 +194,11 @@ static void test_eval_builtin(unit_test_t * tst)
   lisp_make_integer(   &lst[0], 1);
   lisp_make_integer(   &lst[1], 2);
   lisp_make_list_root(vm, &args, lst, 2);
-  ASSERT_EQ_I(tst, lisp_eval_builtin(env,
-				     LISP_AS(&lambda, lisp_builtin_lambda_t),
+  ASSERT_EQ_I(tst, lisp_eval_lambda(env,
+				     LISP_AS(&lambda, lisp_lambda_t),
 				     &args),
 	      LISP_OK);
+  ASSERT_EQ_U(tst, LISP_REFCOUNT(&lambda), 1u);
   lisp_unset_object_root(vm, &lambda);
   ASSERT_EQ_U(tst, env->n_values, 1u);
   ASSERT(tst,      LISP_IS_INTEGER(env->values));
@@ -257,7 +230,7 @@ static void test_eval_cons_builtin(unit_test_t * tst)
 					     NULL, /* @todo argument symbols */
 					     lisp_lambda_mock_function));
   /* @todo test creation in test_lambda instead of here */
-  ASSERT(tst, LISP_IS_BUILTIN_LAMBDA(&lst[0]));
+  ASSERT(tst, LISP_IS_LAMBDA(&lst[0]));
   ASSERT_EQ_U(tst, LISP_REFCOUNT(&lst[0]), 1);
   lisp_make_integer(   &lst[1], 1);
   lisp_make_integer(   &lst[2], 2);
@@ -347,8 +320,9 @@ void test_eval(unit_context_t * ctx)
   TEST(suite, test_eval_nil);
   TEST(suite, test_eval_cons);
  
-  TEST(suite, test_eval_define_atom);
   TEST(suite, test_eval_builtin);
   TEST(suite, test_eval_cons_builtin);
   TEST(suite, test_eval_registered_builtin);
+
+  /* @todo test for builtin forms */
 }

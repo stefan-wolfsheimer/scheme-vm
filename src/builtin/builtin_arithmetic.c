@@ -1,9 +1,13 @@
-#include "lisp_arithmetic.h"
+#include "builtin_arithmetic.h"
 #include "util/assertion.h"
 #include "core/lisp_vm.h"
 
-int lisp_builtin_plus(lisp_eval_env_t * env,
-		      lisp_cell_t     * stack)
+/* 
+ * @todo typecheck for values
+ * @todo overflow check and high prec. arithmetric
+ */
+static int lisp_builtin_plus(lisp_eval_env_t * env,
+			     lisp_cell_t     * stack)
 {
   REQUIRE(LISP_IS_INTEGER(stack));
   lisp_integer_t nargs = stack->data.integer;
@@ -22,3 +26,11 @@ int lisp_builtin_plus(lisp_eval_env_t * env,
   }
   return LISP_OK;
 }
+
+int lisp_make_func_plus(struct lisp_vm_t * vm,
+			struct lisp_cell_t * cell)
+{
+  /* @todo make arguments */
+  return lisp_make_builtin_lambda(vm, cell, 0, NULL, lisp_builtin_plus);
+}
+

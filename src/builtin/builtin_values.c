@@ -1,10 +1,10 @@
-#include "lisp_values.h"
+#include "builtin_values.h"
 #include "core/lisp_vm.h"
 #include "util/assertion.h"
 #include "util/xmalloc.h"
 
-int lisp_builtin_values(lisp_eval_env_t * env,
-			lisp_cell_t     * stack)
+static int lisp_builtin_values(lisp_eval_env_t * env,
+			       lisp_cell_t     * stack)
 {
   REQUIRE(LISP_IS_INTEGER(stack));
   lisp_integer_t nargs = stack->data.integer;
@@ -35,3 +35,11 @@ int lisp_builtin_values(lisp_eval_env_t * env,
   env->n_values = nargs;
   return LISP_OK;
 }
+
+int lisp_make_func_values(lisp_vm_t * vm, 
+			  lisp_cell_t * cell)
+{
+  /* @todo make arguments */
+  return lisp_make_builtin_lambda(vm, cell, 0, NULL, lisp_builtin_values);
+}
+

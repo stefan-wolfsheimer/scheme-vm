@@ -19,10 +19,6 @@ static int _lisp_register_cons_type(lisp_vm_t         * vm,
 				    lisp_char_t       * name,
 				    lisp_type_id_t      new_type_id);
 
-#if 0
-static void _destruct_lambda(lisp_vm_t * vm,
-                             void      * ptr);
-#endif
 static void _destruct_symbol(lisp_vm_t * vm, void * ptr);
 
 static int _construct_symbol(void       * target,
@@ -132,7 +128,7 @@ int _lisp_init_types(lisp_vm_t * vm)
 
   err |= _lisp_register_object_type(vm, 
 				    "LAMBDA", 
-				    _destruct_symbol,
+				    NULL,
 				    LISP_TID_LAMBDA);
 
   err |= _lisp_register_object_type(vm,
@@ -214,32 +210,6 @@ static void _destruct_string(lisp_vm_t * vm, void * ptr)
   }
   FREE_OBJECT(ptr);
 }
-
-
-/*****************************************************************************
- * 
- * lambda
- * 
- *****************************************************************************/
-/* @todo move it to other c file */
-#if 0
-static void _destruct_lambda(lisp_vm_t * vm,
-                             void      * ptr)
-{
-  lisp_cell_t * data = 
-    (lisp_cell_t*)
-    (((char*)ptr) + 
-     sizeof(lisp_lambda_t) + 
-     ((lisp_lambda_t*)ptr)->instr_size * sizeof(lisp_instr_t));
-  lisp_size_t n = ((lisp_lambda_t*)ptr)->data_size;
-  lisp_size_t i;
-  for(i = 0; i < n; i++) 
-  {
-    lisp_unset_object(vm, &data[i]);
-  }
-  FREE_OBJECT(ptr);
-}
-#endif
 
 /*****************************************************************************
  * 

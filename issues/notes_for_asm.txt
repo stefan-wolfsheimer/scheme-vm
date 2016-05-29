@@ -1,0 +1,107 @@
+/*  @todo implement excecution machine
+ *
+ ***********************************************************
+ * (lambda () 1)
+ *
+ * precondition: [&ret, 0 ]
+ *
+ * 1  PUSHD 1     ; [&ret, 0, 1]
+ * 2  RET         ; [1] SHIFT(2+0), JUMP(&ret)
+ *
+ * optimized:
+ * 1  SHIFT 3
+ * 2  PUSHD 1
+ *
+ ***********************************************************
+ * (lambda () (+ 1 2))
+ *
+ * precondition:  [&ret, 0 ]
+ *
+ * 1 PUSHD 1    ; [&ret, 0, 1 ]
+ * 2 PUSHD 2    ; [&ret, 0, 1, 2 ]
+ * 3 #+    2    ; [&ret, 0, 3 ]
+ * 4 RET        ; [3], SHIFT(2+0), JUMP(&ret)
+ *
+ ***********************************************************
+ * (lambda (x) (+ x 1))
+ *
+ * precondition: [&ret, y, 1]
+ *                        |
+ *                       arg
+ * 1 PUSHA 0         ; [&ret, y, 1, y]
+ * 2 PUSHD 1         ; [&ret, y, 1, y, 1]
+ * 3 #+    2         ; [&ret, y, 1, y + 1 ]
+ * 4 RET             ; [y+1], SHIFT(2+1), JUMP(&ret)
+ *
+ ***********************************************************
+ * (lambda () (+ (+ 1 2) (+ 3 4)))
+ *
+ * precondition: [&ret, 0]
+ *
+ * 1 PUSHD 1          ; [&ret, 0, 1]
+ * 2 PUSHD 2          ; [&ret, 0, 1,2]
+ * 3 #+    2          ; [&ret, 0, 3]
+ * 4 PUSHD 3          ; [&ret, 0, 3,3]
+ * 5 PUSHD 4          ; [&ret, 0, 3,3,4]
+ * 6 #+    2          ; [&ret, 0, 3,7]
+ * 7 #+    2          ; [&ret, 0, 10]
+ * 8 RET              ; [10], SHIFT(2+0), JUMP(&ret)
+ *                                    |
+ *                                 stack_top-1
+ ***********************************************************
+ * ( lambda () 
+ *   ( (lambda (x y) (+ x y)) 2 3) )
+ *
+ * precondition: [&c, &a, 0]
+ *
+ * main: 1  PUSHR &4        ; [&ret, 0, &6]
+ *       2  PUSHD 2         ; [&ret, 0, &6, 2]
+ *       3  PUSHD 3         ; [&ret, 0, &6, 2, 3]
+ *       4  PUSHN 2         ; [&ret, 0, &6, 2, 3, 2]  
+ *       5  CALL  &l1       ; 
+ *       6  RET             ; [5], SHIFT(2+0), JUMP(&ret)       
+ * l1:   7  PUSHS 3         ; [&ret, 0, &6, 2, 3, 2, 2]
+ *                          ; stack-top-3+1
+ *       8  PUSHS 3         ; [&ret, 0, &6, 2, 3, 2, 2, 3]
+         9  PUSHN 2         ; [&ret, 0, &6, 2, 3, 2, 2, 3, 2]
+ *       10 #+              ; [&ret, 0, &6, 2, 3, 2, 5]
+ *       11 RET             ; [&ret, 0, 5 ], SHIFT(2+2), JUMP(&6)
+ *                                                   |
+ *                                               stack_top-1
+ *                         
+ ********************************************************
+ * (lambda (x) (let ((a 1)
+ *                   (b 2)) 
+ *             (+ b x a 10)))
+ *
+ * precondition: [&ret, y]
+ *
+ * 1 PUSHR &???           ; [&ret, y, &?? ]
+ * 1 PUSHD 1              ; [&ret, y, &??, 1 ]
+ * 2 PUSHD 2              ; [&ret, y, &??, 2 ]
+ * 3 PUSHN 2              ; [&ret, y, &??, 2, 2]
+ * 4 #let                 ; [&ret,
+ *                             (#let,  2, &next))
+ * 2  PUSHD(1)             ->  [y, 1 ]
+ * 3  PUSHD(2)             ->  [y, 1, 2]
+ * 4  PUSHC(#+, 4)         -> ((#null, 1, &stop),
+ *                             (#let,  2, &next),
+ *                             (#+,    4, &next))
+ * 5  PUSHA(1)             ->  [y, 1, 2, 2]
+ * 6  PUSHA(4)             ->  [y, 1, 2, 2, y]
+ * 7  PUSHA(4)             ->  [y, 1, 2, 2, y, 1]
+ * 8  PUSHD(1)             ->  [y, 1, 2, 2, y, 1, 10]
+ * 9  EVAL                 ->  [y, 1, 2, 13+y]
+ *                            ((#null, 1, &stop),
+ *                             (#let,  2, &next),
+ * 10 EVAL                 ->  [y, 13+y]
+ *                            ((#null, 1, &stop))
+ * 11 RET                  ->  [13+y]
+ *                             pc:= &stop
+ *                             
+ ********************************************************
+ * (get-value (v n) #instr)
+ *
+ * 
+ * (lambda () (get-value (make-tuple 2 nil) 0)
+ */

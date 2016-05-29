@@ -1,39 +1,68 @@
 #include "util/unit_test.h"
 #include "util/xmalloc.h"
-#include "builtin/lisp_arithmetic.h"
+#include "builtin/builtin_arithmetic.h"
 #include "core/lisp_eval.h"
 
-static void test_plus(unit_test_t * tst)
+/* @todo move to separate generator module */
+static void make_integer_list(lisp_vm_t   * vm,
+			      lisp_cell_t * cell,
+			      lisp_size_t   n,
+			      const int   * values)
+{
+  lisp_cell_t * tmp = MALLOC(sizeof(lisp_cell_t) * n);
+  lisp_size_t i;
+  for(i = 0; i < n; i++) 
+  {
+    lisp_make_integer(&tmp[i], values[i]);
+  }
+  lisp_make_list_root(vm, cell, tmp, n);
+  FREE(tmp);
+}
+
+static void test_plus_empty(unit_test_t * tst)
 {
   memcheck_begin();
   lisp_vm_t       * vm = lisp_create_vm(&lisp_vm_default_param);
   lisp_eval_env_t * env = lisp_create_eval_env(vm);
-  lisp_cell_t stack[10];
-  lisp_make_integer(&stack[0], 0);
-  ASSERT_EQ_I(tst, lisp_builtin_plus(env, &stack[0]), LISP_OK);
+  lisp_cell_t       func_plus;
+  lisp_cell_t       args = lisp_nil;
+  ASSERT_EQ_I(tst, lisp_make_func_plus(vm, &func_plus), LISP_OK);
+  ASSERT(tst,      LISP_IS_LAMBDA(&func_plus));
+  ASSERT_EQ_I(tst, lisp_eval_lambda(env,
+				    LISP_AS(&func_plus, lisp_lambda_t),
+				    &args),
+	      LISP_OK);
+  ASSERT_EQ_U(tst, env->n_values, 1u);
   ASSERT(tst, LISP_IS_INTEGER(env->values));
-  ASSERT_EQ_I(tst, env->values->data.integer, 0);
+  ASSERT_EQ_I(tst, env->values->data.integer, 0);   
+  ASSERT_EQ_I(tst, lisp_unset_object(vm, &func_plus), LISP_OK);
 
-  lisp_make_integer(&stack[0], 1);
-  lisp_make_integer(&stack[1], 1);
-  ASSERT_EQ_I(tst, lisp_builtin_plus(env, &stack[0]), LISP_OK);
+  lisp_free_eval_env(env);
+  lisp_free_vm(vm);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
+}
+
+static void test_plus_int_int(unit_test_t * tst)
+{
+  memcheck_begin();
+  lisp_vm_t       * vm = lisp_create_vm(&lisp_vm_default_param);
+  lisp_eval_env_t * env = lisp_create_eval_env(vm);
+  lisp_cell_t       func_plus;
+  lisp_cell_t       args;
+  const int         values[2] = { 1, 2};
+  make_integer_list(vm, &args, 2, values);
+  ASSERT_EQ_I(tst, lisp_make_func_plus(vm, &func_plus), LISP_OK);
+  ASSERT(tst,      LISP_IS_LAMBDA(&func_plus));
+  ASSERT_EQ_I(tst, lisp_eval_lambda(env,
+				    LISP_AS(&func_plus, lisp_lambda_t),
+				    &args),
+	      LISP_OK);
+  ASSERT_EQ_U(tst, env->n_values, 1u);
   ASSERT(tst, LISP_IS_INTEGER(env->values));
-  ASSERT_EQ_I(tst, env->values->data.integer, 1);
+  ASSERT_EQ_I(tst, env->values->data.integer, 3);   
+  ASSERT_EQ_I(tst, lisp_unset_object(vm, &func_plus), LISP_OK);
 
-  lisp_make_integer(&stack[0], 3);
-  lisp_make_integer(&stack[1], 1);
-  lisp_make_integer(&stack[2], 2);
-  lisp_make_integer(&stack[3], 3);
-  ASSERT_EQ_I(tst, lisp_builtin_plus(env, &stack[0]), LISP_OK);
-  ASSERT(tst, LISP_IS_INTEGER(env->values));
-  ASSERT_EQ_I(tst, env->values->data.integer, 6);
-
-  lisp_make_integer(&stack[0], 3);
-  lisp_make_integer(&stack[1], 1);
-  stack[2] = lisp_nil;
-  lisp_make_integer(&stack[3], 3);
-  ASSERT_EQ_I(tst, lisp_builtin_plus(env, &stack[0]), LISP_TYPE_ERROR);
-  /*@todo test if target is proper exception */
   lisp_free_eval_env(env);
   lisp_free_vm(vm);
   ASSERT_MEMCHECK(tst);
@@ -44,5 +73,6 @@ static void test_plus(unit_test_t * tst)
 void test_builtin_arithmetic(unit_context_t * ctx)
 {
   unit_suite_t * suite = unit_create_suite(ctx, "builtin_arithmetic");
-  TEST(suite, test_plus);
+  TEST(suite, test_plus_empty);
+  TEST(suite, test_plus_int_int);
 }

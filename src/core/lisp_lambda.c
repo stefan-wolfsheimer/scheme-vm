@@ -1,5 +1,6 @@
 #include "lisp_vm.h"
-#include "lisp_asm.h"
+#include "util/xmalloc.h"
+#include "core/lisp_eval.h"
 #include <string.h>
 
 /*******************************************************************
@@ -14,15 +15,44 @@ int lisp_make_builtin_lambda(lisp_vm_t   * vm,
 			     lisp_cell_t * args,
 			     lisp_builtin_function_t  func)
 {
-  lisp_builtin_lambda_t * lambda = MALLOC_OBJECT(sizeof(lisp_builtin_lambda_t),
-						 1);
-  cell->type_id  = LISP_TID_BUILTIN_LAMBDA;
+  lisp_lambda_t * lambda = MALLOC_OBJECT(sizeof(lisp_lambda_t),
+					 1);
+  cell->type_id  = LISP_TID_LAMBDA;
   cell->data.ptr = lambda;
   lambda->func   = func;
   /* @todo alloc check */
   /* @todo arguments */
   return LISP_OK;
 }
+
+int lisp_make_builtin_form(lisp_vm_t                * vm,
+			   lisp_cell_t              * cell,
+			   lisp_size_t                args_size,
+			   lisp_cell_t              * args,
+			   lisp_builtin_function_t    func)
+{
+  lisp_lambda_t * lambda = MALLOC_OBJECT(sizeof(lisp_lambda_t),
+					 1);
+  cell->type_id  = LISP_TID_FORM;
+  cell->data.ptr = lambda;
+  lambda->func   = func;
+  return LISP_OK;
+}
+
+int lisp_make_builtin_c_str(lisp_vm_t                * vm,
+			    lisp_cell_t              * cell,
+			    lisp_size_t                args_size,
+			    const char              ** args,
+			    lisp_builtin_function_t    func)
+{
+  lisp_lambda_t * lambda = MALLOC_OBJECT(sizeof(lisp_lambda_t),
+					 1);
+  cell->type_id  = LISP_TID_FORM;
+  cell->data.ptr = lambda;
+  lambda->func   = func;
+  return LISP_OK;
+}
+
 
 int lisp_make_builtin_lambda_opt_args(lisp_vm_t   * vm,
 				      lisp_cell_t * cell,
@@ -40,83 +70,116 @@ int lisp_make_builtin_lambda_opt_args(lisp_vm_t   * vm,
   return LISP_OK;
 }
 
-
-
-/*******************************************************
-@todo refactor rest
-********************************************************/
-int lisp_make_lambda_instr(lisp_vm_t          * vm, 
-                           lisp_cell_t        * cell, 
-                           lisp_size_t          args_size,
-                           lisp_cell_t        * data,
-                           lisp_size_t          data_size,
-                           const lisp_instr_t * instr)
+int lisp_eval_lambda(lisp_eval_env_t    * env,
+		     lisp_lambda_t      * lambda,
+		     lisp_cell_t        * rest)
 {
-  lisp_size_t instr_size = 0;
-  const lisp_instr_t * itr = instr;
-  while(*itr != LISP_END) 
+  /* @todo: define argument signature class
+     @todo: eval instead of copy */
+  const lisp_cell_t * current = rest;
+  lisp_integer_t n = 0;
+  lisp_size_t i;
+  for(i = 0; i < env->n_values; i++) 
   {
-    instr_size++;
-    itr++;
+    lisp_unset_object_root(env->vm, &env->values[i]);
   }
-  return lisp_make_lambda_n_instr(vm, 
-                                  cell,
-                                  args_size,
-                                  data,
-                                  data_size, 
-                                  instr,
-                                  instr_size);
-}
-
-int lisp_make_lambda_n_instr(lisp_vm_t          * vm, 
-                             lisp_cell_t        * cell, 
-                             lisp_size_t          args_size,
-                             lisp_cell_t        * data,
-                             lisp_size_t          data_size,
-                             const lisp_instr_t * instr,
-                             lisp_size_t          n_instr)
-{
-  lisp_lambda_t * lambda = MALLOC_OBJECT(sizeof(lisp_lambda_t) + 
-                                         sizeof(lisp_instr_t) * n_instr + 
-                                         sizeof(lisp_cell_t)  * data_size,
-                                         1);
-  if(!lambda) 
+  env->n_values = 0;
+  while(!LISP_IS_NIL(current)) 
   {
-    return 1; /*@todo correct return code for allocation error */
+    if(LISP_IS_CONS_OBJECT(current)) 
+    {
+      n++;
+      current = &LISP_AS(current, lisp_cons_t)->cdr;
+    }
+    else 
+    {
+      /* @todo error */
+    }
   }
-  lambda->args_size   = args_size;
-  lambda->instr_size  = n_instr;
-  lambda->data_size   = data_size;
-  cell->data.ptr      = lambda;
-  cell->type_id       = LISP_TID_LAMBDA;
-  memcpy((void*) &lambda[1], instr, sizeof(lisp_instr_t) * n_instr);
-  return lisp_copy_n_objects_as_root( vm, LISP_LAMBDA_DATA(lambda), data, data_size);
+  lisp_cell_t * stack_frame;
+  stack_frame = MALLOC(sizeof(lisp_cell_t) * (n+1));
+  lisp_make_integer(stack_frame, n);
+  n = 1;
+  current = rest;
+  while(!LISP_IS_NIL(current)) 
+  {
+    if(LISP_IS_CONS_OBJECT(current)) 
+    {
+      /* @todo error handling */
+      lisp_eval(env, &LISP_AS(current, lisp_cons_t)->car);
+      lisp_copy_object_as_root(env->vm, &stack_frame[n], env->values);
+      current = &LISP_AS(current, lisp_cons_t)->cdr;
+      n++;
+    }
+    else 
+    {
+      /* @todo error */
+    }
+  }
+  lambda->func(env, 
+	       stack_frame);
+  for(i = 0; i < n; i++) 
+  {
+    lisp_unset_object_root(env->vm, &stack_frame[i]);
+  }
+  FREE(stack_frame);
+  return LISP_OK;
 }
 
-
-/* stacks: 
-   [] operand stack of lisp_cell_t
-   () call stack of    lisp_call_t
-   I,J,K: addresses 
-          within the current frame (instruction addr or data)
-   data{I}: Ith data constant  of current frame
-   N,M:     numbers
-
-   P,Q:     opt code
-   instruction set: 
-   PUSHD(I):       pushes the constant data{I} on stack
-                   [] -> [data{I} ], stack_top -> stack_top + 1
-                 
-   PUSHC(P, N):    pushes an operation onto the call stack
-                   N: number of arguments
-                   () -> ((P, N, &next))
-   
-*/
-
-int lisp_lambda_eval(lisp_vm_t           * thr,
-                     const lisp_lambda_t * lambda,
-                     lisp_size_t           nargs)
+int lisp_eval_form(lisp_eval_env_t    * env,
+		   lisp_lambda_t      * lambda,
+		   lisp_cell_t        * rest)
 {
-
-  return 0;
+  /* @todo: define argument signature class
+     @todo: eval instead of copy */
+  const lisp_cell_t * current = rest;
+  lisp_integer_t n = 0;
+  lisp_size_t i;
+  for(i = 0; i < env->n_values; i++) 
+  {
+    lisp_unset_object_root(env->vm, &env->values[i]);
+  }
+  env->n_values = 0;
+  while(!LISP_IS_NIL(current)) 
+  {
+    if(LISP_IS_CONS_OBJECT(current)) 
+    {
+      n++;
+      current = &LISP_AS(current, lisp_cons_t)->cdr;
+    }
+    else 
+    {
+      /* @todo error */
+    }
+  }
+  lisp_cell_t * stack_frame;
+  stack_frame = MALLOC(sizeof(lisp_cell_t) * (n+1));
+  lisp_make_integer(stack_frame, n);
+  n = 1;
+  current = rest;
+  while(!LISP_IS_NIL(current)) 
+  {
+    if(LISP_IS_CONS_OBJECT(current)) 
+    {
+      /* @todo error handling */
+      lisp_copy_object_as_root(env->vm, 
+			       &stack_frame[n], 
+			       &LISP_AS(current, lisp_cons_t)->car);
+      current = &LISP_AS(current, lisp_cons_t)->cdr;
+      n++;
+    }
+    else 
+    {
+      /* @todo error */
+    }
+  }
+  lambda->func(env, 
+	       stack_frame);
+  for(i = 0; i < n; i++) 
+  {
+    lisp_unset_object_root(env->vm, &stack_frame[i]);
+  }
+  FREE(stack_frame);
+  return LISP_OK;
 }
+
