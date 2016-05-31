@@ -186,7 +186,10 @@ int lisp_eval_lambda(lisp_eval_env_t    * env,
 int lisp_eval_form(lisp_eval_env_t    * env,
 		   lisp_lambda_t      * lambda,
 		   lisp_cell_t        * rest);
-		     
+
+int lisp_lambda_compile(lisp_eval_env_t * env,
+			lisp_cell_t     * cell,
+			lisp_cell_t     * expr);
 
 
 /* @todo refactor */
@@ -245,27 +248,6 @@ int lisp_string_cmp(const lisp_string_t * a, const lisp_string_t * b);
 int lisp_string_cmp_c_string(const lisp_string_t * a, const char * cstr);
 
 
-/*****************************************************************************
- * 
- * symbol
- * 
- *****************************************************************************/
-int lisp_make_symbol(lisp_vm_t         * vm,
-		     lisp_cell_t       * cell,
-		     const lisp_char_t * cstr);
-
-int lisp_symbol_set(lisp_vm_t         * vm,
-		    lisp_symbol_t     * symbol,
-		    const lisp_cell_t * obj);
-
-/** 
- * get value of symbol */
-lisp_cell_t * lisp_symbol_get(lisp_vm_t           * vm,
-			      const lisp_symbol_t * symbol);
-
-int lisp_symbol_unset(lisp_vm_t * vm,
-		      lisp_symbol_t * symbol);
-		      
 /*****************************************************************
  *
  * cons objects

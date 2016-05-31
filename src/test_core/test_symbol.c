@@ -1,7 +1,9 @@
+#include "lisp_vm_check.h"
 #include "util/unit_test.h"
 #include "util/xmalloc.h"
 #include "core/lisp_vm.h" 
-#include "lisp_vm_check.h"
+#include "core/lisp_symbol.h" 
+
 
 /* @todo test copy symbol object */
 static void test_create_symbol(unit_test_t * tst) 

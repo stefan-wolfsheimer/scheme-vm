@@ -2,6 +2,7 @@
 #include "util/assertion.h"
 #include "core/lisp_vm.h"
 #include "core/lisp_eval.h"
+#include "core/lisp_symbol.h"
 
 static int lisp_builtin_define(lisp_eval_env_t * env,
 			       lisp_cell_t     * stack)

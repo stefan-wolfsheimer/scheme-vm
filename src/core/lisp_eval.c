@@ -1,6 +1,7 @@
 #include "lisp_eval.h"
 #include "util/xmalloc.h"
 #include "util/assertion.h"
+#include "core/lisp_symbol.h"
 #include "config.h"
 
 lisp_eval_env_t * lisp_create_eval_env(lisp_vm_t * vm)

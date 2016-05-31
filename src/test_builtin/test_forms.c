@@ -3,6 +3,7 @@
 #include "builtin/builtin_forms.h"
 #include "core/lisp_vm.h"
 #include "core/lisp_eval.h"
+#include "core/lisp_symbol.h"
 
 static void test_define_atom(unit_test_t * tst)
 {

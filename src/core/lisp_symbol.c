@@ -1,5 +1,7 @@
 #include "lisp_vm.h"
 #include "util/murmur_hash3.h"
+#include "core/lisp_symbol.h"
+
 #include <string.h>
 
 int lisp_make_symbol(lisp_vm_t         * vm,
@@ -91,5 +93,45 @@ int lisp_symbol_unset(lisp_vm_t * vm,
     return LISP_OK;
   }
 }
+
+/*****************************************************************************
+ * 
+ * symbols
+ * 
+ *****************************************************************************/
+void lisp_symbol_destruct(lisp_vm_t * vm, void * ptr)
+{
+  if(LISP_IS_NIL(& ((lisp_symbol_t*)ptr)->binding))
+  {
+    hash_table_remove_func(&vm->symbols,
+			   (char*)ptr + sizeof(lisp_symbol_t),
+			   ((lisp_symbol_t*)ptr)->code,
+			   vm->symbols.eq_function);
+  }
+}
+
+int lisp_symbol_construct(void        * target,
+			  const void  * src,
+			  size_t        size,
+			  void        * user_data)
+{
+  ((lisp_ref_count_t*) target)[0] = 0;
+  lisp_symbol_t * symbol = (lisp_symbol_t*) 
+    (((char*) target)  + sizeof(lisp_ref_count_t));
+  symbol->size = size - sizeof(lisp_ref_count_t) - sizeof(lisp_symbol_t) - 1;
+  strncpy( (char*) &symbol[1], (const char*)src, symbol->size);
+  ((char*) &symbol[1])[symbol->size] = '\0';
+  return 0;
+}
+
+int lisp_symbol_hash_eq(const void * a, const void * b)
+{
+  return ! strcmp(
+                  ( (const char*)a + 
+                    sizeof(lisp_ref_count_t) + sizeof(lisp_symbol_t)),
+                  (const char*)b);
+}
+
+
 
 		   

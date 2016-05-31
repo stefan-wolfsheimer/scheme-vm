@@ -3,6 +3,7 @@
 #include "util/hash_table.h"
 #include "util/xmalloc.h"
 #include "util/murmur_hash3.h"
+#include "core/lisp_symbol.h"
 #include <string.h>
 
 const lisp_cell_t lisp_nil = 
@@ -18,15 +19,6 @@ static int _lisp_register_object_type(lisp_vm_t         * vm,
 static int _lisp_register_cons_type(lisp_vm_t         * vm,
 				    lisp_char_t       * name,
 				    lisp_type_id_t      new_type_id);
-
-static void _destruct_symbol(lisp_vm_t * vm, void * ptr);
-
-static int _construct_symbol(void       * target,
-                             const void * src,
-                             size_t       size,
-                             void       * user_data);
-
-static int _symbol_eq(const void * a, const void * b);
 
 static void _destruct_string(lisp_vm_t * vm, void * ptr);
 
@@ -120,10 +112,9 @@ int _lisp_init_types(lisp_vm_t * vm)
 {
   int err = 0;
   /* @todo cleanup on failure (name is copied) */
-  /* @todo move to lisp_type.c */
   err |= _lisp_register_object_type(vm, 
 				    "SYMBOL", 
-				    _destruct_symbol,
+				    lisp_symbol_destruct,
 				    LISP_TID_SYMBOL);
 
   err |= _lisp_register_object_type(vm, 
@@ -145,9 +136,9 @@ int _lisp_init_types(lisp_vm_t * vm)
   }
   /* init symbol table */
   if(hash_table_init(&vm->symbols,
-		     _symbol_eq,
+		     lisp_symbol_hash_eq,
 		     NULL, 
-		     _construct_symbol,
+		     lisp_symbol_construct,
 		     NULL,  255))
   {
     return LISP_ALLOC_ERROR;
@@ -156,45 +147,6 @@ int _lisp_init_types(lisp_vm_t * vm)
   return LISP_OK;
 }
 
-/*****************************************************************************
- * 
- * symbols
- * 
- *****************************************************************************/
-static void _destruct_symbol(lisp_vm_t * vm, void * ptr)
-{
-  if(LISP_IS_NIL(& ((lisp_symbol_t*)ptr)->binding))
-  {
-    hash_table_remove_func(&vm->symbols,
-			   (char*)ptr + sizeof(lisp_symbol_t),
-			   ((lisp_symbol_t*)ptr)->code,
-			   vm->symbols.eq_function);
-  }
-}
-
-static int _construct_symbol(void        * target,
-                             const void  * src,
-                             size_t        size,
-                             void        * user_data)
-{
-  ((lisp_ref_count_t*) target)[0] = 0;
-  lisp_symbol_t * symbol = (lisp_symbol_t*) 
-    (((char*) target)  + sizeof(lisp_ref_count_t));
-  symbol->size = size - sizeof(lisp_ref_count_t) - sizeof(lisp_symbol_t) - 1;
-  strncpy( (char*) &symbol[1], (const char*)src, symbol->size);
-  ((char*) &symbol[1])[symbol->size] = '\0';
-  return 0;
-}
-
-
-
-static int _symbol_eq(const void * a, const void * b)
-{
-  return ! strcmp(
-                  ( (const char*)a + 
-                    sizeof(lisp_ref_count_t) + sizeof(lisp_symbol_t)),
-                  (const char*)b);
-}
 
 
 /*****************************************************************************

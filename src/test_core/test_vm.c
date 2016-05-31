@@ -5,12 +5,6 @@
 #include "lisp_vm_check.h"
 #include <stdio.h>
 
-static void test_type_ids(unit_test_t * tst)
-{
-  //  printf("%d\n", (0x00 ^ 0xff));
-  //ASSERT_FALSE(tst, LISP_IS_ATOM_TID(0x00));
-}
-
 static void test_alloc_object(unit_test_t * tst)
 {
   memcheck_begin();
@@ -50,7 +44,6 @@ static void test_alloc_vm_fail(unit_test_t * tst)
 
   for(i = 0; i < expected_mallocs; i++) 
   {
-    //memchecker_t * memcheck = memcheck_begin();
     memcheck_begin();
     for(j = 0; j < i; j++) 
     {
@@ -59,10 +52,6 @@ static void test_alloc_vm_fail(unit_test_t * tst)
     memcheck_expected_alloc(0);
     vm = lisp_create_vm(&lisp_vm_default_param);
     ASSERT_EQ_PTR(tst, vm, NULL);
-    //if(i + 1 == expected_mallocs) 
-    //{
-    //ASSERT_EQ_PTR(tst, memcheck->next_mock, NULL);
-    //}
     ASSERT_MEMCHECK(tst);
     memcheck_end();
   }
@@ -438,10 +427,9 @@ static void test_unset_root_fail(unit_test_t * tst)
 void test_vm(unit_context_t * ctx)
 {
   unit_suite_t * suite = unit_create_suite(ctx, "vm");
-  TEST(suite, test_type_ids);
   TEST(suite, test_alloc_object);
   TEST(suite, test_alloc_object_fail);
-  TEST(suite, test_alloc_vm_fail); 
+  TEST(suite, test_alloc_vm_fail);
   TEST(suite, test_register_type);
   TEST(suite, test_object_without_explicit_destructor);
   TEST(suite, test_copy_object);

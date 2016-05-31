@@ -39,14 +39,6 @@ typedef struct lisp_cons_t
   lisp_cell_t cdr;
 } lisp_cons_t;
 
-typedef struct lisp_symbol_t 
-{
-  lisp_size_t   size;
-  uint32_t      code;
-  lisp_cell_t   binding;
-} lisp_symbol_t;
-
-
 typedef struct lisp_root_cons_t
 {
   lisp_cons_t      * cons;

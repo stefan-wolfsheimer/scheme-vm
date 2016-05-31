@@ -974,6 +974,8 @@ static void test_make_list_atoms(unit_test_t * tst)
   memcheck_end();
 }
 
+/* @todo make independent of test_cons.c */
+#include "core/lisp_symbol.h"
 static void test_make_list_symbols(unit_test_t * tst)
 {
   memcheck_begin();

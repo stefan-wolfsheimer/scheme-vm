@@ -1,8 +1,9 @@
+#include "lisp_vm_check.h"
 #include "util/unit_test.h"
 #include "util/xmalloc.h"
 #include "util/mock.h"
 #include "core/lisp_eval.h" 
-#include "lisp_vm_check.h"
+#include "core/lisp_symbol.h"
 
 static void test_create_eval_env(unit_test_t * tst) 
 {
