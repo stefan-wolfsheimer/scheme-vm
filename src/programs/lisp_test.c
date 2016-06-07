@@ -37,6 +37,7 @@ int main(int argc, const char ** argv)
   test_cons(ctx);
   test_symbol(ctx);
   test_string(ctx);
+  test_lambda(ctx);
   test_eval(ctx);
 
   test_builtin_forms(ctx);

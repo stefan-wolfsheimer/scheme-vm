@@ -1,5 +1,6 @@
 #include "lisp_vm.h"
 #include "util/murmur_hash3.h"
+#include "util/assertion.h"
 #include "core/lisp_symbol.h"
 
 #include <string.h>
@@ -29,13 +30,84 @@ int lisp_make_symbol(lisp_vm_t         * vm,
   ref[0]++;
   cell->type_id  =  LISP_TID_SYMBOL;
   cell->data.ptr = &ref[1];
-  ((lisp_symbol_t*)cell->data.ptr)->code = code;
+  ((lisp_symbol_t*)&ref[1])->code = code;
   if(inserted) 
   {
+    ((lisp_symbol_t*)&ref[1])->first_closure = NULL;
+    ((lisp_symbol_t*)&ref[1])->last_closure = NULL;
+    /* @todo remove binding */
     ((lisp_symbol_t*)cell->data.ptr)->binding = lisp_nil;
   }
   return LISP_OK;
 }
+
+void lisp_init_closure(lisp_vm_t             * vm,
+		       lisp_closure_t * closure)
+{
+  closure->is_attached = 0;
+  closure->next = NULL;
+  closure->prev = NULL;
+  closure->symbol = NULL;
+  /* @todo init binding */
+}
+
+void lisp_init_closure_append(lisp_vm_t      * vm,
+			      lisp_closure_t * closure,
+			      lisp_symbol_t  * symbol)
+{
+  closure->is_attached = 1;
+  closure->next = NULL;
+  closure->prev = symbol->last_closure;
+  closure->symbol = symbol;
+    /* @todo init binding */
+  LISP_OBJECT_REFCOUNT(symbol)++;
+  if(closure->prev) 
+  {
+    closure->prev->next =  closure;
+    symbol->last_closure = closure;
+  }
+  else 
+  {
+    symbol->first_closure = closure;
+    symbol->last_closure  = closure;
+  }
+}
+
+int lisp_symbol_release_closure(lisp_vm_t      * vm,
+				lisp_closure_t * closure)
+{
+  REQUIRE_NEQ_PTR(closure, NULL);
+  REQUIRE_NEQ_PTR(closure->symbol, NULL);
+  REQUIRE_GT_U(LISP_OBJECT_REFCOUNT(closure->symbol), 0u);
+  if(closure->prev != NULL) 
+  {
+    closure->prev->next = closure->next;
+  }
+  else 
+  {
+    closure->symbol->first_closure = closure->next;
+  }
+  if(closure->next != NULL) 
+  {
+    closure->next->prev = closure->prev;
+  }
+  else 
+  {
+    closure->symbol->last_closure = closure->prev;
+  }
+  /* @todo direct removal instead of using lisp_unset_object 
+           is more efficient */
+  lisp_cell_t tmp;
+  tmp.type_id = LISP_TID_SYMBOL;
+  tmp.data.ptr = closure->symbol;
+  lisp_unset_object(vm, &tmp);
+
+  closure->is_attached = 0;
+  closure->symbol = NULL;
+  return LISP_OK;
+}
+
+
 
 int lisp_symbol_set(lisp_vm_t         * vm,
 		     lisp_symbol_t     * symbol,

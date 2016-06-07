@@ -6,7 +6,6 @@
 typedef size_t         lisp_size_t;
 typedef char           lisp_char_t;
 typedef int            lisp_integer_t;
-typedef size_t         lisp_instr_t;
 typedef unsigned short lisp_type_id_t;
 typedef size_t         lisp_ref_count_t;
 
@@ -53,6 +52,9 @@ typedef struct lisp_eval_env_t
   lisp_cell_t * values;
   lisp_size_t   n_values;
   lisp_size_t   max_values;
+  lisp_cell_t * stack;
+  lisp_size_t   stack_top;
+  lisp_size_t   stack_size;
 } lisp_eval_env_t;
 
 typedef void(*lisp_destructor_t)(struct lisp_vm_t * vm, void * ptr);
@@ -73,6 +75,8 @@ typedef struct lisp_type_t
 
 typedef struct lisp_lambda_t
 {
+  lisp_size_t instr_size;
+  lisp_size_t data_size;
   lisp_builtin_function_t  func;
 } lisp_lambda_t;
 
@@ -173,5 +177,6 @@ extern const lisp_cell_t lisp_nil;
 #define LISP_UNSUPPORTED 0x04
 #define LISP_UNDEFINED   0x05
 #define LISP_RANGE_ERROR 0x06
+#define LISP_COMPILATION_ERROR 0x07
 
 #endif

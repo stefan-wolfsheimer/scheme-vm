@@ -119,7 +119,7 @@ int _lisp_init_types(lisp_vm_t * vm)
 
   err |= _lisp_register_object_type(vm, 
 				    "LAMBDA", 
-				    NULL,
+				    lisp_lambda_destruct,
 				    LISP_TID_LAMBDA);
 
   err |= _lisp_register_object_type(vm,

@@ -181,17 +181,20 @@ int lisp_make_builtin_lambda_opt_args(lisp_vm_t   * vm,
 
 int lisp_eval_lambda(lisp_eval_env_t    * env,
 		     lisp_lambda_t      * lambda,
-		     lisp_cell_t        * rest);
+		     const lisp_cell_t        * rest);
 
 int lisp_eval_form(lisp_eval_env_t    * env,
 		   lisp_lambda_t      * lambda,
 		   lisp_cell_t        * rest);
 
-int lisp_lambda_compile(lisp_eval_env_t * env,
-			lisp_cell_t     * cell,
-			lisp_cell_t     * expr);
+int lisp_lambda_compile(lisp_eval_env_t   * env,
+			lisp_cell_t       * cell,
+			const lisp_cell_t * expr);
 
 
+void lisp_lambda_destruct(lisp_vm_t * vm, void * ptr);
+
+#if 0
 /* @todo refactor */
 int lisp_make_lambda_instr(lisp_vm_t          * vm, 
                            lisp_cell_t        * cell, 
@@ -216,6 +219,7 @@ int lisp_create_lambda_n_instr(lisp_vm_t          * vm,
                                lisp_size_t          data_size,
                                lisp_size_t          instr_size,
                                const lisp_instr_t * instr);
+#endif
 
 /*****************************************************************************
  * 

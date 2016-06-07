@@ -44,6 +44,80 @@ static void test_create_symbol(unit_test_t * tst)
   memcheck_end();
 }
 
+static void test_symbol_init_closure(unit_test_t * tst) 
+{
+  memcheck_begin();
+  lisp_vm_t * vm = lisp_create_vm(&lisp_vm_default_param);
+  lisp_closure_t closure;
+  lisp_init_closure(vm, &closure);
+  ASSERT_EQ_PTR(tst, closure.next, NULL);
+  ASSERT_EQ_PTR(tst, closure.prev, NULL);
+  ASSERT_EQ_PTR(tst, closure.symbol, NULL);
+  ASSERT_FALSE(tst,  closure.is_attached);
+
+  lisp_free_vm(vm);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
+
+}
+static void test_symbol_init_closure_append(unit_test_t * tst) 
+{
+  memcheck_begin();
+  lisp_vm_t * vm = lisp_create_vm(&lisp_vm_default_param);
+  lisp_cell_t symb;
+  lisp_closure_t closure[3];
+  lisp_make_symbol(vm, &symb, "abc");
+  ASSERT_EQ_U(tst, LISP_REFCOUNT(&symb), 1);
+  lisp_init_closure_append(vm, &closure[0], LISP_AS(&symb, lisp_symbol_t));
+  ASSERT(tst,        closure[0].is_attached);
+  ASSERT_EQ_PTR(tst, closure[0].next,   NULL);
+  ASSERT_EQ_PTR(tst, closure[0].prev,   NULL);
+  ASSERT_EQ_PTR(tst, closure[0].symbol, LISP_AS(&symb, lisp_symbol_t));
+  ASSERT_EQ_U(tst,   LISP_REFCOUNT(&symb), 2);
+  ASSERT_EQ_PTR(tst, &closure[0], LISP_AS(&symb, lisp_symbol_t)->first_closure);
+  ASSERT_EQ_PTR(tst, &closure[0], LISP_AS(&symb, lisp_symbol_t)->last_closure);
+
+  lisp_init_closure_append(vm, &closure[1], LISP_AS(&symb, lisp_symbol_t));
+  ASSERT(tst,        closure[1].is_attached);
+  ASSERT_EQ_PTR(tst, closure[1].symbol, LISP_AS(&symb, lisp_symbol_t));
+  ASSERT_EQ_PTR(tst, closure[0].next,   &closure[1]);
+  ASSERT_EQ_PTR(tst, closure[0].prev,   NULL);
+  ASSERT_EQ_PTR(tst, closure[1].next,   NULL);
+  ASSERT_EQ_PTR(tst, closure[1].prev,   &closure[0]);
+  ASSERT_EQ_U(tst,   LISP_REFCOUNT(&symb), 3);
+  ASSERT_EQ_PTR(tst, &closure[0], LISP_AS(&symb, lisp_symbol_t)->first_closure);
+  ASSERT_EQ_PTR(tst, &closure[1], LISP_AS(&symb, lisp_symbol_t)->last_closure);
+
+
+  lisp_init_closure_append(vm, &closure[2], LISP_AS(&symb, lisp_symbol_t));
+  ASSERT(tst,        closure[2].is_attached);
+  ASSERT_EQ_PTR(tst, closure[2].symbol, LISP_AS(&symb, lisp_symbol_t));
+  ASSERT_EQ_PTR(tst, closure[0].next,   &closure[1]);
+  ASSERT_EQ_PTR(tst, closure[0].prev,   NULL);
+  ASSERT_EQ_PTR(tst, closure[1].next,   &closure[2]);
+  ASSERT_EQ_PTR(tst, closure[1].prev,   &closure[0]);
+  ASSERT_EQ_PTR(tst, closure[2].next,   NULL);
+  ASSERT_EQ_PTR(tst, closure[2].prev,   &closure[1]);
+  ASSERT_EQ_U(tst,   LISP_REFCOUNT(&symb), 4);
+  ASSERT_EQ_PTR(tst, &closure[0], LISP_AS(&symb, lisp_symbol_t)->first_closure);
+  ASSERT_EQ_PTR(tst, &closure[2], LISP_AS(&symb, lisp_symbol_t)->last_closure);
+
+  ASSERT_EQ_U(tst, HASH_TABLE_SIZE(&vm->symbols), 1);
+  lisp_unset_object(vm, &symb);
+  ASSERT_EQ_U(tst, HASH_TABLE_SIZE(&vm->symbols), 1);
+  
+  ASSERT_EQ_I(tst, lisp_symbol_release_closure(vm, &closure[0]), LISP_OK);
+  ASSERT_EQ_I(tst, lisp_symbol_release_closure(vm, &closure[1]), LISP_OK);
+  ASSERT_EQ_I(tst, lisp_symbol_release_closure(vm, &closure[2]), LISP_OK);
+  //ASSERT_EQ_I(tst, lisp_symbol_release_closure(vm, &closure[3]), LISP_OK);
+
+  ASSERT_EQ_U(tst, HASH_TABLE_SIZE(&vm->symbols), 0);
+
+  lisp_free_vm(vm);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
+}
+
 static void test_symbol_set(unit_test_t * tst) 
 {
   memcheck_begin();
@@ -161,6 +235,8 @@ void test_symbol(unit_context_t * ctx)
 {
   unit_suite_t * suite = unit_create_suite(ctx, "symbol");
   TEST(suite, test_create_symbol);
+  TEST(suite, test_symbol_init_closure);
+  TEST(suite, test_symbol_init_closure_append);
   TEST(suite, test_symbol_set);
   TEST(suite, test_symbol_unset);
   TEST(suite, test_symbol_copy);

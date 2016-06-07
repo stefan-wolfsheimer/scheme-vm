@@ -64,6 +64,8 @@ int lisp_register_builtin_function(lisp_eval_env_t        * env,
   cell.type_id = LISP_TID_LAMBDA;
   cell.data.ptr = lambda;
   lambda->func = func;
+  lambda->data_size = 0;
+  lambda->instr_size = 0;
   lisp_make_symbol(env->vm, &symbol, name);
   lisp_symbol_set(env->vm, symbol.data.ptr, &cell);
   return LISP_OK;
