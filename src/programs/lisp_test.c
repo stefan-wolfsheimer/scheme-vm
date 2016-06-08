@@ -7,15 +7,13 @@ void test_xmalloc(unit_context_t * ctx);
 void test_xstring(unit_context_t * ctx);
 void test_assertion(unit_context_t * ctx);
 void test_hash_table(unit_context_t * ctx);
-void test_vm(unit_context_t * ctx);
 
+void test_vm(unit_context_t * ctx);
+void test_exception(unit_context_t * ctx);
 void test_cons(unit_context_t * ctx);
 void test_symbol(unit_context_t * ctx);
 void test_string(unit_context_t * ctx);
 void test_eval(unit_context_t * ctx);
-
-void test_asm(unit_context_t * ctx);
-void test_parser(unit_context_t * ctx);
 void test_lambda(unit_context_t * ctx);
 
 
@@ -34,6 +32,7 @@ int main(int argc, const char ** argv)
   test_hash_table(ctx);
 
   test_vm(ctx);
+  test_exception(ctx);
   test_cons(ctx);
   test_symbol(ctx);
   test_string(ctx);

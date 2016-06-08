@@ -4,6 +4,7 @@
 #include "util/xmalloc.h"
 #include "util/murmur_hash3.h"
 #include "core/lisp_symbol.h"
+#include "core/lisp_exception.h"
 #include <string.h>
 
 const lisp_cell_t lisp_nil = 
@@ -112,6 +113,10 @@ int _lisp_init_types(lisp_vm_t * vm)
 {
   int err = 0;
   /* @todo cleanup on failure (name is copied) */
+  err |= _lisp_register_object_type(vm,
+				    "EXCEPTION",
+				    lisp_exception_destruct,
+				    LISP_TID_EXCEPTION);
   err |= _lisp_register_object_type(vm, 
 				    "SYMBOL", 
 				    lisp_symbol_destruct,
@@ -130,6 +135,7 @@ int _lisp_init_types(lisp_vm_t * vm)
   err |= _lisp_register_cons_type(vm,
 				  "CONS",
 				  LISP_TID_CONS);
+
   if(err) 
   {
     return LISP_TYPE_ERROR;

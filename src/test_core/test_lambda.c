@@ -3,6 +3,7 @@
 #include "core/lisp_vm.h" 
 #include "core/lisp_eval.h" 
 #include "core/lisp_symbol.h"
+#include "core/lisp_exception.h"
 #include "lisp_vm_check.h"
 
 static void test_lambda_compile_atom(unit_test_t * tst)
@@ -84,18 +85,44 @@ static void test_lambda_compile_symbol(unit_test_t * tst)
   lisp_eval_env_t * env = lisp_create_eval_env(vm);
   lisp_cell_t       lambda;
   lisp_cell_t       symb_a;
+  lisp_cell_t       value;
+  lisp_make_integer(&value, 23);
   lisp_make_symbol(vm, &symb_a, "a");
-  ASSERT_EQ_I(tst, lisp_lambda_compile(env, &lambda, &symb_a), 
-	      LISP_OK);
-  /* @todo error undefined */
+  lisp_symbol_set(vm, LISP_AS(&symb_a, lisp_symbol_t), &value);
+  ASSERT_EQ_I(tst, lisp_lambda_compile(env, &lambda, &symb_a), LISP_OK);
+  lisp_unset_object(vm, &symb_a);
   ASSERT_EQ_I(tst, lisp_eval_lambda(env, 
 				    LISP_AS(&lambda, lisp_lambda_t),
 				    &lisp_nil), LISP_OK);
   ASSERT_EQ_U(tst, env->n_values, 1u);
-  /*@todo exception */
-  //ASSERT(tst, lisp_eq_object(env->values, &symb_a));
-  lisp_unset_object(vm, &symb_a);
+  ASSERT(tst,      lisp_eq_object(env->values, &value));
   lisp_unset_object(vm, &lambda);
+  lisp_free_eval_env(env);
+  lisp_free_vm(vm);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
+}
+
+static void test_lambda_compile_symbol_undefined(unit_test_t * tst)
+{
+  memcheck_begin();
+  lisp_vm_t       * vm = lisp_create_vm(&lisp_vm_default_param);
+  lisp_eval_env_t * env = lisp_create_eval_env(vm);
+  lisp_cell_t       lambda;
+  lisp_cell_t       symb_a;
+  lisp_make_symbol(vm, &symb_a, "a");
+  ASSERT_EQ_I(tst, lisp_lambda_compile(env, &lambda, &symb_a), 
+	      LISP_OK);
+  lisp_unset_object(vm, &symb_a);
+  ASSERT_EQ_I(tst, lisp_eval_lambda(env, 
+				    LISP_AS(&lambda, lisp_lambda_t),
+				    &lisp_nil), LISP_UNDEFINED);
+  lisp_unset_object(vm, &lambda);
+  ASSERT_EQ_U(tst, env->n_values, 1u);
+  ASSERT(tst, LISP_IS_EXCEPTION(env->values));
+  ASSERT_EQ_I(tst, LISP_AS(env->values, lisp_exception_t)->error_code,
+	      LISP_UNDEFINED);
+  /* @todo run continuation when ready */
   lisp_free_eval_env(env);
   lisp_free_vm(vm);
   ASSERT_MEMCHECK(tst);
@@ -109,4 +136,5 @@ void test_lambda(unit_context_t * ctx)
   TEST(suite, test_lambda_compile_atom_object);
   TEST(suite, test_lambda_compile_nil);
   TEST(suite, test_lambda_compile_symbol);
+  TEST(suite, test_lambda_compile_symbol_undefined);
 }

@@ -80,6 +80,7 @@ typedef struct lisp_lambda_t
   lisp_builtin_function_t  func;
 } lisp_lambda_t;
 
+
 /* cons -> car, cdr */
 /* array -> a1, a2, ..., an */
 /* hash -> a1, a2, ..., an */
@@ -112,7 +113,7 @@ extern const lisp_cell_t lisp_nil;
 #define LISP_TID_FORM           0x81
 #define LISP_TID_STRING         0x82
 #define LISP_TID_SYMBOL         0x83
-#define LISP_TID_PARSER         0x84
+#define LISP_TID_EXCEPTION      0x84
 
 #define LISP_OBJECT_REFCOUNT(__OBJ__)             \
   (((lisp_ref_count_t*)(__OBJ__))[-1])
@@ -158,6 +159,9 @@ extern const lisp_cell_t lisp_nil;
 
 #define LISP_IS_LIST(__CELL__)					\
   (LISP_IS_NIL((__CELL__)) || LISP_IS_CONS_OBJECT((__CELL__)))
+
+#define LISP_IS_EXCEPTION(__CELL__)		\
+  ((__CELL__)->type_id == LISP_TID_EXCEPTION)
 
 #define LISP_AS(__CELL__, __TYPE__)             \
   ((__TYPE__ *)((__CELL__)->data.ptr))

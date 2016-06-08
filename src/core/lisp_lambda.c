@@ -2,10 +2,11 @@
 #include "util/xmalloc.h"
 #include "core/lisp_eval.h"
 #include "core/lisp_symbol.h"
+#include "core/lisp_exception.h"
 #include <string.h>
 
-static void lisp_lambda_eval_asm(lisp_eval_env_t * env,
-				 lisp_lambda_t   * lambda);
+static int lisp_lambda_eval_asm(lisp_eval_env_t * env,
+				lisp_lambda_t   * lambda);
 
 int lisp_make_builtin_lambda(lisp_vm_t   * vm,
 			     lisp_cell_t * cell,
@@ -86,6 +87,7 @@ int lisp_eval_lambda(lisp_eval_env_t    * env,
   const lisp_cell_t * current = rest;
   lisp_integer_t n = 0;
   lisp_size_t i;
+  int ret = LISP_OK;
   for(i = 0; i < env->n_values; i++) 
   {
     lisp_unset_object_root(env->vm, &env->values[i]);
@@ -131,14 +133,14 @@ int lisp_eval_lambda(lisp_eval_env_t    * env,
   }
   else 
   {
-    lisp_lambda_eval_asm(env, lambda);
+    ret = lisp_lambda_eval_asm(env, lambda);
   }
   for(i = 0; i < n; i++) 
   {
     lisp_unset_object_root(env->vm, &stack_frame[i]);
   }
   FREE(stack_frame);
-  return LISP_OK;
+  return ret;
 }
 
 int lisp_eval_form(lisp_eval_env_t    * env,
@@ -405,12 +407,13 @@ typedef unsigned char lisp_instr_t;
 #define LISP_ASM_HALT    0x04
 #define LISP_SIZ_HALT    1
 
-static void lisp_lambda_eval_asm(lisp_eval_env_t * env,
+static int lisp_lambda_eval_asm(lisp_eval_env_t * env,
 				 lisp_lambda_t   * lambda)
 {
   lisp_instr_t * instr = (lisp_instr_t*) lambda;
   instr+= sizeof(lisp_lambda_t);
   lisp_cell_t  * cell;
+  lisp_size_t    pc = 0;
   while(1) 
   {
     switch(*instr) 
@@ -433,8 +436,15 @@ static void lisp_lambda_eval_asm(lisp_eval_env_t * env,
       }
       else 
       {
-	/* @todo exception */
-	*env->values = lisp_nil;
+	/* @todo check return code */
+	lisp_make_exception(env->vm, 
+			    env->values,
+			    LISP_UNDEFINED,
+			    NULL,
+			    pc,
+			    "Undefined symbol %s",
+			    "xxx");
+	return LISP_UNDEFINED;
       }
       instr+= LISP_SIZ_LDVR;
       break;
@@ -442,9 +452,11 @@ static void lisp_lambda_eval_asm(lisp_eval_env_t * env,
       instr+= LISP_SIZ_RET;
       break;
     case LISP_ASM_HALT:
-      return;
+      return LISP_OK;
     }
+    pc++;
   }
+  return LISP_UNSUPPORTED;
 }
 
 static int lisp_compile_alloc(lisp_cell_t   * cell,

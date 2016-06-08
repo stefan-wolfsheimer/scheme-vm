@@ -1,5 +1,6 @@
 SRC_TEST+=      src/test_core/lisp_vm_check.c\
 	 	src/test_core/test_vm.c\
+	        src/test_core/test_exception.c\
 	        src/test_core/test_string.c\
 	        src/test_core/test_symbol.c\
 	        src/test_core/test_cons.c\

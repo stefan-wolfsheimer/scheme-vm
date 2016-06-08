@@ -27,7 +27,9 @@ static void test_create_symbol(unit_test_t * tst)
   ASSERT_EQ_U(tst, LISP_REFCOUNT(&symb_abc_1), 2);
   ASSERT_EQ_U(tst, LISP_REFCOUNT(&symb_abc_2), 2);
   ASSERT_EQ_U(tst, HASH_TABLE_SIZE(&vm->symbols), 2);
-  ASSERT_EQ_PTR(tst, symb_abc_1.data.ptr, symb_abc_2.data.ptr);
+  ASSERT_EQ_PTR(tst, 
+		LISP_AS(&symb_abc_1, lisp_symbol_t), 
+		LISP_AS(&symb_abc_2, lisp_symbol_t));
   ASSERT_FALSE(tst, lisp_eq_object(&symb_abc_1, &symb_def_1));
   ASSERT(tst, lisp_eq_object(&symb_abc_1, &symb_abc_2));
 
