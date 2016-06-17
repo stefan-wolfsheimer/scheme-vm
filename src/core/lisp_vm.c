@@ -24,7 +24,10 @@ int _lisp_init_types(lisp_vm_t * vm);
 /* cleanup on failure */
 static void _lisp_create_vm_cleanup(lisp_vm_t * vm)
 {
-  if(vm->types      != NULL) FREE(vm->types);
+  if(vm->types != NULL) 
+  {
+    FREE(vm->types);
+  }
   FREE(vm);
 }
 
@@ -36,6 +39,7 @@ lisp_vm_t * lisp_create_vm(lisp_vm_param_t * param)
   {
     return NULL;
   }
+
   /* init type system */
   ret->types      = NULL;
   ret->types_size = 255;
@@ -312,8 +316,8 @@ int lisp_unset_object_root(lisp_vm_t * vm, lisp_cell_t * target)
       }
       else
       {
-	FREE_OBJECT(target->data.ptr);				\
-      }								\
+	FREE_OBJECT(target->data.ptr);
+      }
     }
   }
   else if(LISP_IS_CONS_OBJECT(target)) 

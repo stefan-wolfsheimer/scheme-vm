@@ -12,21 +12,22 @@ static void test_create_symbol(unit_test_t * tst)
   lisp_vm_t * vm = lisp_create_vm(&lisp_vm_default_param);
 
   lisp_cell_t symb_abc_1;
+  lisp_size_t n = HASH_TABLE_SIZE(&vm->symbols);
   lisp_make_symbol(vm, &symb_abc_1, "abc");
   ASSERT_EQ_U(tst, LISP_REFCOUNT(&symb_abc_1), 1);
-  ASSERT_EQ_U(tst, HASH_TABLE_SIZE(&vm->symbols), 1);
+  ASSERT_EQ_U(tst, HASH_TABLE_SIZE(&vm->symbols), n + 1);
 
   lisp_cell_t symb_def_1;
   lisp_make_symbol(vm, &symb_def_1, "def");
   ASSERT_EQ_U(tst, LISP_REFCOUNT(&symb_def_1), 1);
-  ASSERT_EQ_U(tst, HASH_TABLE_SIZE(&vm->symbols), 2);
+  ASSERT_EQ_U(tst, HASH_TABLE_SIZE(&vm->symbols), n + 2);
   ASSERT_FALSE(tst, lisp_eq_object(&symb_abc_1, &symb_def_1));
 
   lisp_cell_t symb_abc_2;
   lisp_make_symbol(vm, &symb_abc_2, "abc");
   ASSERT_EQ_U(tst, LISP_REFCOUNT(&symb_abc_1), 2);
   ASSERT_EQ_U(tst, LISP_REFCOUNT(&symb_abc_2), 2);
-  ASSERT_EQ_U(tst, HASH_TABLE_SIZE(&vm->symbols), 2);
+  ASSERT_EQ_U(tst, HASH_TABLE_SIZE(&vm->symbols), n + 2);
   ASSERT_EQ_PTR(tst, 
 		LISP_AS(&symb_abc_1, lisp_symbol_t), 
 		LISP_AS(&symb_abc_2, lisp_symbol_t));
@@ -35,11 +36,11 @@ static void test_create_symbol(unit_test_t * tst)
 
   lisp_unset_object(vm, &symb_abc_1);
   ASSERT_EQ_U(tst, LISP_REFCOUNT(&symb_abc_2), 1);
-  ASSERT_EQ_U(tst, HASH_TABLE_SIZE(&vm->symbols), 2);
+  ASSERT_EQ_U(tst, HASH_TABLE_SIZE(&vm->symbols), n + 2);
   lisp_unset_object(vm, &symb_abc_2);
-  ASSERT_EQ_U(tst, HASH_TABLE_SIZE(&vm->symbols), 1);
+  ASSERT_EQ_U(tst, HASH_TABLE_SIZE(&vm->symbols), n + 1);
   lisp_unset_object(vm, &symb_def_1);
-  ASSERT_EQ_U(tst, HASH_TABLE_SIZE(&vm->symbols), 0);
+  ASSERT_EQ_U(tst, HASH_TABLE_SIZE(&vm->symbols), n);
   
   lisp_free_vm(vm);
   ASSERT_MEMCHECK(tst);
@@ -68,6 +69,7 @@ static void test_symbol_init_closure_append(unit_test_t * tst)
   lisp_vm_t * vm = lisp_create_vm(&lisp_vm_default_param);
   lisp_cell_t symb;
   lisp_closure_t closure[3];
+  lisp_size_t n = HASH_TABLE_SIZE(&vm->symbols);
   lisp_make_symbol(vm, &symb, "abc");
   ASSERT_EQ_U(tst, LISP_REFCOUNT(&symb), 1);
   lisp_init_closure_append(vm, &closure[0], LISP_AS(&symb, lisp_symbol_t));
@@ -104,16 +106,16 @@ static void test_symbol_init_closure_append(unit_test_t * tst)
   ASSERT_EQ_PTR(tst, &closure[0], LISP_AS(&symb, lisp_symbol_t)->first_closure);
   ASSERT_EQ_PTR(tst, &closure[2], LISP_AS(&symb, lisp_symbol_t)->last_closure);
 
-  ASSERT_EQ_U(tst, HASH_TABLE_SIZE(&vm->symbols), 1);
+  ASSERT_EQ_U(tst, HASH_TABLE_SIZE(&vm->symbols), n + 1);
   lisp_unset_object(vm, &symb);
-  ASSERT_EQ_U(tst, HASH_TABLE_SIZE(&vm->symbols), 1);
+  ASSERT_EQ_U(tst, HASH_TABLE_SIZE(&vm->symbols), n + 1);
   
   ASSERT_EQ_I(tst, lisp_symbol_release_closure(vm, &closure[0]), LISP_OK);
   ASSERT_EQ_I(tst, lisp_symbol_release_closure(vm, &closure[1]), LISP_OK);
   ASSERT_EQ_I(tst, lisp_symbol_release_closure(vm, &closure[2]), LISP_OK);
   //ASSERT_EQ_I(tst, lisp_symbol_release_closure(vm, &closure[3]), LISP_OK);
 
-  ASSERT_EQ_U(tst, HASH_TABLE_SIZE(&vm->symbols), 0);
+  ASSERT_EQ_U(tst, HASH_TABLE_SIZE(&vm->symbols), n + 0);
 
   lisp_free_vm(vm);
   ASSERT_MEMCHECK(tst);
@@ -129,13 +131,14 @@ static void test_symbol_set(unit_test_t * tst)
   lisp_type_id_t       id = 0;
   int                  flag = TEST_OBJECT_STATE_UNINIT;
   lisp_test_object_t * obj_ptr;
+  lisp_size_t n = HASH_TABLE_SIZE(&vm->symbols);
   ASSERT_FALSE(tst, lisp_register_object_type(vm,
 					      "TEST",
 					      lisp_test_object_destructor,
 					      &id));
 
   ASSERT_FALSE(tst,  lisp_make_symbol(vm, &abc, "abc"));
-  ASSERT_EQ_U(tst,   HASH_TABLE_SIZE(&vm->symbols), 1);
+  ASSERT_EQ_U(tst,   HASH_TABLE_SIZE(&vm->symbols), n + 1);
   ASSERT_EQ_PTR(tst, lisp_symbol_get(vm, LISP_AS(&abc, lisp_symbol_t)), NULL);
   ASSERT_EQ_I(tst,   flag, TEST_OBJECT_STATE_UNINIT);
   ASSERT_FALSE(tst,  lisp_make_test_object(&obj, &flag, id));
@@ -153,7 +156,7 @@ static void test_symbol_set(unit_test_t * tst)
   ASSERT_FALSE(tst,  lisp_unset_object(vm, &abc));
   ASSERT_EQ_I(tst,   flag, TEST_OBJECT_STATE_INIT);
   /* still in hash because symbol is bound */
-  ASSERT_EQ_U(tst, HASH_TABLE_SIZE(&vm->symbols), 1);
+  ASSERT_EQ_U(tst, HASH_TABLE_SIZE(&vm->symbols), n + 1);
   ASSERT_FALSE(tst,  lisp_make_symbol(vm, &abc, "abc"));
   ASSERT_FALSE(tst,  lisp_symbol_set(vm, LISP_AS(&abc, lisp_symbol_t), 
 				     &lisp_nil));  
@@ -171,6 +174,7 @@ static void test_symbol_unset(unit_test_t * tst)
   lisp_cell_t          obj;
   lisp_type_id_t       id = 0;
   int                  flag = TEST_OBJECT_STATE_UNINIT;
+  lisp_size_t n = HASH_TABLE_SIZE(&vm->symbols);
   ASSERT_FALSE(tst, lisp_register_object_type(vm,
 					      "TEST",
 					      lisp_test_object_destructor,
@@ -193,9 +197,9 @@ static void test_symbol_unset(unit_test_t * tst)
 					 lisp_symbol_t)));
   ASSERT_EQ_I(tst,   flag, TEST_OBJECT_STATE_FREE);
   ASSERT_EQ_PTR(tst, lisp_symbol_get(vm, LISP_AS(&abc, lisp_symbol_t)), NULL);
-  ASSERT_EQ_U(tst,   HASH_TABLE_SIZE(&vm->symbols), 1);
+  ASSERT_EQ_U(tst,   HASH_TABLE_SIZE(&vm->symbols), n + 1);
   ASSERT_FALSE(tst,  lisp_unset_object(vm, &abc));
-  ASSERT_EQ_U(tst,   HASH_TABLE_SIZE(&vm->symbols), 0);
+  ASSERT_EQ_U(tst,   HASH_TABLE_SIZE(&vm->symbols), n + 0);
 
   lisp_free_vm(vm);
   ASSERT_MEMCHECK(tst);

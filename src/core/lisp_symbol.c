@@ -27,6 +27,10 @@ int lisp_make_symbol(lisp_vm_t         * vm,
                                        code,
                                        vm->symbols.eq_function,
                                        &inserted);
+  if(ref == NULL) 
+  {
+    return LISP_ALLOC_ERROR;
+  }
   ref[0]++;
   cell->type_id  =  LISP_TID_SYMBOL;
   cell->data.ptr = &ref[1];
@@ -203,6 +207,7 @@ int lisp_symbol_hash_eq(const void * a, const void * b)
                     sizeof(lisp_ref_count_t) + sizeof(lisp_symbol_t)),
                   (const char*)b);
 }
+
 
 
 

@@ -354,21 +354,22 @@ void lisp_free_lambda_mock(lisp_lambda_mock_t * mock)
   }
 }
 
-int lisp_lambda_mock_function(lisp_eval_env_t * env,
-			      lisp_cell_t     * stack)
+int lisp_lambda_mock_function(lisp_eval_env_t     * env,
+                              const lisp_lambda_t * lambda,
+                              lisp_size_t           nargs)
 {
-  REQUIRE(LISP_IS_INTEGER(stack));
   mock_expected_t * expected;
+  lisp_cell_t     * args = env->stack + env->stack_top - nargs;
   expected = mock_get_expected(lisp_lambda_mock_function);
   if(expected != NULL)
   {
     lisp_lambda_mock_t * ret = expected->user_data;
     size_t i;
-    ret->n_args = stack->data.integer;
+    ret->n_args = nargs;
     ret->args   = MALLOC(sizeof(lisp_cell_t) * ret->n_args);
     for(i = 0; i < ret->n_args; i++) 
     {
-      lisp_copy_object_as_root(env->vm, &ret->args[i], &stack[i+1]);
+      lisp_copy_object_as_root(env->vm, &ret->args[i], &args[i]);
     }
     env->n_values = ret->n_values;
     /* @todo call resize value register if n_values > max_values */

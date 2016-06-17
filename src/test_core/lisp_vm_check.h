@@ -66,7 +66,8 @@ void lisp_init_lambda_mock(lisp_lambda_mock_t * mock,
 			   size_t               n_args);
 void lisp_free_lambda_mock(lisp_lambda_mock_t * mock);
 
-int lisp_lambda_mock_function(lisp_eval_env_t * env,
-			      lisp_cell_t     * stack);
+int lisp_lambda_mock_function(lisp_eval_env_t     * env,
+                              const lisp_lambda_t * lambda,
+                              lisp_size_t           nargs);
 
 #endif

@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+
 typedef size_t         lisp_size_t;
 typedef char           lisp_char_t;
 typedef int            lisp_integer_t;
@@ -46,16 +47,30 @@ typedef struct lisp_root_cons_t
 
 struct lisp_vm_t;
 
+//typedef struct lisp_call_stack_entry_t
+//{
+//  lisp_lambda_t * lambda;
+//  lisp_instr_t  * next_instr;
+//} lisp_call_stack_entry_t;
+
+struct lisp_call_stack_entry_t;
+
 typedef struct lisp_eval_env_t
 {
-  struct lisp_vm_t   * vm;
-  lisp_cell_t * values;
-  lisp_size_t   n_values;
-  lisp_size_t   max_values;
-  lisp_cell_t * stack;
-  lisp_size_t   stack_top;
-  lisp_size_t   stack_size;
+  struct lisp_vm_t               * vm;
+  lisp_cell_t                    * values;
+  lisp_size_t                      n_values;
+  lisp_size_t                      max_values;
+  lisp_cell_t                    * stack;
+  lisp_size_t                      stack_top;
+  lisp_size_t                      stack_size;
+  lisp_size_t                      max_stack_size;
+  struct lisp_call_stack_entry_t * call_stack;
+  lisp_size_t                      call_stack_top;
+  lisp_size_t                      call_stack_size;
 } lisp_eval_env_t;
+
+typedef lisp_cons_t lisp_lambda_t;
 
 typedef void(*lisp_destructor_t)(struct lisp_vm_t * vm, void * ptr);
 
@@ -63,7 +78,8 @@ typedef void(*lisp_destructor_t)(struct lisp_vm_t * vm, void * ptr);
  *  The result is written to value register of env
  */
 typedef int (*lisp_builtin_function_t)(struct lisp_eval_env_t * env,
-				       lisp_cell_t            * stack);
+                                       const lisp_lambda_t    * lambda,
+                                       lisp_size_t              nargs);
 
 /** meta type */
 typedef struct lisp_type_t 
@@ -73,12 +89,15 @@ typedef struct lisp_type_t
   lisp_destructor_t destructor;
 } lisp_type_t;
 
-typedef struct lisp_lambda_t
+typedef struct lisp_byte_code_t
 {
   lisp_size_t instr_size;
-  lisp_size_t data_size;
-  lisp_builtin_function_t  func;
-} lisp_lambda_t;
+  //lisp_size_t data_size;
+  /*@todo remove func use byte code instead */
+  //lisp_builtin_function_t  func;
+} lisp_byte_code_t;
+
+
 
 
 /* cons -> car, cdr */
@@ -107,9 +126,10 @@ extern const lisp_cell_t lisp_nil;
 
 #define LISP_TID_CONS_MASK      0x40 /* 0x40 ... 0x7f */
 #define LISP_TID_CONS           0x40
-#define LISP_TID_EVAL_ERROR     0x41
+#define LISP_TID_LAMBDA         0x41
+#define LISP_TID_EVAL_ERROR     0x42
 
-#define LISP_TID_LAMBDA         0x80 /* 0x80 ... 0xbf (0x80 + 0x3f) */
+#define LISP_TID_OBJECT         0x80 /* 0x80 ... 0xbf (0x80 + 0x3f) */
 #define LISP_TID_FORM           0x81
 #define LISP_TID_STRING         0x82
 #define LISP_TID_SYMBOL         0x83

@@ -364,6 +364,10 @@ void * hash_table_find_or_insert_func(hash_table_t            * ht,
 
   /* not found in bucket -> create new entry in bucket */
   entry = MALLOC(sizeof(hash_table_entry_t) + size_required);
+  if(entry == NULL) 
+  {
+    return entry;
+  }
   entry->size      = size_required;
   entry->hash_code = code;
   _add_entry_to_bucket(ht, bucket, entry);

@@ -58,16 +58,12 @@ int lisp_symbol_unset(lisp_vm_t * vm,
 		      lisp_symbol_t * symbol);
 
 
-
+/** integration into lisp_vm_t */
 void lisp_symbol_destruct(lisp_vm_t * vm, void * ptr);
 int  lisp_symbol_construct(void        * target,
 			   const void  * src,
 			   size_t        size,
 			   void        * user_data);
 int lisp_symbol_hash_eq(const void * a, const void * b);
-
-
-
-
 
 #endif

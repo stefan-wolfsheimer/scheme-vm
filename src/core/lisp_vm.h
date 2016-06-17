@@ -146,83 +146,6 @@ int lisp_eq_object(const lisp_cell_t * a,
 
 /*****************************************************************************
  * 
- * lambda
- * 
- *****************************************************************************/
-int lisp_make_builtin_lambda(lisp_vm_t              * vm,
-			     lisp_cell_t            * cell,
-			     lisp_size_t              args_size,
-			     lisp_cell_t            * args,
-			     lisp_builtin_function_t  func);
-
-int lisp_make_builtin_form(lisp_vm_t                * vm,
-			   lisp_cell_t              * cell,
-			   lisp_size_t                args_size,
-			   lisp_cell_t              * args,
-			   lisp_builtin_function_t    func);
-
-int lisp_make_builtin_c_str(lisp_vm_t                * vm,
-			    lisp_cell_t              * cell,
-			    lisp_size_t                args_size,
-			    const char              ** args,
-			    lisp_builtin_function_t    func);
-
-int lisp_make_builtin_lambda_opt_args(lisp_vm_t   * vm,
-				      lisp_cell_t * cell,
-				      lisp_size_t   args_size,
-				      lisp_cell_t * args,
-				      lisp_size_t   opt_args_size,
-				      lisp_cell_t * opt_args,
-				      lisp_size_t   named_args_size,
-				      lisp_cell_t * named_args,
-				      lisp_cell_t * named_args_values,
-				      int           has_rest_args,
-				      lisp_builtin_function_t  func);
-
-int lisp_eval_lambda(lisp_eval_env_t    * env,
-		     lisp_lambda_t      * lambda,
-		     const lisp_cell_t        * rest);
-
-int lisp_eval_form(lisp_eval_env_t    * env,
-		   lisp_lambda_t      * lambda,
-		   lisp_cell_t        * rest);
-
-int lisp_lambda_compile(lisp_eval_env_t   * env,
-			lisp_cell_t       * cell,
-			const lisp_cell_t * expr);
-
-
-void lisp_lambda_destruct(lisp_vm_t * vm, void * ptr);
-
-#if 0
-/* @todo refactor */
-int lisp_make_lambda_instr(lisp_vm_t          * vm, 
-                           lisp_cell_t        * cell, 
-                           lisp_size_t          args_size,
-                           lisp_cell_t        * data,
-                           lisp_size_t          data_size,
-                           const lisp_instr_t * instr);
-
-/* @todo refactor */
-int lisp_make_lambda_n_instr(lisp_vm_t          * vm, 
-                             lisp_cell_t        * cell, 
-                             lisp_size_t          args_size,
-                             lisp_cell_t        * data,
-                             lisp_size_t          data_size,
-                             const lisp_instr_t * instr,
-                             lisp_size_t          n_instr);
-
-/* @todo replace with lisp_make_lambda */
-int lisp_create_lambda_n_instr(lisp_vm_t          * vm, 
-                               lisp_cell_t        * cell, 
-                               lisp_size_t          args_size,
-                               lisp_size_t          data_size,
-                               lisp_size_t          instr_size,
-                               const lisp_instr_t * instr);
-#endif
-
-/*****************************************************************************
- * 
  * string
  * 
  *****************************************************************************/
@@ -320,16 +243,6 @@ int lisp_cons_set_car_cdr(lisp_vm_t * vm,
 			  lisp_cons_t * cons, 
 			  const lisp_cell_t * car,
 			  const lisp_cell_t * cdr);
-int lisp_set_car_cdr(lisp_vm_t * vm,
-		     const lisp_cell_t * cell,
-		     const lisp_cell_t * car,
-		     const lisp_cell_t * cdr);
-int lisp_set_car(lisp_vm_t * vm,
-		 const lisp_cell_t * cell,
-		 const lisp_cell_t * car);
-int lisp_set_cdr(lisp_vm_t * vm,
-		 const lisp_cell_t * cell,
-		 const lisp_cell_t * cdr);
 
 int lisp_make_list_root(lisp_vm_t         * vm,
 			lisp_cell_t       * cell,

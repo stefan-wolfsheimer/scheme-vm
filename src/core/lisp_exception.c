@@ -27,7 +27,7 @@ static void _lisp_make_exception_msg(lisp_cell_t       * target,
 int lisp_make_exception(lisp_vm_t         * vm,
 			lisp_cell_t       * cell,
 			lisp_integer_t      code,
-			lisp_lambda_t     * lambda,
+			lisp_byte_code_t     * lambda,
 			lisp_size_t         pc,
 			const lisp_char_t * msg,
 			...)

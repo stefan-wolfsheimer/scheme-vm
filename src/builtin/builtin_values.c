@@ -1,13 +1,14 @@
 #include "builtin_values.h"
 #include "core/lisp_vm.h"
+#include "core/lisp_lambda.h"
 #include "util/assertion.h"
 #include "util/xmalloc.h"
 
 static int lisp_builtin_values(lisp_eval_env_t * env,
-			       lisp_cell_t     * stack)
+                               const lisp_lambda_t   * lambda,
+                               lisp_size_t       nargs)
 {
-  REQUIRE(LISP_IS_INTEGER(stack));
-  lisp_integer_t nargs = stack->data.integer;
+  lisp_cell_t * stack = env->stack + env->stack_top - nargs;
   size_t         i;
   if(nargs > env->max_values) 
   {
@@ -30,16 +31,20 @@ static int lisp_builtin_values(lisp_eval_env_t * env,
   }
   for(i = 0; i < nargs; i++) 
   {
-    lisp_copy_object_as_root(env->vm, &env->values[i], &stack[i+1]);
+    lisp_copy_object_as_root(env->vm, &env->values[i], &stack[i]);
   }
   env->n_values = nargs;
   return LISP_OK;
 }
 
 int lisp_make_func_values(lisp_vm_t * vm, 
-			  lisp_cell_t * cell)
+                          lisp_cell_t * cell)
 {
   /* @todo make arguments */
-  return lisp_make_builtin_lambda(vm, cell, 0, NULL, lisp_builtin_values);
+  return lisp_make_builtin_lambda(vm,
+                                  cell,
+                                  0,
+                                  NULL,
+                                  lisp_builtin_values);
 }
 
