@@ -24,6 +24,7 @@ int lisp_register_builtin_function(lisp_eval_env_t         * env,
 
 int lisp_push_integer(lisp_eval_env_t * env,
                       lisp_integer_t    value);
+
 int lisp_push(lisp_eval_env_t * env,
               const lisp_cell_t * cell);
 

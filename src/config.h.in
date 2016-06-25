@@ -5,3 +5,7 @@
  * The values register is reallocated on demand
  */
 #define LISP_EVAL_DEFAULT_MAX_VALUES 10
+
+#define LISP_MAX_STACK_SIZE 1024
+#define LISP_STACK_INIT_BLOCK_SIZE 32
+

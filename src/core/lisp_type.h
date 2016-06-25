@@ -193,6 +193,23 @@ extern const lisp_cell_t lisp_nil;
 #define LISP_CDR(__CELL__)			\
   (&((__CELL__)->data.cons->cdr))
 
+#define LISP_CADR(__CELL__)			\
+  LISP_CAR(LISP_CDR((__CELL__)))
+
+#define LISP_CDDR(__CELL__)			\
+  LISP_CDR(LISP_CDR((__CELL__)))
+
+#define LISP_CADDR(__CELL__)			\
+  LISP_CAR(LISP_CDR(LISP_CDR((__CELL__))))
+
+#define LISP_CDDDR(__CELL__)			\
+  LISP_CDR(LISP_CDR(LISP_CDR((__CELL__))))
+
+#define LISP_CADDDR(__CELL__)			\
+  LISP_CAR(LISP_CDR(LISP_CDR(LISP_CDR((__CELL__)))))
+
+
+
 /** Error codes */
 #define LISP_OK          0x00
 #define LISP_ALLOC_ERROR 0x01

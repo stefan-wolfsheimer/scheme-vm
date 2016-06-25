@@ -4,9 +4,9 @@
 #include "util/assertion.h"
 #include "util/xmalloc.h"
 
-static int lisp_builtin_values(lisp_eval_env_t * env,
+static int lisp_builtin_values(lisp_eval_env_t       * env,
                                const lisp_lambda_t   * lambda,
-                               lisp_size_t       nargs)
+                               lisp_size_t             nargs)
 {
   lisp_cell_t * stack = env->stack + env->stack_top - nargs;
   size_t         i;

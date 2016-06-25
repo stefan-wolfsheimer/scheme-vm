@@ -8,26 +8,59 @@
 #include "core/lisp_lambda.h"
 #include "lisp_vm_check.h"
 
-static void test_lambda_mock(unit_test_t * tst)
+
+static int lisp_compile_eval(struct lisp_eval_env_t   * env,
+                             struct lisp_cell_t       * lambda,
+                             int(*creator)(struct lisp_eval_env_t * env,
+                                           struct lisp_cell_t * lambda))
+{
+  int ret = creator(env, lambda);
+  if(ret != LISP_OK) 
+  {
+    return ret;
+  }
+  REQUIRE(LISP_IS_LAMBDA(lambda));
+  ret = lisp_eval_lambda(env, 
+                         LISP_AS(lambda, lisp_lambda_t),
+                         0);
+  return ret;
+}
+
+static int lisp_compile_atom(struct lisp_eval_env_t * env,
+                             struct lisp_cell_t * lambda)
+{
+  lisp_cell_t       expr;
+  lisp_make_integer(&expr, 1);
+  return lisp_lambda_compile(env, lambda, &expr);
+}
+
+
+static void test_lambda_mock_0_args(unit_test_t * tst)
 {
   memcheck_begin();
   lisp_vm_t        * vm = lisp_create_vm(&lisp_vm_default_param);
   lisp_eval_env_t  * env = lisp_create_eval_env(vm);
   lisp_lambda_mock_t mock;
+  lisp_init_lambda_mock(&mock, vm, 0);
+  ASSERT_FALSE(tst,  lisp_lambda_mock_function(env, NULL, 0));
+  ASSERT_EQ_U(tst,   env->n_values, 0u);
+  lisp_free_lambda_mock(&mock);
+  lisp_free_eval_env(env);
+  lisp_free_vm(vm);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
+}
 
-  /* @todo test with one that 0 arguments */
+static void test_lambda_mock_10_args(unit_test_t * tst)
+{
+  memcheck_begin();
+  lisp_vm_t        * vm = lisp_create_vm(&lisp_vm_default_param);
+  lisp_eval_env_t  * env = lisp_create_eval_env(vm);
+  lisp_lambda_mock_t mock;
   lisp_init_lambda_mock(&mock, vm, 10);
   ASSERT_FALSE(tst,  lisp_lambda_mock_function(env, NULL, 0));
   ASSERT_EQ_U(tst,   env->n_values, 0u);
   lisp_free_lambda_mock(&mock);
-
-  lisp_init_lambda_mock(&mock, vm, 10);
-  mock_register(lisp_lambda_mock_function, NULL, &mock, NULL);  
-  ASSERT_FALSE(tst,  lisp_lambda_mock_function(env, NULL, 0));
-  ASSERT_EQ_U(tst,   env->n_values, 10u);
-  lisp_free_lambda_mock(&mock);
-
-  ASSERT_EQ_U(tst, mock_retire_all(), 0u);
   lisp_free_eval_env(env);
   lisp_free_vm(vm);
   ASSERT_MEMCHECK(tst);
@@ -47,14 +80,9 @@ static void test_lisp_make_builtin_lambda(unit_test_t * tst)
                                             NULL,
                                             lisp_lambda_mock_function),
               LISP_OK);
-
-
-
-
-
   lisp_init_lambda_mock(&mock, vm, 1);
   lisp_make_integer(&mock.values[0], 23);
-  mock_register(lisp_lambda_mock_function, NULL, &mock, NULL);  
+  mock_register(lisp_lambda_mock_function, NULL, &mock, NULL);
   lisp_push_integer(env, 1);
   lisp_push_integer(env, 2);
   ASSERT_EQ_I(tst, lisp_eval_lambda(env,
@@ -77,8 +105,8 @@ static void test_lisp_make_builtin_lambda(unit_test_t * tst)
 
   /* retire mock */
   ASSERT_EQ_U(tst, mock_retire_all(), 0u);
-  lisp_free_lambda_mock(&mock);
 
+  lisp_free_lambda_mock(&mock);
   lisp_free_eval_env(env);
   lisp_free_vm(vm);
   ASSERT_MEMCHECK(tst);
@@ -90,18 +118,17 @@ static void test_lambda_compile_atom(unit_test_t * tst)
   memcheck_begin();
   lisp_vm_t       * vm = lisp_create_vm(&lisp_vm_default_param);
   lisp_eval_env_t * env = lisp_create_eval_env(vm);
-  lisp_cell_t       lambda;
-  lisp_cell_t       expr;
-  lisp_make_integer(&expr, 1);
-  ASSERT_EQ_I(tst, lisp_lambda_compile(env, &lambda, &expr), LISP_OK);
+  lisp_cell_t     lambda;
+  lisp_compile_eval(env, &lambda, lisp_compile_atom);
+
+  /* test byte code */
+  /* @todo more assertions */
   ASSERT(tst,      LISP_IS_LAMBDA(&lambda));
-  ASSERT_EQ_I(tst, lisp_eval_lambda(env, 
-				    LISP_AS(&lambda, lisp_lambda_t),
-                                    0), LISP_OK);
   
+  /* test result */
   ASSERT_EQ_U(tst, env->n_values, 1u);
   ASSERT(tst,      LISP_IS_INTEGER(env->values));
-  lisp_unset_object(vm, &lambda);
+
   lisp_free_eval_env(env);
   lisp_free_vm(vm);
   ASSERT_MEMCHECK(tst);
@@ -131,8 +158,8 @@ static void test_lambda_compile_atom_object(unit_test_t * tst)
   lisp_unset_object(vm, &expr);
   ASSERT(tst,      LISP_IS_LAMBDA(&lambda));
   ASSERT(tst,      LISP_IS_OBJECT(LISP_CAR(&lambda)));
-  ASSERT(tst,      LISP_IS_OBJECT(LISP_CAR(LISP_CDR(&lambda))));
-  ASSERT_EQ_U(tst, LISP_REFCOUNT(LISP_CAR(LISP_CDR(&lambda))), 1u);
+  ASSERT(tst,      LISP_IS_OBJECT(LISP_CADDR(&lambda)));
+  ASSERT_EQ_U(tst, LISP_REFCOUNT(LISP_CADDR(&lambda)), 1u);
   ASSERT_EQ_I(tst, lisp_eval_lambda(env, 
                                     LISP_AS(&lambda, lisp_lambda_t),
                                     0), LISP_OK);
@@ -272,7 +299,9 @@ static void test_compile_cons_builtin_arg_arg(unit_test_t * tst)
 void test_lambda(unit_context_t * ctx)
 {
   unit_suite_t * suite = unit_create_suite(ctx, "lambda");
-  TEST(suite, test_lambda_mock);
+  TEST(suite, test_lambda_mock_0_args);
+  TEST(suite, test_lambda_mock_10_args);
+
   TEST(suite, test_lisp_make_builtin_lambda);
   TEST(suite, test_lambda_compile_atom);
   TEST(suite, test_lambda_compile_atom_object);

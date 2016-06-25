@@ -20,6 +20,7 @@ void test_lambda(unit_context_t * ctx);
 void test_builtin_forms(unit_context_t * ctx);
 void test_builtin_arithmetic(unit_context_t * ctx);
 void test_builtin_values(unit_context_t * ctx);
+void test_builtin_compile(unit_context_t * ctx);
 
 int main(int argc, const char ** argv)
 {
@@ -42,6 +43,7 @@ int main(int argc, const char ** argv)
   test_builtin_forms(ctx);
   test_builtin_arithmetic(ctx);
   test_builtin_values(ctx);
+  test_builtin_compile(ctx);
 
   int parse_result = unit_parse_argv(ctx, argc, argv);
   if(parse_result == UNIT_ARGV_RUN) 

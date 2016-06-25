@@ -1,12 +1,23 @@
 #include "builtin_compile.h"
 #include "core/lisp_vm.h"
-#include "util/assertion.h"
-#include "util/xmalloc.h"
+#include "core/lisp_lambda.h"
+//#include "util/assertion.h"
+//#include "util/xmalloc.h"
 
-static int lisp_builtin_compile(lisp_eval_env_t * env,
-                                lisp_cell_t     * stack)
+
+/****************************************************************************/
+static int _lisp_builtin_compile(lisp_eval_env_t      * env,
+                                 const lisp_lambda_t  * lambda,
+                                 lisp_size_t            nargs)
 {
-  return LISP_OK;
+  int ret = LISP_OK;
+  /* @TODO check nargs */
+  const lisp_cell_t * expr = env->stack + env->stack_top - nargs;
+  env->n_values            = 1;
+  ret = lisp_lambda_compile(env,
+                            env->values,
+                            expr);
+  return ret;
 }
 
 int lisp_make_func_compile(lisp_vm_t * vm, 
@@ -15,6 +26,6 @@ int lisp_make_func_compile(lisp_vm_t * vm,
   /* @todo make arguments 
      @todo static data size
    */
-  return lisp_make_builtin_lambda(vm, cell, 0, NULL, lisp_builtin_compile);
+  return lisp_make_builtin_lambda(vm, cell, 0, NULL, _lisp_builtin_compile);
 }
 
