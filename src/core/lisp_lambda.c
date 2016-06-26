@@ -162,9 +162,7 @@ static int _lisp_compile_phase2(lisp_vm_t         * vm,
     */
     LISP_SET_INSTR(LISP_ASM_LDVD, instr, lisp_cell_t, *expr);
     instr+= LISP_SIZ_LDVD;    
-
     *instr = LISP_ASM_RET;
-    instr++;
     return _lisp_compile_prepend_data(vm, cell, expr);
   }
   else if(LISP_IS_CONS(expr)) 
@@ -334,17 +332,24 @@ int lisp_eval_lambda(lisp_eval_env_t    * env,
      @todo: remove arguments from stack after calling function
      @todo: create function to match rest with function signature
   */
-  lisp_size_t i;
+  lisp_size_t    i;
+  int            ret;
+  lisp_instr_t * instr;
+  lisp_cell_t  * cell;
+  lisp_size_t    pc = 0;
+
   for(i = 0; i < env->n_values; i++) 
   {
     lisp_unset_object_root(env->vm, &env->values[i]);
   }
   env->n_values = 0;
-  lisp_instr_t * instr = (lisp_instr_t*) &(LISP_AS(&lambda->car,
-                                                   lisp_byte_code_t)[1]);
-  lisp_cell_t  * cell;
-  lisp_size_t    pc = 0;
-  int            ret;
+  ret = lisp_push_halt(env);
+  if(ret != LISP_OK) 
+  {
+    return ret;
+  }
+  instr = (lisp_instr_t*) &(LISP_AS(&lambda->car,
+                                    lisp_byte_code_t)[1]);
   while(1) 
   {
     switch(*instr) 
@@ -392,8 +397,10 @@ int lisp_eval_lambda(lisp_eval_env_t    * env,
       return ret;
       break;
     case LISP_ASM_RET:
-      /* @todo implement */
-      instr+= LISP_SIZ_RET;
+      REQUIRE_GT_U(env->call_stack_top, 0u);
+      env->call_stack_top--;
+      instr = env->call_stack[env->call_stack_top].next_instr;
+      lambda = env->call_stack[env->call_stack_top].lambda;
       break;
     case LISP_ASM_JP:
       nargs = *LISP_INSTR_ARG(instr, lisp_size_t);
@@ -668,12 +675,9 @@ int lisp_lambda_compile(lisp_eval_env_t   * env,
   {
     return ret;
   }
-  /* @todo remove halt */
-
   /* @todo check ret */
   /* @todo check allocation */
   /* @todo remove halt */
-  instr_size+= LISP_SIZ_HALT;
   byte_code = MALLOC_OBJECT(sizeof(lisp_byte_code_t) + 
                             instr_size,   
                             1);
@@ -691,8 +695,6 @@ int lisp_lambda_compile(lisp_eval_env_t   * env,
   {
     return ret;
   }
-  /* @todo remove halt */
-  ((lisp_instr_t*) &byte_code[1])[instr_size-1] = LISP_ASM_HALT;
   return LISP_OK;
 }
 

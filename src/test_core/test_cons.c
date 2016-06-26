@@ -1093,6 +1093,7 @@ static void test_make_list_root_failure(unit_test_t * tst)
   memcheck_end();
 }
 
+
 void test_cons(unit_context_t * ctx)
 {
   unit_suite_t * suite = unit_create_suite(ctx, "cons");

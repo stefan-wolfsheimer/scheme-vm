@@ -9,8 +9,11 @@ typedef char           lisp_char_t;
 typedef int            lisp_integer_t;
 typedef unsigned short lisp_type_id_t;
 typedef size_t         lisp_ref_count_t;
+typedef unsigned char  lisp_instr_t;
 
 struct lisp_cons_t;
+struct lisp_vm_t;
+struct lisp_lambda_t;
 
 typedef struct lisp_cell_t 
 {
@@ -39,21 +42,19 @@ typedef struct lisp_cons_t
   lisp_cell_t cdr;
 } lisp_cons_t;
 
+typedef lisp_cons_t lisp_lambda_t;
+
 typedef struct lisp_root_cons_t
 {
   lisp_cons_t      * cons;
   lisp_ref_count_t   ref_count;
 } lisp_root_cons_t;
 
-struct lisp_vm_t;
-
-//typedef struct lisp_call_stack_entry_t
-//{
-//  lisp_lambda_t * lambda;
-//  lisp_instr_t  * next_instr;
-//} lisp_call_stack_entry_t;
-
-struct lisp_call_stack_entry_t;
+typedef struct lisp_call_stack_entry_t
+{
+  lisp_lambda_t * lambda;
+  lisp_instr_t  * next_instr;
+} lisp_call_stack_entry_t;
 
 typedef struct lisp_eval_env_t
 {
@@ -61,16 +62,20 @@ typedef struct lisp_eval_env_t
   lisp_cell_t                    * values;
   lisp_size_t                      n_values;
   lisp_size_t                      max_values;
+
   lisp_cell_t                    * stack;
   lisp_size_t                      stack_top;
   lisp_size_t                      stack_size;
   lisp_size_t                      max_stack_size;
+
   struct lisp_call_stack_entry_t * call_stack;
   lisp_size_t                      call_stack_top;
   lisp_size_t                      call_stack_size;
-} lisp_eval_env_t;
+  lisp_size_t                      max_call_stack_size;
 
-typedef lisp_cons_t lisp_lambda_t;
+  lisp_cell_t                      halt_lambda;
+  
+} lisp_eval_env_t;
 
 typedef void(*lisp_destructor_t)(struct lisp_vm_t * vm, void * ptr);
 
@@ -211,13 +216,14 @@ extern const lisp_cell_t lisp_nil;
 
 
 /** Error codes */
-#define LISP_OK          0x00
-#define LISP_ALLOC_ERROR 0x01
-#define LISP_TYPE_ERROR  0x02
-#define LISP_EVAL_ERROR  0x03
-#define LISP_UNSUPPORTED 0x04
-#define LISP_UNDEFINED   0x05
-#define LISP_RANGE_ERROR 0x06
+#define LISP_OK                0x00
+#define LISP_ALLOC_ERROR       0x01
+#define LISP_TYPE_ERROR        0x02
+#define LISP_EVAL_ERROR        0x03
+#define LISP_UNSUPPORTED       0x04
+#define LISP_UNDEFINED         0x05
+#define LISP_RANGE_ERROR       0x06
 #define LISP_COMPILATION_ERROR 0x07
+#define LISP_STACK_OVERFLOW    0x08
 
 #endif

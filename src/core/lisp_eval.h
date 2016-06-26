@@ -28,5 +28,10 @@ int lisp_push_integer(lisp_eval_env_t * env,
 int lisp_push(lisp_eval_env_t * env,
               const lisp_cell_t * cell);
 
+int lisp_push_call(lisp_eval_env_t * env,
+                   lisp_lambda_t   * lambda,
+                   lisp_instr_t    * next_instr);
+
+int lisp_push_halt(lisp_eval_env_t * env);
 
 #endif

@@ -3,7 +3,22 @@
 #include "util/assertion.h"
 #include "core/lisp_symbol.h"
 #include "core/lisp_lambda.h"
+#include "core/lisp_asm.h"
 #include "config.h"
+
+
+
+static void _init_halt(lisp_eval_env_t * env)
+{
+  lisp_byte_code_t * byte_code = MALLOC_OBJECT(sizeof(lisp_byte_code_t) + 
+                                               LISP_SIZ_HALT,
+                                               1);
+  byte_code->instr_size = LISP_SIZ_HALT;
+  ((lisp_instr_t*) &byte_code[1])[0] = LISP_ASM_HALT;
+  lisp_make_cons_typed(env->vm, &env->halt_lambda, LISP_TID_LAMBDA);
+  LISP_CAR(&env->halt_lambda)->type_id  = LISP_TID_OBJECT;
+  LISP_CAR(&env->halt_lambda)->data.ptr = byte_code;
+}
 
 /* @TODO call stack 
  * @TODO dummy halt function at the bottom of the call stack
@@ -26,14 +41,24 @@ lisp_eval_env_t * lisp_create_eval_env(lisp_vm_t * vm)
     {
       values[i] = lisp_nil;
     }
-    env->vm             = vm;
-    env->max_values     = LISP_EVAL_DEFAULT_MAX_VALUES;
-    env->n_values       = 0;
-    env->values         = values;
-    env->stack_top      = 0;
-    env->max_stack_size = LISP_MAX_STACK_SIZE;
-    env->stack_size     = 0;
-    env->stack          = NULL;
+    env->vm              = vm;
+
+    env->max_values      = LISP_EVAL_DEFAULT_MAX_VALUES;
+    env->n_values        = 0;
+    env->values          = values;
+
+
+    env->max_stack_size  = LISP_MAX_STACK_SIZE;
+    env->stack_size      = 0;
+    env->stack           = NULL;
+    env->stack_top       = 0;
+
+    env->max_call_stack_size  = LISP_MAX_CALL_STACK_SIZE;
+    env->call_stack      = NULL;
+    env->call_stack_top  = 0;
+    env->call_stack_size = 0;
+    
+
     for(i = 0; i < env->stack_size; i++) 
     {
       env->stack[i] = lisp_nil;
@@ -41,6 +66,7 @@ lisp_eval_env_t * lisp_create_eval_env(lisp_vm_t * vm)
     /* @todo make dynamic extension of stack and use relative offsets in 
              order to not invalidate pointers when reallocating the 
              stack */
+    _init_halt(env);
   }
   else 
   {
@@ -52,6 +78,7 @@ lisp_eval_env_t * lisp_create_eval_env(lisp_vm_t * vm)
 void lisp_free_eval_env(lisp_eval_env_t * env)
 {
   lisp_size_t i;
+  lisp_unset_object(env->vm, &env->halt_lambda);
   REQUIRE_NEQ_PTR(env, NULL);
   for(i = 0; i < env->n_values; i++) 
   {
@@ -64,6 +91,10 @@ void lisp_free_eval_env(lisp_eval_env_t * env)
       lisp_unset_object_root(env->vm, &env->stack[i]);
     }
     FREE(env->stack);
+  }
+  if(env->call_stack)
+  {
+    FREE(env->call_stack);
   }
   FREE(env->values);
   FREE(env);
@@ -100,7 +131,7 @@ int lisp_push_integer(lisp_eval_env_t * env,
 int lisp_push(lisp_eval_env_t * env,
               const lisp_cell_t * cell)
 {
-  if(env->stack_top <= env->stack_size) 
+  if(env->stack_top >= env->stack_size) 
   {
     if(env->stack_size == 0) 
     {
@@ -108,13 +139,61 @@ int lisp_push(lisp_eval_env_t * env,
     }
     else 
     {
+      if((env->stack_size << 1) > env->max_stack_size) 
+      {
+        return LISP_STACK_OVERFLOW;
+      }
       env->stack_size = env->stack_size << 1;
     }
-    env->stack = REALLOC(env->stack, sizeof(lisp_cell_t) * env->max_stack_size);
+    env->stack = REALLOC(env->stack, sizeof(lisp_cell_t) * env->stack_size);
     if(!env->stack) 
     {
       return LISP_ALLOC_ERROR;
     }
   }
-  return lisp_copy_object_as_root(env->vm, &env->stack[env->stack_top++], cell);  
+  return lisp_copy_object_as_root(env->vm,
+                                  &env->stack[env->stack_top++],
+                                  cell);  
 }
+
+int lisp_push_call(lisp_eval_env_t * env,
+                   lisp_lambda_t   * lambda,
+                   lisp_instr_t    * next_instr)
+{
+  if(env->call_stack_top >= env->call_stack_size) 
+  {
+    if(env->call_stack_size == 0) 
+    {
+      env->call_stack_size = LISP_CALL_STACK_INIT_BLOCK_SIZE;
+    }
+    else 
+    {
+      if((env->call_stack_size << 1) > env->max_call_stack_size) 
+      {
+        return LISP_STACK_OVERFLOW;
+      }
+      env->call_stack_size = env->call_stack_size << 1;
+    }
+
+    env->call_stack = REALLOC(env->call_stack,
+                              sizeof(lisp_call_stack_entry_t) *
+                              env->call_stack_size);
+    if(!env->call_stack) 
+    {
+      return LISP_ALLOC_ERROR;
+    }
+  }
+  env->call_stack[env->call_stack_top].lambda = lambda;
+  env->call_stack[env->call_stack_top++].next_instr = next_instr;
+  return LISP_OK;
+}
+
+int lisp_push_halt(lisp_eval_env_t * env)
+{
+  return lisp_push_call(env, 
+                        LISP_AS(&env->halt_lambda,
+                                lisp_lambda_t),
+                        (lisp_instr_t*)&LISP_AS(LISP_CAR(&env->halt_lambda),
+                                                lisp_byte_code_t)[1]);
+}
+

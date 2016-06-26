@@ -1,7 +1,7 @@
 #ifndef __LISP_ASM_H__
 #define __LISP_ASM_H__
 #include "lisp_type.h"
-typedef unsigned char lisp_instr_t;
+
 
 #define LISP_ASM_LDVD      0x01
 #define LISP_SIZ_LDVD      sizeof(lisp_instr_t) + sizeof(lisp_cell_t)

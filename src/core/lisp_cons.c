@@ -395,11 +395,13 @@ int _lisp_make_cons_root_car_cdr(lisp_vm_t     * vm,
   {
     return LISP_ALLOC_ERROR;
   }
+  REQUIRE_NEQ_PTR(cell, car);
+  REQUIRE_NEQ_PTR(cell, cdr);
   vm->root_cons_table[vm->root_cons_top].ref_count = 1;
-  cell->type_id = type_id;
-  cell->data.cons = cons;
   cons->car = lisp_nil;
   cons->cdr = lisp_nil;
+  cell->type_id = type_id;
+  cell->data.cons = cons;
   return _lisp_init_cons_car_cdr(vm, cons, car, cdr);
 }
 
