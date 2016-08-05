@@ -27,6 +27,9 @@ int lisp_make_symbol(lisp_vm_t         * vm,
 		     lisp_cell_t       * cell,
 		     const lisp_char_t * cstr);
 
+int lisp_symbol_eq_cstr(const lisp_symbol_t * symb,
+                        const char * cstr);
+
 void lisp_init_closure(lisp_vm_t             * vm,
 		       lisp_closure_t * closure);
 
@@ -64,6 +67,8 @@ int  lisp_symbol_construct(void        * target,
 			   const void  * src,
 			   size_t        size,
 			   void        * user_data);
+size_t lisp_symbol_print(char * str, size_t n, void * ptr);
+
 int lisp_symbol_hash_eq(const void * a, const void * b);
 
 #endif

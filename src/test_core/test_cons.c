@@ -573,6 +573,24 @@ static void test_make_typed_cons(unit_test_t * tst)
   memcheck_end();
 }
 
+static void test_make_cons_recursive(unit_test_t * tst) 
+{
+  memcheck_begin();
+  lisp_vm_t    * vm = lisp_create_vm(&lisp_vm_default_param);
+  lisp_cell_t root_cons;
+  lisp_cell_t cons;
+  lisp_make_cons_root_car_cdr(vm, &root_cons, &lisp_nil, &lisp_nil);
+  lisp_cons_unroot(vm, LISP_AS(&root_cons, lisp_cons_t));
+  lisp_make_cons_root_car_cdr(vm, &root_cons, &root_cons,     &lisp_nil);
+
+  lisp_make_cons_car_cdr(vm, &cons, &lisp_nil, &lisp_nil);
+  lisp_make_cons_car_cdr(vm, &cons, &cons,     &lisp_nil);
+  
+  lisp_free_vm(vm);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
+}
+
 static void test_root_cons(unit_test_t * tst) 
 {
   memcheck_begin();
@@ -737,6 +755,7 @@ static void test_set_car_cdr_object(unit_test_t * tst)
   ASSERT_FALSE(tst,   lisp_register_object_type(vm,
 						"TEST",
 						NULL,
+                                                NULL,
 						&id));
   ASSERT_FALSE(tst,   make_test_object(&obj1, id));
   ASSERT_FALSE(tst,   make_test_object(&obj2, id));
@@ -1104,6 +1123,8 @@ void test_cons(unit_context_t * ctx)
   TEST(suite, test_make_cons);
   TEST(suite, test_make_cons_failure);
   TEST(suite, test_make_typed_cons);
+  TEST(suite, test_make_cons_recursive);
+
   TEST(suite, test_root_cons);
   TEST(suite, test_root_cons_failure);
   TEST(suite, test_unroot_cons);

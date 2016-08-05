@@ -59,4 +59,13 @@ int lisp_lambda_mock_function(lisp_eval_env_t     * env,
                               const lisp_lambda_t * lambda,
                               lisp_size_t           nargs);
 
+int lisp_compile_phase1_mock(struct lisp_vm_t * vm, 
+                             lisp_size_t      * instr_size,
+                             const lisp_cell_t * expr);
+int lisp_compile_phase2_mock(struct lisp_vm_t  * vm,
+                             lisp_cell_t       * cell,
+                             lisp_instr_t      * instr,
+                             const lisp_cell_t * expr);
+
+
 #endif

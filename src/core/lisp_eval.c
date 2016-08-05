@@ -58,14 +58,6 @@ lisp_eval_env_t * lisp_create_eval_env(lisp_vm_t * vm)
     env->call_stack_top  = 0;
     env->call_stack_size = 0;
     
-
-    for(i = 0; i < env->stack_size; i++) 
-    {
-      env->stack[i] = lisp_nil;
-    }
-    /* @todo make dynamic extension of stack and use relative offsets in 
-             order to not invalidate pointers when reallocating the 
-             stack */
     _init_halt(env);
   }
   else 
@@ -196,4 +188,3 @@ int lisp_push_halt(lisp_eval_env_t * env)
                         (lisp_instr_t*)&LISP_AS(LISP_CAR(&env->halt_lambda),
                                                 lisp_byte_code_t)[1]);
 }
-

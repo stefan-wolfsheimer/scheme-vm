@@ -17,6 +17,7 @@ const lisp_cell_t lisp_nil =
 static int _lisp_register_object_type(lisp_vm_t         * vm,
                                       lisp_char_t       * name,
                                       lisp_destructor_t   destructor,
+                                      lisp_printer_t      printer,
                                       lisp_type_id_t      new_type_id);
 
 static int _lisp_register_cons_type(lisp_vm_t         * vm,
@@ -31,9 +32,10 @@ static void _destruct_string(lisp_vm_t * vm, void * ptr);
  * 
  *****************************************************************************/
 int _lisp_register_object_type(lisp_vm_t         * vm,
-                              lisp_char_t       * name,
-                              lisp_destructor_t   destructor,
-                              lisp_type_id_t      new_type_id)
+                               lisp_char_t       * name,
+                               lisp_destructor_t   destructor,
+                               lisp_printer_t      printer,
+                               lisp_type_id_t      new_type_id)
 {
   REQUIRE_GE_I(new_type_id, LISP_TID_OBJECT_MASK);
   REQUIRE_LE_I(new_type_id, 0xff);
@@ -41,6 +43,7 @@ int _lisp_register_object_type(lisp_vm_t         * vm,
   vm->types[new_type_id].type_id = new_type_id;
   vm->types[new_type_id].name = lisp_nil; /* @todo copy string */
   vm->types[new_type_id].destructor = destructor;
+  vm->types[new_type_id].printer = printer;
   return LISP_OK;
 }
 
@@ -60,6 +63,7 @@ static int _lisp_register_cons_type(lisp_vm_t         * vm,
 int lisp_register_object_type(lisp_vm_t         * vm,
                               lisp_char_t       * name,
                               lisp_destructor_t   destructor,
+                              lisp_printer_t      printer,
                               lisp_type_id_t    * new_type)
 {
   size_t i;
@@ -69,7 +73,7 @@ int lisp_register_object_type(lisp_vm_t         * vm,
     if(vm->types[i].type_id == 0) 
     {
       *new_type = i;
-      return _lisp_register_object_type(vm, name, destructor, i);
+      return _lisp_register_object_type(vm, name, destructor, printer, i);
     }
   }
   return LISP_TYPE_ERROR;
@@ -100,21 +104,31 @@ int _lisp_init_types(lisp_vm_t * vm)
   err |= _lisp_register_object_type(vm, 
                                     "OBJECT",
                                     NULL,
+                                    NULL,
                                     LISP_TID_OBJECT);
 
   err |= _lisp_register_object_type(vm,
                                     "EXCEPTION",
                                     lisp_exception_destruct,
+                                    NULL,
                                     LISP_TID_EXCEPTION);
   err |= _lisp_register_object_type(vm, 
                                     "SYMBOL", 
                                     lisp_symbol_destruct,
+                                    lisp_symbol_print,
                                     LISP_TID_SYMBOL);
 
   err |= _lisp_register_object_type(vm,
                                     "STRING",
                                     _destruct_string,
+                                    NULL,
                                     LISP_TID_STRING);
+
+  err |= _lisp_register_object_type(vm,
+                                    "FORM",
+                                    NULL,
+                                    NULL,
+                                    LISP_TID_FORM);
 
   err |= _lisp_register_cons_type(vm,
                                   "CONS",

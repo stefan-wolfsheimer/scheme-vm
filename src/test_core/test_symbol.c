@@ -1,4 +1,5 @@
 #include "lisp_vm_check.h"
+#include "context.h"
 #include "util/unit_test.h"
 #include "util/xmalloc.h"
 #include "core/lisp_vm.h" 
@@ -45,6 +46,22 @@ static void test_create_symbol(unit_test_t * tst)
   lisp_free_vm(vm);
   ASSERT_MEMCHECK(tst);
   memcheck_end();
+}
+
+static void test_print_symbol(unit_test_t * tst) 
+{
+  lisp_unit_context_t * ctx = lisp_create_unit_context(&lisp_vm_default_param,
+                                                       tst);
+
+  lisp_cell_t symb;
+  char buff[10];
+  lisp_make_symbol(ctx->vm, &symb, "abc");
+  ASSERT_EQ_U(tst, lisp_object_to_c_str(ctx->vm, NULL, 0, &symb), 3);
+  ASSERT_EQ_U(tst, lisp_object_to_c_str(ctx->vm, buff, 3, &symb), 3);
+  ASSERT_EQ_CSTR(tst, buff, "ab");
+  ASSERT_EQ_U(tst, lisp_object_to_c_str(ctx->vm, buff, 4, &symb), 3);
+  ASSERT_EQ_CSTR(tst, buff, "abc");
+  lisp_free_unit_context(ctx);  
 }
 
 static void test_symbol_init_closure(unit_test_t * tst) 
@@ -110,10 +127,10 @@ static void test_symbol_init_closure_append(unit_test_t * tst)
   lisp_unset_object(vm, &symb);
   ASSERT_EQ_U(tst, HASH_TABLE_SIZE(&vm->symbols), n + 1);
   
-  ASSERT_EQ_I(tst, lisp_symbol_release_closure(vm, &closure[0]), LISP_OK);
-  ASSERT_EQ_I(tst, lisp_symbol_release_closure(vm, &closure[1]), LISP_OK);
-  ASSERT_EQ_I(tst, lisp_symbol_release_closure(vm, &closure[2]), LISP_OK);
-  //ASSERT_EQ_I(tst, lisp_symbol_release_closure(vm, &closure[3]), LISP_OK);
+  ASSERT_IS_OK(tst, lisp_symbol_release_closure(vm, &closure[0]));
+  ASSERT_IS_OK(tst, lisp_symbol_release_closure(vm, &closure[1]));
+  ASSERT_IS_OK(tst, lisp_symbol_release_closure(vm, &closure[2]));
+  //ASSERT_IS_OK(tst, lisp_symbol_release_closure(vm, &closure[3]));
 
   ASSERT_EQ_U(tst, HASH_TABLE_SIZE(&vm->symbols), n + 0);
 
@@ -135,6 +152,7 @@ static void test_symbol_set(unit_test_t * tst)
   ASSERT_FALSE(tst, lisp_register_object_type(vm,
 					      "TEST",
 					      lisp_test_object_destructor,
+                                              NULL,
 					      &id));
 
   ASSERT_FALSE(tst,  lisp_make_symbol(vm, &abc, "abc"));
@@ -178,6 +196,7 @@ static void test_symbol_unset(unit_test_t * tst)
   ASSERT_FALSE(tst, lisp_register_object_type(vm,
 					      "TEST",
 					      lisp_test_object_destructor,
+                                              NULL,
 					      &id));
 
   ASSERT_FALSE(tst,  lisp_make_symbol(vm, &abc, "abc"));
@@ -241,6 +260,7 @@ void test_symbol(unit_context_t * ctx)
 {
   unit_suite_t * suite = unit_create_suite(ctx, "symbol");
   TEST(suite, test_create_symbol);
+  TEST(suite, test_print_symbol);
   TEST(suite, test_symbol_init_closure);
   TEST(suite, test_symbol_init_closure_append);
   TEST(suite, test_symbol_set);

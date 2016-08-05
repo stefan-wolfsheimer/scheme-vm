@@ -78,6 +78,7 @@ typedef struct lisp_eval_env_t
 } lisp_eval_env_t;
 
 typedef void(*lisp_destructor_t)(struct lisp_vm_t * vm, void * ptr);
+typedef size_t(*lisp_printer_t)(char * str, size_t n, void * ptr);
 
 /** Call back for builtin functions. 
  *  The result is written to value register of env
@@ -86,12 +87,23 @@ typedef int (*lisp_builtin_function_t)(struct lisp_eval_env_t * env,
                                        const lisp_lambda_t    * lambda,
                                        lisp_size_t              nargs);
 
+typedef int(*lisp_compile_phase1_t)(struct lisp_vm_t * vm, 
+                                    lisp_size_t      * instr_size,
+                                    const lisp_cell_t * expr);
+
+typedef int(*lisp_compile_phase2_t)(struct lisp_vm_t  * vm,
+                                    lisp_cell_t       * cell,
+                                    lisp_instr_t      * instr,
+                                    const lisp_cell_t * expr);
+
+
 /** meta type */
 typedef struct lisp_type_t 
 {
   lisp_type_id_t    type_id;
   lisp_cell_t       name;
   lisp_destructor_t destructor;
+  lisp_printer_t    printer;
 } lisp_type_t;
 
 typedef struct lisp_byte_code_t
@@ -102,7 +114,11 @@ typedef struct lisp_byte_code_t
   //lisp_builtin_function_t  func;
 } lisp_byte_code_t;
 
-
+typedef struct lisp_form_t
+{
+  lisp_compile_phase1_t phase1;
+  lisp_compile_phase2_t phase2;
+} lisp_form_t;
 
 
 /* cons -> car, cdr */

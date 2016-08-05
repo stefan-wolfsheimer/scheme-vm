@@ -5,6 +5,7 @@
 #include "core/lisp_symbol.h"
 #include "core/lisp_lambda.h"
 
+#if 0
 static int lisp_builtin_define(lisp_eval_env_t * env,
                                const lisp_lambda_t * lambda,
                                lisp_size_t       nargs)
@@ -25,6 +26,7 @@ static int lisp_builtin_define(lisp_eval_env_t * env,
     return LISP_TYPE_ERROR;
   }
 }
+#endif
 
 int lisp_make_form_define(lisp_vm_t * vm, 
                           lisp_cell_t * cell)
@@ -32,10 +34,7 @@ int lisp_make_form_define(lisp_vm_t * vm,
   /* @todo arguments for form define */
   return lisp_make_builtin_form(vm,
                                 cell,
-                                0,
                                 NULL,
-                                0,
-                                NULL,
-                                lisp_builtin_define);
+                                NULL);
 }
 

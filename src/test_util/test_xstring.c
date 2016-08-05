@@ -4,6 +4,19 @@
 #include "util/mock.h"
 #include <string.h>
 
+static void test_snprintf(unit_test_t * tst) 
+{
+  char buff[4];
+  buff[3] = 'X';
+  ASSERT_EQ_U(tst, snprintf(NULL, 0, "%d", 123), 3);
+  ASSERT_EQ_U(tst, snprintf(buff, 3, "%d", 123), 3);
+  ASSERT_EQ_CSTR(tst, buff, "12");
+  ASSERT_EQ_I(tst, buff[2], 0);
+  ASSERT_EQ_I(tst, buff[3], 'X');
+  ASSERT_EQ_U(tst, snprintf(buff, 4, "%d", 123), 3);
+  ASSERT_EQ_I(tst, buff[3], 0);
+}
+
 static void test_strcpy_null(unit_test_t * tst)
 {
   memcheck_begin();
@@ -79,6 +92,7 @@ static void test_sprintf_fail(unit_test_t * tst)
 void test_xstring(unit_context_t * ctx)
 {
   unit_suite_t * suite = unit_create_suite(ctx, "xstring");
+  TEST(suite, test_snprintf);
   TEST(suite, test_strcpy_null);
   TEST(suite, test_strcpy);
   TEST(suite, test_strcpy_fail);

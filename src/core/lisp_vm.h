@@ -88,6 +88,7 @@ void lisp_free_vm(   lisp_vm_t * vm);
 int lisp_register_object_type(lisp_vm_t        * vm,
 			      lisp_char_t      * name,
 			      lisp_destructor_t  destructor,
+                              lisp_printer_t      printer,
 			      lisp_type_id_t   * new_type);
 
 /** Register a user define cons type.
@@ -261,7 +262,15 @@ int lisp_make_list(lisp_vm_t         * vm,
  *****************************************************************/
 void lisp_make_integer(lisp_cell_t * cell, lisp_integer_t value);
 
-	      
+
+/*****************************************************************
+ *
+ * expression to string
+ *
+ *****************************************************************/
+lisp_size_t lisp_object_to_c_str(lisp_vm_t * vm, char * buff, size_t maxn, const lisp_cell_t * cell);
+
+
 /*****************************************************************
  *
  * create basic objects

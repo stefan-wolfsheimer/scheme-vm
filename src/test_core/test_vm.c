@@ -82,6 +82,7 @@ static void test_register_type(unit_test_t * tst)
   ASSERT_FALSE(tst, lisp_register_object_type(vm,
 					      "TEST",
 					      lisp_test_object_destructor,
+                                              NULL,
 					      &id));
   ASSERT(tst,       (LISP_TID_OBJECT_MASK & id));
   ASSERT_FALSE(tst, lisp_make_test_object(&obj,
@@ -107,6 +108,7 @@ static void test_object_without_explicit_destructor(unit_test_t * tst)
   ASSERT_FALSE(tst, lisp_register_object_type(vm,
 					      "TEST",
 					      NULL,
+                                              NULL,
 					      &id));
   flags = 0;
   ASSERT_FALSE(tst, lisp_make_test_object(&obj, &flags, id));
@@ -139,6 +141,7 @@ static void test_copy_object(unit_test_t * tst)
   ASSERT_FALSE(tst, lisp_register_object_type(vm,
 					      "TEST",
 					      lisp_test_object_destructor,
+                                              NULL,
 					      &id));
   flags = 0;
   ASSERT_FALSE(tst, lisp_make_test_object(&obj, &flags, id));
@@ -179,6 +182,7 @@ static void _test_init_objects_to_copy(unit_test_t * tst,
   CHECK_FALSE(tst, lisp_register_object_type(vm,
 					     "TEST",
 					     lisp_test_object_destructor,
+                                             NULL,
 					     &id));
   car = lisp_get_white_cons(vm, 0);
   cdr = lisp_get_white_cons(vm, 1);

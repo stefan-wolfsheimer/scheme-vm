@@ -144,6 +144,19 @@ static void lisp_free_cons_gc(lisp_vm_t * vm)
   }
 }
 
+lisp_size_t lisp_object_to_c_str(lisp_vm_t * vm, 
+                                 char * buff, size_t maxn, const lisp_cell_t * cell)
+{
+  /*@todo implement */
+  if(LISP_IS_OBJECT(cell) && vm->types[cell->type_id].printer != NULL) 
+  {
+    return vm->types[cell->type_id].printer(buff, maxn, cell->data.ptr);
+  }
+  else 
+  {
+    return snprintf(buff, maxn, "#UNKNOWN");
+  }
+}
 
 /*****************************************************************************
  * 

@@ -45,6 +45,20 @@ int lisp_make_symbol(lisp_vm_t         * vm,
   return LISP_OK;
 }
 
+int lisp_symbol_eq_cstr(const lisp_symbol_t * symb,
+                        const char * cstr)
+{
+  /*@todo case insensitive */
+  if(!strcmp((const char*) &symb[1], cstr)) 
+  {
+    return 1;
+  }
+  else 
+  {
+    return 0;
+  }
+}
+
 void lisp_init_closure(lisp_vm_t             * vm,
 		       lisp_closure_t * closure)
 {
@@ -198,6 +212,11 @@ int lisp_symbol_construct(void        * target,
   strncpy( (char*) &symbol[1], (const char*)src, symbol->size);
   ((char*) &symbol[1])[symbol->size] = '\0';
   return 0;
+}
+
+size_t lisp_symbol_print(char * str, size_t n, void * ptr)
+{
+  return snprintf(str, n, "%s", (char*) &((lisp_symbol_t*) ptr)[1]);
 }
 
 int lisp_symbol_hash_eq(const void * a, const void * b)

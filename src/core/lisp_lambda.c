@@ -67,7 +67,7 @@ static int _lisp_compile_phase1(lisp_vm_t         * vm,
   }
   else if(LISP_IS_ATOM(expr)) 
   {
-    *instr_size+= LISP_SIZ_LDVD;
+    *instr_size+= LISP_SIZ_LDVD + LISP_SIZ_RET;
     return LISP_OK;
   }
   else if(LISP_IS_SYMBOL(expr))
@@ -87,6 +87,20 @@ static int _lisp_compile_phase1(lisp_vm_t         * vm,
       *instr_size+= LISP_SIZ_JP;
       return _lisp_compile_phase1_list_of_expressions(vm, instr_size,
                                                       LISP_CDR(expr));
+    }
+    else if(LISP_IS_SYMBOL(LISP_CAR(expr)))
+    {
+      lisp_cell_t * value = lisp_symbol_get(vm, LISP_AS(LISP_CAR(expr), lisp_symbol_t));
+      if(value && LISP_IS_FORM(value)) 
+      {
+        /* @todo */
+        
+      }
+      else 
+      {
+        /* @todo */
+      }
+      return LISP_UNSUPPORTED;
     }
     else 
     {
@@ -260,36 +274,29 @@ int lisp_make_builtin_lambda(lisp_vm_t               * vm,
   ret = lisp_compile_alloc(vm,
                            cell, 
                            &instr,
-                           LISP_SIZ_BUILTIN + LISP_SIZ_RET + LISP_SIZ_HALT);
+                           LISP_SIZ_BUILTIN + LISP_SIZ_RET);
   if(ret == LISP_OK) 
   {
     LISP_SET_INSTR(LISP_ASM_BUILTIN, instr, lisp_builtin_function_t, func);
     instr+= LISP_SIZ_BUILTIN;    
-
     *instr = LISP_ASM_RET;
-    instr++;
-
-    /*@todo remove halt */
-    *instr = LISP_ASM_HALT;
   }
   return LISP_OK;
 }
 
-int lisp_make_builtin_form(lisp_vm_t                * vm,
-                           lisp_cell_t              * cell,
-                           lisp_size_t                args_size,
-                           const lisp_cell_t        * args,
-                           lisp_size_t                data_size,
-                           const lisp_cell_t        * data,
-                           lisp_builtin_function_t    func)
+int lisp_make_builtin_form(struct lisp_vm_t       * vm,
+                           lisp_cell_t            * cell,
+                           lisp_compile_phase1_t    phase1,
+                           lisp_compile_phase2_t    phase2)
 {
-  lisp_byte_code_t * lambda = MALLOC_OBJECT(sizeof(lisp_byte_code_t),
-                                         1);
+  lisp_form_t * form = MALLOC_OBJECT(sizeof(lisp_form_t), 1);
   cell->type_id  = LISP_TID_FORM;
-  cell->data.ptr = lambda;
-  lambda->instr_size = 0;
+  cell->data.ptr = form;
+  form->phase1 = phase1;
+  form->phase2 = phase2;
   return LISP_OK;
 }
+
 
 int lisp_make_builtin_c_str(lisp_vm_t                * vm,
 			    lisp_cell_t              * cell,
@@ -698,5 +705,105 @@ int lisp_lambda_compile(lisp_eval_env_t   * env,
   return LISP_OK;
 }
 
+static int _disass_instr(lisp_vm_t   * vm,
+                         lisp_cons_t * cons,
+                         const char  * str)
+{
+  lisp_cell_t symb;
+  lisp_make_symbol(vm, &symb, str);
+  lisp_cons_set_car_cdr(vm, cons, &symb, NULL);
+  return LISP_OK;
+}
+
+static int _disass_instr1(lisp_vm_t         * vm,
+                          lisp_cons_t       * cons,
+                          const lisp_cell_t * data,
+                          const char        * str)
+{
+  lisp_cell_t symb;
+  lisp_make_symbol(vm, &symb, str);
+  lisp_cons_set_car_cdr(vm, cons, &symb, NULL);
+  return LISP_OK;
+}
+
+int lisp_lambda_disassemble(lisp_vm_t     * vm,
+                            lisp_cell_t   * cell,
+                            lisp_lambda_t * lambda)
+{
+  lisp_cons_t      * last      = NULL;
+  lisp_byte_code_t * byte_code = lambda->car.data.ptr;
+  lisp_instr_t     * instr     = (lisp_instr_t*) &byte_code[1];
+  lisp_instr_t     * end_instr = instr + byte_code->instr_size;
+  lisp_cell_t        tmp;
+  while(instr < end_instr) 
+  {
+    if(last == NULL) 
+    {
+      lisp_make_cons_car_cdr(vm, cell, &lisp_nil, &lisp_nil);
+      last = LISP_AS(cell, lisp_cons_t);
+    }
+    else 
+    {
+      lisp_cell_t tmp;
+      lisp_make_cons_car_cdr(vm, &tmp, &lisp_nil, &lisp_nil);
+      lisp_cons_set_car_cdr(vm, last, NULL, &tmp);
+      last = LISP_AS(&tmp, lisp_cons_t);
+    }
+    switch(*instr) 
+    {
+    case LISP_ASM_LDVD:
+      _disass_instr1(vm,
+                     last,
+                     LISP_INSTR_ARG(instr, lisp_cell_t),
+                     "LDVD");
+      instr+= LISP_SIZ_LDVD;
+      break;
+    case LISP_ASM_LDVR:
+      _disass_instr1(vm,
+                     last,
+                     LISP_INSTR_ARG(instr, lisp_cell_t),
+                     "LDVR");
+      instr+= LISP_SIZ_LDVR;
+      break;
+    case LISP_ASM_BUILTIN:
+      _disass_instr(vm,
+                    last,
+                    "BUILTIN");
+      
+      instr+= LISP_SIZ_BUILTIN;
+      break;
+    case LISP_ASM_RET:
+      _disass_instr(vm,
+                    last,
+                    "RET");
+      instr+= LISP_SIZ_RET;
+      break;
+    case LISP_ASM_JP:
+      lisp_make_integer(&tmp, *LISP_INSTR_ARG(instr, lisp_size_t));
+      _disass_instr1(vm,
+                    last,
+                     &tmp,
+                    "JP");
+      instr+= LISP_SIZ_JP;
+      break;
+    case LISP_ASM_PUSHD:
+      _disass_instr1(vm,
+                     last,
+                     LISP_INSTR_ARG(instr, lisp_cell_t),
+                     "PUSHD");
+      instr+= LISP_SIZ_PUSHD;
+      break;
+    case LISP_ASM_HALT:
+      _disass_instr(vm,
+                    last,
+                    "PUSHD");
+      instr+= LISP_SIZ_HALT;
+      break;
+    default:
+      return LISP_UNSUPPORTED;
+    }
+  }
+  return LISP_OK;
+}
 
 
