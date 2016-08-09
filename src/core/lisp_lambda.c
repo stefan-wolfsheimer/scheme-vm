@@ -93,14 +93,13 @@ static int _lisp_compile_phase1(lisp_vm_t         * vm,
       lisp_cell_t * value = lisp_symbol_get(vm, LISP_AS(LISP_CAR(expr), lisp_symbol_t));
       if(value && LISP_IS_FORM(value)) 
       {
-        /* @todo */
-        
+        return LISP_AS(value, lisp_form_t)->phase1(vm, instr_size, expr);
       }
       else 
       {
         /* @todo */
+        return LISP_UNSUPPORTED;
       }
-      return LISP_UNSUPPORTED;
     }
     else 
     {
@@ -196,6 +195,18 @@ static int _lisp_compile_phase2(lisp_vm_t         * vm,
       else 
       {
         return ret;
+      }
+    }
+    else if(LISP_IS_SYMBOL(LISP_CAR(expr)))
+    {
+      lisp_cell_t * value = lisp_symbol_get(vm, LISP_AS(LISP_CAR(expr), lisp_symbol_t));
+      if(value && LISP_IS_FORM(value)) 
+      {
+        return LISP_AS(value, lisp_form_t)->phase2(vm, cell, instr ,expr);
+      }
+      else 
+      {
+        return LISP_UNSUPPORTED;
       }
     }
     else 
@@ -680,6 +691,8 @@ int lisp_lambda_compile(lisp_eval_env_t   * env,
                              expr);
   if(ret != LISP_OK) 
   {
+    /* @todo create exception */
+    *cell = lisp_nil;
     return ret;
   }
   /* @todo check ret */
@@ -700,6 +713,11 @@ int lisp_lambda_compile(lisp_eval_env_t   * env,
                              expr);
   if(ret != LISP_OK) 
   {
+    /* @todo exception */
+    FREE_OBJECT(byte_code);
+    *LISP_CAR(cell) = lisp_nil;
+    lisp_unset_object(env->vm, cell);
+    *cell = lisp_nil;
     return ret;
   }
   return LISP_OK;

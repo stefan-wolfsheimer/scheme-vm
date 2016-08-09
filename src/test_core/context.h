@@ -74,10 +74,13 @@ struct assertion_t *  lisp_compare_asm(const char          * file,
   { return ; }
 
 /* @todo replace pattern ASSERT_EQ_I(tst, expr, lisp_ok) with this macro
+   @todo improve readibility (string instead of code in messages
  */
-
 #define ASSERT_IS_OK(__TST__, __EXPR__)         \
   ASSERT_EQ_I((__TST__), (__EXPR__), LISP_OK)
+
+#define ASSERT_IS_UNSUPPORTED(__TST__, __EXPR__)         \
+  ASSERT_EQ_I((__TST__), (__EXPR__), LISP_UNSUPPORTED)
 
 #define ASSERT_IS_COMPILATION_ERROR(__TST__, __EXPR__)          \
   ASSERT_EQ_I((__TST__), (__EXPR__), LISP_COMPILATION_ERROR)
