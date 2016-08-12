@@ -63,6 +63,12 @@ struct assertion_t *  lisp_compare_asm(const char          * file,
                                        const lisp_cell_t   * cell,
                                        const lisp_cell_t   * structure);
 
+struct assertion_t * lisp_compare_return_code(const char          * file,
+                                              int                   line,
+                                              int                   code_lhs,
+                                              int                   code_rhs,
+                                              const char          * op);
+
 #define ASSERT_DISASM(__TST__, __CTX__, __CELL__, __ARGS__,__INSTR__)   \
   if(!unit_add_assertion( (__TST__),                                    \
                           lisp_compare_asm(__FILE__,                    \
@@ -93,5 +99,23 @@ struct assertion_t *  lisp_compare_asm(const char          * file,
 
 #define ASSERT_IS_ALLOC_ERROR(__TST__, __EXPR__)        \
   ASSERT_EQ_I((__TST__), (__EXPR__), LISP_ALLOC_ERROR)
+
+#define CHECK_IS_OK(__TST__, __EXPR__)         \
+  CHECK_EQ_I((__TST__), (__EXPR__), LISP_OK)
+
+#define CHECK_IS_UNSUPPORTED(__TST__, __EXPR__)         \
+  CHECK_EQ_I((__TST__), (__EXPR__), LISP_UNSUPPORTED)
+
+#define CHECK_IS_COMPILATION_ERROR(__TST__, __EXPR__)          \
+  CHECK_EQ_I((__TST__), (__EXPR__), LISP_COMPILATION_ERROR)
+
+#define CHECK_IS_UNDEFINED(__TST__, __EXPR__)          \
+  CHECK_EQ_I((__TST__), (__EXPR__), LISP_UNDEFINED)
+
+#define CHECK_IS_STACK_OVERFLOW(__TST__, __EXPR__)     \
+  CHECK_EQ_I((__TST__), (__EXPR__), LISP_STACK_OVERFLOW)
+
+#define CHECK_IS_ALLOC_ERROR(__TST__, __EXPR__)        \
+  CHECK_EQ_I((__TST__), (__EXPR__), LISP_ALLOC_ERROR)
 
 #endif

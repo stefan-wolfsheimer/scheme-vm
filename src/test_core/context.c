@@ -342,6 +342,17 @@ assertion_t * lisp_compare_asm_list(const char          * file,
   }
   return NULL;
 }
+
+struct assertion_t * lisp_compare_return_code(const char          * file,
+                                              int                   line,
+                                              int                   code_lhs,
+                                              int                   code_rhs,
+                                              const char          * op)
+{
+  return NULL;
+}
+
+
  
 assertion_t * lisp_compare_asm(const char          * file,
                                int                   line,
@@ -366,3 +377,4 @@ assertion_t * lisp_compare_asm(const char          * file,
   lisp_unset_object(ctx->vm, &disass);
   return ret;
 }
+
