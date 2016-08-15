@@ -79,43 +79,4 @@ struct assertion_t * lisp_compare_return_code(const char          * file,
                                            (__INSTR__))))               \
   { return ; }
 
-/* @todo replace pattern ASSERT_EQ_I(tst, expr, lisp_ok) with this macro
-   @todo improve readibility (string instead of code in messages
- */
-#define ASSERT_IS_OK(__TST__, __EXPR__)         \
-  ASSERT_EQ_I((__TST__), (__EXPR__), LISP_OK)
-
-#define ASSERT_IS_UNSUPPORTED(__TST__, __EXPR__)         \
-  ASSERT_EQ_I((__TST__), (__EXPR__), LISP_UNSUPPORTED)
-
-#define ASSERT_IS_COMPILATION_ERROR(__TST__, __EXPR__)          \
-  ASSERT_EQ_I((__TST__), (__EXPR__), LISP_COMPILATION_ERROR)
-
-#define ASSERT_IS_UNDEFINED(__TST__, __EXPR__)          \
-  ASSERT_EQ_I((__TST__), (__EXPR__), LISP_UNDEFINED)
-
-#define ASSERT_IS_STACK_OVERFLOW(__TST__, __EXPR__)     \
-  ASSERT_EQ_I((__TST__), (__EXPR__), LISP_STACK_OVERFLOW)
-
-#define ASSERT_IS_ALLOC_ERROR(__TST__, __EXPR__)        \
-  ASSERT_EQ_I((__TST__), (__EXPR__), LISP_ALLOC_ERROR)
-
-#define CHECK_IS_OK(__TST__, __EXPR__)         \
-  CHECK_EQ_I((__TST__), (__EXPR__), LISP_OK)
-
-#define CHECK_IS_UNSUPPORTED(__TST__, __EXPR__)         \
-  CHECK_EQ_I((__TST__), (__EXPR__), LISP_UNSUPPORTED)
-
-#define CHECK_IS_COMPILATION_ERROR(__TST__, __EXPR__)          \
-  CHECK_EQ_I((__TST__), (__EXPR__), LISP_COMPILATION_ERROR)
-
-#define CHECK_IS_UNDEFINED(__TST__, __EXPR__)          \
-  CHECK_EQ_I((__TST__), (__EXPR__), LISP_UNDEFINED)
-
-#define CHECK_IS_STACK_OVERFLOW(__TST__, __EXPR__)     \
-  CHECK_EQ_I((__TST__), (__EXPR__), LISP_STACK_OVERFLOW)
-
-#define CHECK_IS_ALLOC_ERROR(__TST__, __EXPR__)        \
-  CHECK_EQ_I((__TST__), (__EXPR__), LISP_ALLOC_ERROR)
-
 #endif

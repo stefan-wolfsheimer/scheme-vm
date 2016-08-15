@@ -181,3 +181,19 @@ void lisp_make_integer(lisp_cell_t * cell, lisp_integer_t value)
   cell->type_id = LISP_TID_INTEGER;
   cell->data.integer = value;
 }
+
+const char * lisp_error_message(int code)
+{
+  switch(code)
+  {
+  case LISP_OK: return "OK";
+  case LISP_ALLOC_ERROR: return "ALLOC_ERROR";
+  case LISP_TYPE_ERROR: return "TYPE_ERROR";
+  case LISP_EVAL_ERROR: return "EVAL_ERROR";
+  case LISP_UNSUPPORTED: return "UNSUPPORTED";
+  case LISP_RANGE_ERROR: return "RANGE_ERROR";
+  case LISP_COMPILATION_ERROR: return "COMPILATION_ERROR";
+  case LISP_STACK_OVERFLOW: return "STACK_OVERFLOW";
+  default: return "???";
+  }
+}

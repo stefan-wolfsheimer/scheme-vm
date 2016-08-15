@@ -232,6 +232,7 @@ extern const lisp_cell_t lisp_nil;
 
 
 /** Error codes */
+const char * lisp_error_message(int code);
 #define LISP_OK                0x00
 #define LISP_ALLOC_ERROR       0x01
 #define LISP_TYPE_ERROR        0x02

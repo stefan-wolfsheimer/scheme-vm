@@ -5,7 +5,7 @@
 #include "core/lisp_eval.h" 
 #include "core/lisp_symbol.h"
 #include "core/lisp_lambda.h"
-#include "test_core/context.h"
+#include "test_core/lisp_assertion.h"
 
 static void test_create_eval_env(unit_test_t * tst) 
 {

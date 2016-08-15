@@ -1,5 +1,5 @@
 #include "lisp_vm_check.h"
-#include "context.h"
+#include "test_core/lisp_assertion.h"
 #include "util/unit_test.h"
 #include "util/xmalloc.h"
 #include "core/lisp_vm.h" 

@@ -9,7 +9,7 @@ void test_assertion(unit_context_t * ctx);
 void test_hash_table(unit_context_t * ctx);
 
 void test_lisp_assertion(unit_context_t * ctx);
-
+void test_type(unit_context_t * ctx);
 void test_vm(unit_context_t * ctx);
 void test_exception(unit_context_t * ctx);
 void test_cons(unit_context_t * ctx);
@@ -36,6 +36,7 @@ int main(int argc, const char ** argv)
 
   test_lisp_assertion(ctx);
 
+  test_type(ctx);
   test_vm(ctx);
   test_exception(ctx);
   test_cons(ctx);

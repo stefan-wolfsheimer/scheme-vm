@@ -6,7 +6,7 @@
 #include "core/lisp_symbol.h"
 #include "core/lisp_exception.h"
 #include "core/lisp_lambda.h"
-#include "test_core/context.h"
+#include "test_core/lisp_assertion.h"
 #include "lisp_vm_check.h"
 
 
