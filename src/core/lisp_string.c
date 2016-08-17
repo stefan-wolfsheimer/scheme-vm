@@ -13,13 +13,31 @@ int lisp_make_string(lisp_vm_t         * vm,
 {
   size_t size = strlen(cstr);
   lisp_string_t * str = MALLOC_OBJECT(sizeof(lisp_string_t), 1);
-  str->data  = MALLOC_OBJECT(sizeof(lisp_char_t) * (size+1), 1);
-  str->begin = 0;
-  str->end   = size;
-  strcpy( (char*) str->data, cstr);
-  cell->type_id = LISP_TID_STRING;
-  cell->data.ptr = str;
-  return 0;
+  if(str)
+  {
+    str->data  = MALLOC_OBJECT(sizeof(lisp_char_t) * (size+1), 1);
+    if(str->data)
+    {
+      str->begin = 0;
+      str->end   = size;
+      strcpy( (char*) str->data, cstr);
+      cell->type_id = LISP_TID_STRING;
+      cell->data.ptr = str;
+      return LISP_OK;
+    }
+    else
+    {
+      FREE_OBJECT(str);
+      *cell = lisp_nil;
+      return LISP_ALLOC_ERROR;
+    }
+  }
+  else
+  {
+    /* @todo exception instead of nil */
+    *cell = lisp_nil;
+    return LISP_ALLOC_ERROR;
+  }
 }
 
 int lisp_make_substring(lisp_vm_t           * vm,

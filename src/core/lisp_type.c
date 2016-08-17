@@ -9,7 +9,7 @@
 #include "core/lisp_exception.h"
 #include <string.h>
 
-const lisp_cell_t lisp_nil = 
+const lisp_cell_t lisp_nil =
 {
  type_id : LISP_TID_NIL
 };
@@ -37,27 +37,40 @@ int _lisp_register_object_type(lisp_vm_t         * vm,
                                lisp_printer_t      printer,
                                lisp_type_id_t      new_type_id)
 {
+  int ret = LISP_OK;
   REQUIRE_GE_I(new_type_id, LISP_TID_OBJECT_MASK);
   REQUIRE_LE_I(new_type_id, 0xff);
   REQUIRE_EQ_I(vm->types[new_type_id].type_id, 0);
-  vm->types[new_type_id].type_id = new_type_id;
-  vm->types[new_type_id].name = lisp_nil; /* @todo copy string */
+  REQUIRE_NEQ_PTR(name, NULL);
+  vm->types[new_type_id].name = lisp_nil; 
+  ret = lisp_make_string(vm, &vm->types[new_type_id].name, name);
+  if(ret)
+  {
+    return ret;
+  }
+  vm->types[new_type_id].type_id    = new_type_id;
   vm->types[new_type_id].destructor = destructor;
-  vm->types[new_type_id].printer = printer;
-  return LISP_OK;
+  vm->types[new_type_id].printer    = printer;
+  return ret;
 }
 
 static int _lisp_register_cons_type(lisp_vm_t         * vm,
                                     lisp_char_t       * name,
                                     lisp_type_id_t      new_type_id)
 {
+  int ret = LISP_OK;
   REQUIRE_GE_I(new_type_id, LISP_TID_CONS_MASK);
   REQUIRE_LE_I(new_type_id, 0x7f);
   REQUIRE_EQ_I(vm->types[new_type_id].type_id, 0);
-  vm->types[new_type_id].type_id = new_type_id;
-  vm->types[new_type_id].name = lisp_nil; /* @todo copy string */
+  REQUIRE_NEQ_PTR(name, NULL);
+  ret = lisp_make_string(vm, &vm->types[new_type_id].name, name);
+  if(ret) 
+  {
+    return ret;
+  }
+  vm->types[new_type_id].type_id    = new_type_id;
   vm->types[new_type_id].destructor = NULL;
-  return LISP_OK;
+  return ret;
 }
 
 int lisp_register_object_type(lisp_vm_t         * vm,
@@ -97,10 +110,27 @@ int lisp_register_cons_type(lisp_vm_t          * vm,
 }
 
 
+static void _lisp_rollback_types(lisp_vm_t * vm)
+{
+  size_t i;
+  for(i = 0; i < vm->types_size; i++) 
+  {
+    lisp_string_t * str = LISP_AS(&vm->types[i].name, lisp_string_t);
+    if(str != NULL) 
+    {
+      if(!--((lisp_ref_count_t*)str->data)[-1]) 
+      {
+        FREE_OBJECT(str->data);
+      }
+      FREE_OBJECT(str);
+    }
+    vm->types[i].name = lisp_nil;
+  }
+}
+
 int _lisp_init_types(lisp_vm_t * vm)
 {
   int err = 0;
-  /* @todo cleanup on failure (name is copied) */
   err |= _lisp_register_object_type(vm, 
                                     "OBJECT",
                                     NULL,
@@ -140,6 +170,7 @@ int _lisp_init_types(lisp_vm_t * vm)
 
   if(err) 
   {
+    _lisp_rollback_types(vm);
     return LISP_TYPE_ERROR;
   }
   /* init symbol table */
@@ -149,6 +180,7 @@ int _lisp_init_types(lisp_vm_t * vm)
                      lisp_symbol_construct,
                      NULL,  255))
   {
+    _lisp_rollback_types(vm);
     return LISP_ALLOC_ERROR;
   }
   vm->symbols.user_data = vm;

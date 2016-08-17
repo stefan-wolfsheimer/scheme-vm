@@ -5,6 +5,7 @@
 #include "context.h"
 
 void lisp_test_object_destructor(lisp_vm_t * vm, void * ptr);
+
 int lisp_make_test_object(lisp_cell_t   * target, 
 			  int           * flags,
 			  lisp_type_id_t  id);

@@ -24,24 +24,25 @@ static void test_alloc_object_fail(unit_test_t * tst)
   memcheck_end();
 }
 
+static size_t count_allocs_for_create_vm()
+{
+  memchecker_t * memcheck = memcheck_begin();
+  lisp_vm_t    * vm       = lisp_create_vm(&lisp_vm_default_param);
+  size_t         expected_mallocs = memcheck->n_chunks;
+  lisp_free_vm(vm);
+  memcheck_end();
+  return expected_mallocs;
+}
+
 static void test_alloc_vm_fail(unit_test_t * tst)
 {
+  // @todo reactivate
   /* Test if all malloc failures are captured in lisp_create_vm
    * expected allocs to initialize the vm
    */
-  size_t expected_mallocs = 0;
+  size_t expected_mallocs = count_allocs_for_create_vm();
   lisp_vm_t    * vm;
   size_t         i,j;
-  {
-    memchecker_t * memcheck = memcheck_begin();
-    vm = lisp_create_vm(&lisp_vm_default_param);
-    expected_mallocs = memcheck->n_chunks;
-    ASSERT_NEQ_PTR(tst, vm, NULL);
-    lisp_free_vm(vm);
-    ASSERT_MEMCHECK(tst);
-    memcheck_end();
-  }
-
   for(i = 0; i < expected_mallocs; i++) 
   {
     memcheck_begin();
@@ -68,32 +69,6 @@ static void test_alloc_vm_fail(unit_test_t * tst)
     ASSERT_MEMCHECK(tst);
     memcheck_end();
   }
-}
-
-static void test_register_type(unit_test_t * tst)
-{
-  memcheck_begin();
-  lisp_vm_t     * vm;
-  lisp_type_id_t  id = 0;
-  lisp_cell_t     obj;
-  int             flag;
-
-  vm = lisp_create_vm(&lisp_vm_default_param);
-  ASSERT_FALSE(tst, lisp_register_object_type(vm,
-					      "TEST",
-					      lisp_test_object_destructor,
-                                              NULL,
-					      &id));
-  ASSERT(tst,       (LISP_TID_OBJECT_MASK & id));
-  ASSERT_FALSE(tst, lisp_make_test_object(&obj,
-					  &flag,
-					  id));
-  ASSERT(tst, LISP_IS_OBJECT(&obj));
-  lisp_unset_object(vm, &obj);
-  ASSERT(tst, LISP_IS_NIL(&obj));
-  lisp_free_vm(vm);
-  ASSERT_MEMCHECK(tst);
-  memcheck_end();
 }
 
 static void test_object_without_explicit_destructor(unit_test_t * tst)
@@ -434,7 +409,6 @@ void test_vm(unit_context_t * ctx)
   TEST(suite, test_alloc_object);
   TEST(suite, test_alloc_object_fail);
   TEST(suite, test_alloc_vm_fail);
-  TEST(suite, test_register_type);
   TEST(suite, test_object_without_explicit_destructor);
   TEST(suite, test_copy_object);
   TEST(suite, test_copy_n_objects);

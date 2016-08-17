@@ -42,7 +42,7 @@ lisp_vm_t * lisp_create_vm(lisp_vm_param_t * param)
 
   /* init type system */
   ret->types      = NULL;
-  ret->types_size = 255;
+  ret->types_size = 256;
   ret->types      = MALLOC(sizeof(lisp_type_t) * ret->types_size);
   if(ret->types      == NULL) 
   {
@@ -70,9 +70,22 @@ lisp_vm_t * lisp_create_vm(lisp_vm_param_t * param)
 
 void lisp_free_vm(lisp_vm_t * vm)
 {
+  lisp_size_t i;
   lisp_free_cons_gc_unset_car_cdr(vm);
   hash_table_finalize(&vm->symbols);
   lisp_free_cons_gc(vm);
+  for(i = 0; i < vm->types_size; i++) 
+  {
+    lisp_string_t * str = LISP_AS(&vm->types[i].name, lisp_string_t);
+    if(str != NULL) 
+    {
+      if(!--((lisp_ref_count_t*)str->data)[-1]) 
+      {
+        FREE_OBJECT(str->data);
+      }
+      FREE_OBJECT(str);
+    }
+  }
   FREE(vm->types);
   FREE(vm);
 }
