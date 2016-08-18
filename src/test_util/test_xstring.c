@@ -88,6 +88,117 @@ static void test_sprintf_fail(unit_test_t * tst)
   memcheck_end();
 }
 
+static void test_alloc_join(unit_test_t * tst)
+{
+  const char * arr[] = { "first", "second", "", "third" };
+  {
+    char * str = alloc_join("", arr, 4);
+    ASSERT_EQ_CSTR(tst, str, "firstsecondthird");
+    FREE(str);
+  }
+  {
+    char * str = alloc_join(",", arr, 4);
+    ASSERT_EQ_CSTR(tst, str, "first,second,,third");
+    FREE(str);
+  }
+  {
+    char * str = alloc_join(",", arr, 0);
+    ASSERT_EQ_CSTR(tst, str, "");
+    FREE(str);
+  }
+}
+
+static void test_alloc_join_cstr(unit_test_t * tst)
+{
+  const char * arr[] = { "first", "second", "", "third" };
+  {
+    char * str = alloc_join_cstr("", "<%s>", arr, 4);
+    ASSERT_EQ_CSTR(tst, str, "<first><second><><third>");
+    FREE(str);
+  }
+  {
+    char * str = alloc_join_cstr(",", "<%s>", arr, 4);
+    ASSERT_EQ_CSTR(tst, str, "<first>,<second>,<>,<third>");
+    FREE(str);
+  }
+  {
+    char * str = alloc_join_cstr(",", "<%s>", arr, 0);
+    ASSERT_EQ_CSTR(tst, str, "");
+    FREE(str);
+  }
+}
+
+static void test_alloc_join_i(unit_test_t * tst)
+{
+  const int arr[] = { -1,2,3,4 };
+  {
+    char * str = alloc_join_i("", "<%d>", arr, 4);
+    ASSERT_EQ_CSTR(tst, str, "<-1><2><3><4>");
+    FREE(str);
+  }
+  {
+    char * str = alloc_join_i(",", "<%d>", arr, 4);
+    ASSERT_EQ_CSTR(tst, str, "<-1>,<2>,<3>,<4>");
+    FREE(str);
+  }
+  {
+    char * str = alloc_join_i(",", "<%d>", arr, 0);
+    ASSERT_EQ_CSTR(tst, str, "");
+    FREE(str);
+  }
+}
+
+static void test_alloc_join_u(unit_test_t * tst)
+{
+  const unsigned arr[] = { 1,2,3,4 };
+  {
+    char * str = alloc_join_u("", "<%d>", arr, 4);
+    ASSERT_EQ_CSTR(tst, str, "<1><2><3><4>");
+    FREE(str);
+  }
+  {
+    char * str = alloc_join_u(",", "<%d>", arr, 4);
+    ASSERT_EQ_CSTR(tst, str, "<1>,<2>,<3>,<4>");
+    FREE(str);
+  }
+  {
+    char * str = alloc_join_u(",", "<%d>", arr, 0);
+    ASSERT_EQ_CSTR(tst, str, "");
+    FREE(str);
+  }
+}
+
+static void test_alloc_join_ptr(unit_test_t * tst)
+{
+  const void * arr[] = { "a", "b", "c", "d" };
+  {
+    char * str = alloc_join_ptr("", "<%p>", arr, 4);
+    char * expected = alloc_sprintf("<%p><%p><%p><%p>",
+                                    arr[0],
+                                    arr[1],
+                                    arr[2],
+                                    arr[3]);
+    ASSERT_EQ_CSTR(tst, str, expected);
+    FREE(str);
+    FREE(expected);
+  }
+  {
+    char  * str = alloc_join_ptr(",", "<%p>", arr, 4);
+    char * expected = alloc_sprintf("<%p>,<%p>,<%p>,<%p>",
+                                    arr[0],
+                                    arr[1],
+                                    arr[2],
+                                    arr[3]);
+    ASSERT_EQ_CSTR(tst, str, expected);
+    FREE(expected);
+    FREE(str);
+  }
+  {
+    char * str = alloc_join_ptr(",", "<%p>", arr, 0);
+    ASSERT_EQ_CSTR(tst, str, "");
+    FREE(str);
+  }
+}
 
 void test_xstring(unit_context_t * ctx)
 {
@@ -99,5 +210,9 @@ void test_xstring(unit_context_t * ctx)
   TEST(suite, test_sprintf_empty);
   TEST(suite, test_sprintf);
   TEST(suite, test_sprintf_fail);
-
+  TEST(suite, test_alloc_join);
+  TEST(suite, test_alloc_join_cstr);
+  TEST(suite, test_alloc_join_i);
+  TEST(suite, test_alloc_join_u);
+  TEST(suite, test_alloc_join_ptr);
 }
