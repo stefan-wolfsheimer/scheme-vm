@@ -351,7 +351,6 @@ assertion_register_handler(const assertion_handler_t handler)
     }                                                                   \
 }
 
-/* @todo printers for arrays */
 #define __CREATE_ASSERTION_CMP_ARR__(__CMP_TYPE__, __TYPE__, __FMT__)   \
   assertion_t *                                                         \
   assertion_create_cmp_arr_##__CMP_TYPE__(const char *     file,        \
@@ -386,6 +385,23 @@ assertion_register_handler(const assertion_handler_t handler)
           return NULL;                                                  \
         }                                                               \
         assertion->success = success;                                   \
+        int old = memcheck_enable(0);                                   \
+        assertion->expect = alloc_sprintf("%s%s%s",                     \
+                                          lhs_expr, op, rhs_expr);      \
+        char * lhs_str, * rhs_str;                                      \
+        lhs_str = alloc_join_##__CMP_TYPE__(", ", (#__FMT__),           \
+                                            lhs, nlhs);                 \
+        rhs_str = alloc_join_##__CMP_TYPE__(", ", (#__FMT__),           \
+                                            rhs, nrhs);                 \
+        assertion->expect_explain = alloc_sprintf("with %s==%s\n"       \
+                                                  "     %s==%s",        \
+                                                  lhs_expr,             \
+                                                  lhs_str,              \
+                                                  rhs_expr,             \
+                                                  rhs_str);             \
+        free(rhs_str);                                                  \
+        free(lhs_str);                                                  \
+        memcheck_enable(old);                                           \
         return assertion;                                               \
       }                                                                 \
       else                                                              \
