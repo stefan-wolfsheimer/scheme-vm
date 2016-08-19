@@ -4,32 +4,31 @@
 #include <string.h>
 
 #define ASSERT_HT_HAS_ELEMENTS(__TEST__, __HT__, __ELEMENTS__, __NELEM__) \
-  if(!unit_add_assertion((__TEST__),					\
-			 create_assertion_ht_has_elements( (__TEST__),	\
-							   (__HT__),	\
-							   #__HT__,	\
-							   #__ELEMENTS__, \
-							   (const char**)(__ELEMENTS__), \
-							   (__NELEM__), \
-							   __FILE__,	\
-							   __LINE__)))	\
-			{ return; }
+  if(!unit_add_assertion((__TEST__),                                    \
+                         create_assertion_ht_has_elements( (__TEST__),  \
+                                                           (__HT__),    \
+                                                           #__HT__,     \
+                                                           #__ELEMENTS__, \
+                                                           (const char**) \
+                                                           (__ELEMENTS__), \
+                                                           (__NELEM__), \
+                                                           __FILE__,    \
+                                                           __LINE__)))  \
+                                                           { return; }
 
 #define ASSERT_HT_EQ_PTR(__TEST__, __LHS__, __RHS__, __AFILE__, __ALINE__) \
-  unit_add_assertion((__TEST__),					\
-    assertion_create_cmp_ptr((__AFILE__),(__ALINE__),			\
-			     #__LHS__, #__RHS__,			\
-			     (__LHS__), (__RHS__),			\
-			     "==", 1))
+  unit_add_assertion((__TEST__),                                        \
+                     assertion_create_cmp_ptr((__AFILE__),(__ALINE__),  \
+                                              #__LHS__, #__RHS__,       \
+                                              (__LHS__), (__RHS__),     \
+                                              "==", 1))
 
 #define ASSERT_HT_NEQ_PTR(__TEST__, __LHS__, __RHS__, __AFILE__, __ALINE__) \
-  unit_add_assertion((__TEST__),					\
-    assertion_create_cmp_ptr((__AFILE__),(__ALINE__),			\
-			     #__LHS__, #__RHS__,			\
-			     (__LHS__), (__RHS__),			\
-			     "!=", 1))
-
-
+  unit_add_assertion((__TEST__),                                        \
+                     assertion_create_cmp_ptr((__AFILE__),(__ALINE__),  \
+                                              #__LHS__, #__RHS__,       \
+                                              (__LHS__), (__RHS__),     \
+                                              "!=", 1))
 
 static int my_strcmp(const void * a, const void * b) 
 {
@@ -201,57 +200,57 @@ static int _ht_check_bucket_entries(unit_test_t       * tst,
                          file,line)) 
       linked_list_ok = 0;
     if(!ASSERT_HT_NEQ_PTR(tst, 
-			  bucket->last,
-			  NULL, 
-			  file,line)) 
+                          bucket->last,
+                          NULL, 
+                          file,line)) 
       linked_list_ok = 0;
     if(!ASSERT_HT_EQ_PTR(tst, 
-			 bucket->prev,
-			 prev, 
-			 file,line)) 
+                         bucket->prev,
+                         prev, 
+                         file,line)) 
       linked_list_ok = 0;
     if(bucket == ht->last) 
     {
       /* last */
       if(!ASSERT_HT_EQ_PTR(tst, 
-			   bucket->next,
-			   NULL,
-			   file, line)) 
-	linked_list_ok = 0;
+                           bucket->next,
+                           NULL,
+                           file, line)) 
+        linked_list_ok = 0;
       if(!ASSERT_HT_EQ_PTR(tst, 
-			   bucket->last->next,
-			   NULL,
-			   file, line)) 
-	linked_list_ok = 0;
+                           bucket->last->next,
+                           NULL,
+                           file, line)) 
+        linked_list_ok = 0;
     }
     else 
     {
       /* not last */
       if(!ASSERT_HT_NEQ_PTR(tst, 
-			      bucket->next,
-			    NULL,
-			    file, line)) 
-	linked_list_ok = 0;
+                            bucket->next,
+                            NULL,
+                            file, line)) 
+        linked_list_ok = 0;
       if(!ASSERT_HT_EQ_PTR(tst, 
-			   bucket->next->prev,
-			   bucket,
-			   file, line)) 
-	linked_list_ok = 0;
+                           bucket->next->prev,
+                           bucket,
+                           file, line)) 
+        linked_list_ok = 0;
       if(!ASSERT_HT_NEQ_PTR(tst,
-			    bucket->next->first,
-			    NULL,
-			    file, line))
-	linked_list_ok = 0;
+                            bucket->next->first,
+                            NULL,
+                            file, line))
+        linked_list_ok = 0;
       if(!ASSERT_HT_EQ_PTR(tst,
-			   bucket->next->first->prev,
-			   bucket->last,
-			   file, line))
-	linked_list_ok = 0;
+                           bucket->next->first->prev,
+                           bucket->last,
+                           file, line))
+        linked_list_ok = 0;
       if(!ASSERT_HT_EQ_PTR(tst,
-			   bucket->last->next,
-			   bucket->next->first,
-			   file, line))
-	linked_list_ok = 0;
+                           bucket->last->next,
+                           bucket->next->first,
+                           file, line))
+        linked_list_ok = 0;
     }
     if(bucket == ht->first)
     {
@@ -295,7 +294,6 @@ static int _ht_check_bucket_entries(unit_test_t       * tst,
                            bucket->prev->last,
                            file, line))
         linked_list_ok = 0;
-
     }
     prev = bucket;
     bucket = bucket->next;
@@ -320,11 +318,10 @@ create_assertion_ht_has_elements(unit_test_t       * tst,
   const char ** required_values =  _ht_sort_values(elements,n0, &n);
   linked_list_ok&= _ht_check_bucket_entries(tst, ht, file, line);
   
-  size_t m = HASH_TABLE_SIZE(ht);
+  size_t m                      = HASH_TABLE_SIZE(ht);
   const char ** ht_values       = MALLOC(sizeof(char*)*m);
   hash_table_entry_t * entry    = HASH_TABLE_FIRST(ht);
-
-  hash_table_entry_t * prev = NULL;
+  hash_table_entry_t * prev     = NULL;
 
   if(HASH_TABLE_FIRST(ht))
   {
@@ -357,7 +354,7 @@ create_assertion_ht_has_elements(unit_test_t       * tst,
                          entry->prev,
                          prev,
                          file, 
-			 line))
+                         line))
     {
       linked_list_ok = 0;
     }
@@ -365,49 +362,49 @@ create_assertion_ht_has_elements(unit_test_t       * tst,
     {
       linked_list_ok = 0;
       unit_add_assertion(tst, assertion_create_cmp_ptr(file, 
-						       line, 
-						       "entry->prev->next",
-						       "entry",
-						       entry->prev->next,
-						       entry,
-						       "==",
-						       1));
+                                                       line, 
+                                                       "entry->prev->next",
+                                                       "entry",
+                                                       entry->prev->next,
+                                                       entry,
+                                                       "==",
+                                                       1));
     }
     else if(!entry->prev && entry != HASH_TABLE_FIRST(ht))
     {
       linked_list_ok = 0;
       unit_add_assertion(tst,  assertion_create_cmp_ptr(file, 
-							line, 
-							"entry",
-							"HASH_TABLE_FIRST(ht)",
-							entry,
-							HASH_TABLE_FIRST(ht),
-							"==",
-							0));
+                                                        line, 
+                                                        "entry",
+                                                        "HASH_TABLE_FIRST(ht)",
+                                                        entry,
+                                                        HASH_TABLE_FIRST(ht),
+                                                        "==",
+                                                        0));
     }
     if(entry->next && entry->next->prev != entry) 
     {
       linked_list_ok = 0;
       unit_add_assertion(tst,  assertion_create_cmp_ptr(file, 
-							line, 
-							"entry->next->prev",
-							"entry",
-							entry->next->prev,
-							entry,
-							"==",
-							0));
+                                                        line, 
+                                                        "entry->next->prev",
+                                                        "entry",
+                                                        entry->next->prev,
+                                                        entry,
+                                                        "==",
+                                                        0));
     } 
     else if(!entry->next && entry != HASH_TABLE_LAST(ht))
     {
       linked_list_ok = 0;
       unit_add_assertion(tst,  assertion_create_cmp_ptr(file, 
-							line, 
-							"entry",
-							"HASH_TABLE_LAST(ht)",
-							entry,
-							HASH_TABLE_LAST(ht),
-							"==",
-							0));
+                                                        line, 
+                                                        "entry",
+                                                        "HASH_TABLE_LAST(ht)",
+                                                        entry,
+                                                        HASH_TABLE_LAST(ht),
+                                                        "==",
+                                                        0));
     }
     ht_values[i++] = HASH_TABLE_DATA(entry, const char);
     prev = entry;
@@ -416,15 +413,15 @@ create_assertion_ht_has_elements(unit_test_t       * tst,
   qsort (ht_values, m, sizeof(char*), my_strcmp);
   assertion_t * assertion;
   assertion = assertion_create_cmp_arr_cstr(file, 
-					    line, 
-					    ht_expression,
-					    elements_expression,
-					    ht_values,
-					    m,
-					    required_values,
-					    n,
-					    "==",
-					    0);
+                                            line, 
+                                            ht_expression,
+                                            elements_expression,
+                                            ht_values,
+                                            m,
+                                            required_values,
+                                            n,
+                                            "==",
+                                            0);
   FREE(ht_values);
   FREE(required_values);
   return assertion;
@@ -475,19 +472,19 @@ static void test_hash_table_init_failure(unit_test_t * tst)
   hash_table_t ht;
   memcheck_expected_alloc(0);
   ASSERT(tst, hash_table_init(&ht, 
-			      ht_cmp_function,
-			      ht_hash_function,
-			      ht_constructor,
-			      ht_destructor,
-			      1));
+                              ht_cmp_function,
+                              ht_hash_function,
+                              ht_constructor,
+                              ht_destructor,
+                              1));
   memcheck_expected_alloc(1);
   memcheck_expected_alloc(0);
   ASSERT(tst, hash_table_init(&ht, 
-			      ht_cmp_function,
-			      ht_hash_function,
-			      ht_constructor,
-			      ht_destructor,
-			      1));
+                              ht_cmp_function,
+                              ht_hash_function,
+                              ht_constructor,
+                              ht_destructor,
+                              1));
   ASSERT_MEMCHECK(tst);
   memcheck_end();
 }
@@ -512,10 +509,10 @@ static void test_hash_table_overwrite_value(unit_test_t * tst)
   ASSERT_EQ_CSTR(tst, res1, pair1);
   inserted = 1;
   ASSERT_EQ_CSTR(tst, hash_table_find_or_insert(&ht, 
-						pair2,
-						strlen(pair2)+1,
-						&inserted),
-		 pair1);
+                                                pair2,
+                                                strlen(pair2)+1,
+                                                &inserted),
+                 pair1);
   ASSERT_FALSE(tst, inserted);
   res2 = hash_table_set(&ht, pair2, strlen(pair2)+1);
   ASSERT_EQ_CSTR(tst, res2, pair2);
@@ -719,9 +716,9 @@ static void test_hash_table_find_or_insert_after_swap(unit_test_t * tst)
   {
     inserted = 1;
     hash_table_find_or_insert(&ht,
-			      elements[i],
-			      strlen(elements[i])+1,
-			      &inserted);
+                              elements[i],
+                              strlen(elements[i])+1,
+                              &inserted);
     ASSERT_FALSE(tst, inserted);
     m+= 10;
     ASSERT_EQ_U(tst, ht.hash_array[ht.current_world_index].n_elements, m);
