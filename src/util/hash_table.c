@@ -601,8 +601,15 @@ void * hash_table_set(hash_table_t * ht,
 }
 
 
-void hash_table_clear(hash_table_t * ht)
+int hash_table_clear(hash_table_t * ht)
 {
+  hash_table_finalize(ht);
+  return hash_table_init(ht,
+                         ht->eq_function,
+                         ht->hash_function,
+                         ht->constructor,
+                         ht->destructor,
+                         ht->min_bucket_size);
 }
 
 int hash_table_swap(hash_table_t * ht, 

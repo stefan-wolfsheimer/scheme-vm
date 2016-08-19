@@ -524,17 +524,12 @@ static void test_hash_table_overwrite_value(unit_test_t * tst)
 }
 
 static void test_hash_table_set(unit_test_t * tst,
-                                const char * elements[],
-                                size_t n)
+                                const char  * elements[],
+                                size_t        n)
 {
   size_t         i,j;
   hash_table_t   ht;
   memcheck_begin();
-  char **        elements_in_table = MALLOC(sizeof(char*)*n);
-  for(i=0; i < n; i++) 
-  {
-    elements_in_table[i] = NULL;
-  }
   hash_table_init(&ht, 
                   ht_cmp_function,
                   ht_hash_function,
@@ -542,7 +537,12 @@ static void test_hash_table_set(unit_test_t * tst,
                   ht_destructor,
                   10);
   ht.autoswap = 0;
-  for(i = 0; i < n; i++) 
+  char **        elements_in_table = MALLOC(sizeof(char*)*n);
+  for(i=0; i < n; i++)
+  {
+    elements_in_table[i] = NULL;
+  }
+  for(i = 0; i < n; i++)
   {
     elements_in_table[i] = hash_table_set(&ht, elements[i], 
                                           strlen(elements[i])+1);
@@ -571,11 +571,10 @@ static void test_hash_table_set(unit_test_t * tst,
                                           strlen(elements[i])+1);
     ASSERT_HT_HAS_ELEMENTS(tst, &ht, elements, n);    
   }
-  hash_table_finalize(&ht);
   FREE(elements_in_table);
+  hash_table_finalize(&ht);
   ASSERT_MEMCHECK(tst);
   memcheck_end();
-
 }
 
 
@@ -905,6 +904,35 @@ static void test_hash_table_shrink_to_minimum(unit_test_t * tst)
   memcheck_end();
 }
 
+static void test_hash_table_clear(unit_test_t * tst)
+{
+  const char * elements[] = {
+    "100",   "110",   "101", "10120", "11130",
+    "10122", "11132", "140", "141",   "142",
+    "150",   "160",   "172", "182",   "190" };
+  size_t       n = 15;
+  size_t       i;
+  hash_table_t ht;
+  memcheck_begin();
+  hash_table_init(&ht,
+                  ht_cmp_function,
+                  ht_hash_function,
+                  ht_constructor,
+                  ht_destructor,
+                  10);
+  ht.autoswap = 0;
+  for(i = 0; i < n; i++)
+  {
+    hash_table_set(&ht, elements[i], strlen(elements[i])+1);
+  }
+  ASSERT_HT_HAS_ELEMENTS(tst, &ht, elements, n);
+  hash_table_clear(&ht);
+  ASSERT_HT_HAS_ELEMENTS(tst, &ht, elements, 0);
+  hash_table_finalize(&ht);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
+}
+
 void test_hash_table(unit_context_t * ctx)
 {
   unit_suite_t * suite = unit_create_suite(ctx, "hash_table");
@@ -927,5 +955,6 @@ void test_hash_table(unit_context_t * ctx)
   TEST(suite, test_hash_table_remove);
   TEST(suite, test_hash_table_recycle);
   TEST(suite, test_hash_table_shrink_to_minimum);
-  /* @todo test for clear hash table */
+
+  TEST(suite, test_hash_table_clear);
 }

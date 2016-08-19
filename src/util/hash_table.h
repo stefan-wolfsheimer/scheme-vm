@@ -124,8 +124,7 @@ int hash_table_remove_func(hash_table_t            * ht,
                            hash_code_t               code,
                            hash_table_eq_function_t  eq_func);
 
-/* Todo */
-void hash_table_clear(hash_table_t * ht);
+int hash_table_clear(hash_table_t * ht);
 
 /** swap functions */
 int hash_table_swap(hash_table_t * ht, 
