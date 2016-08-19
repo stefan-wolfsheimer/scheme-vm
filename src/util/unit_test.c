@@ -309,8 +309,8 @@ static int _check_argument_name(unit_context_t * ctx, const char * name)
     {
       if(unit_find_test_by_name(suite, test_name) == NULL)
       {
-	fprintf(stderr, "undefined test %s\n", name);
-	return 0;
+        fprintf(stderr, "undefined test %s\n", name);
+        return 0;
       }
     }
   }
@@ -335,8 +335,8 @@ static void _activate_tests(unit_context_t * ctx, const char * name)
       tst = suite->first_test;
       while(tst) 
       {
-	tst->active = 1;
-	tst = tst->next;
+        tst->active = 1;
+        tst = tst->next;
       }
     }
     else 
@@ -344,7 +344,7 @@ static void _activate_tests(unit_context_t * ctx, const char * name)
       tst = unit_find_test_by_name(suite, test_name);
       if(tst) 
       {
-	tst->active = 1;
+        tst->active = 1;
       }
     }
   }
@@ -364,14 +364,14 @@ int unit_parse_argv(unit_context_t * ctx, int argc, const char ** argv)
     {
       if(ret == UNIT_ARGV_RUN) 
       {
-	ret = UNIT_ARGV_HELP;
+        ret = UNIT_ARGV_HELP;
       }
     }
     else if(!strcmp(argv[i],"--list") || !strcmp(argv[i],"-l")) 
     {
       if(ret == UNIT_ARGV_RUN) 
       {
-	ret = UNIT_ARGV_LIST;
+        ret = UNIT_ARGV_LIST;
       }
     }
     else if(!strcmp(argv[i], "--verbose") || !strcmp(argv[i],"-v")) 
@@ -392,7 +392,7 @@ int unit_parse_argv(unit_context_t * ctx, int argc, const char ** argv)
       is_filtered = 1;
       if(!_check_argument_name(ctx, argv[i])) 
       {
-	ret = UNIT_ARGV_ERROR;
+        ret = UNIT_ARGV_ERROR;
       }
     }
   }
@@ -409,7 +409,7 @@ int unit_parse_argv(unit_context_t * ctx, int argc, const char ** argv)
     {
       if(argv[i][0] != '-') 
       {
-	_activate_tests(ctx, argv[i]);
+        _activate_tests(ctx, argv[i]);
       }
     }
   }
@@ -531,19 +531,19 @@ int unit_add_assertion(unit_test_t * tst, assertion_t * assertion_lst)
       else tst->_failed_assertions++;
       if(tst->last_assertion != NULL) 
       {
-	tst->last_assertion->next = current;
-	tst->last_assertion       = current;
+        tst->last_assertion->next = current;
+        tst->last_assertion       = current;
       }
       else 
       {
-	tst->last_assertion  = current;
-	tst->first_assertion = current;
+        tst->last_assertion  = current;
+        tst->first_assertion = current;
       }
       if((!current->success && 
-	  tst->suite->ctx->verbose_level > 0) || 
-	 tst->suite->ctx->verbose_level > 1)
+          tst->suite->ctx->verbose_level > 0) || 
+         tst->suite->ctx->verbose_level > 1)
       {
-	assertion_print(tst->_fp, current,tst->suite->ctx->color);
+        assertion_print(tst->_fp, current,tst->suite->ctx->color);
       }
     }
     else 
@@ -581,14 +581,14 @@ void unit_run(FILE * fp, unit_context_t * ctx)
       {
         while(tst != NULL) 
         {
-	  if(tst->active) 
-	  {
-	    suite_passed&= _unit_run_test(fp, ctx, tst); 
-	  }
-	  else 
-	  {
-	    ctx->n_tests_deactivated++;
-	  }
+          if(tst->active) 
+          {
+            suite_passed&= _unit_run_test(fp, ctx, tst); 
+          }
+          else 
+          {
+            ctx->n_tests_deactivated++;
+          }
           tst = tst->next;
         }
         if(suite_passed) 
@@ -626,7 +626,7 @@ void unit_run(FILE * fp, unit_context_t * ctx)
 }
 
 void unit_list_suites(FILE * fp, 
-		      unit_context_t * ctx)
+                      unit_context_t * ctx)
 {
   unit_suite_t * suite = ctx->first_suite;
   while(suite != NULL) 
@@ -635,17 +635,16 @@ void unit_list_suites(FILE * fp,
     {
       if(!ctx->verbose_level) 
       {
-	fprintf(fp, "%s\n", suite->name);
+        fprintf(fp, "%s\n", suite->name);
       }
       else 
       {
-	unit_test_t * tst = suite->first_test;
-	while(tst != NULL) 
-	{
-	  fprintf(fp, "%s::%s\n", suite->name, tst->name);
+        unit_test_t * tst = suite->first_test;
+        while(tst != NULL) 
+        {
+          fprintf(fp, "%s::%s\n", suite->name, tst->name);
           tst = tst->next;
-	}
-
+        }
       }
     }
     suite = suite->next;
@@ -710,7 +709,6 @@ void unit_final_report(FILE * fp,
       fprintf(fp, "%u / %u tests deactivated\n", (unsigned int)(ctx->n_tests_deactivated), (unsigned)n);
     }
   }
-
   _unit_final_report_print(fp, ctx, 
                            "assertions", "",
                            ctx->n_assertions_passed,
