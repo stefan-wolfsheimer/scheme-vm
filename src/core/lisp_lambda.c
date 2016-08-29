@@ -7,19 +7,25 @@
 #include "core/lisp_asm.h"
 #include <string.h>
 
+typedef struct lisp_compile_state_t
+{
+  lisp_size_t instr_size;
+} lisp_compile_state_t;
+
 static int lisp_compile_alloc(lisp_vm_t     * vm,
                               lisp_cell_t   * cell,
                               lisp_instr_t ** instr,
                               lisp_size_t     instr_size);
 
 
-static int _lisp_compile_phase1(lisp_vm_t         * vm,
-                                lisp_size_t       * instr_size,
-                                const lisp_cell_t * expr);
+static int _lisp_compile_phase1(lisp_vm_t            * vm,
+                                lisp_compile_state_t * state,
+                                const lisp_cell_t    * expr);
 
-static int _lisp_compile_phase1_list_of_expressions(lisp_vm_t           * vm,
-                                                    lisp_size_t         * instr_size,
-                                                    const lisp_cell_t   * rest);
+static int 
+_lisp_compile_phase1_list_of_expressions(lisp_vm_t            * vm,
+                                         lisp_compile_state_t * state,
+                                         const lisp_cell_t    * rest);
 
 static int _lisp_compile_phase2(lisp_vm_t         * vm,
                                 lisp_cell_t       * cell,
@@ -55,9 +61,9 @@ static int lisp_compile_alloc(lisp_vm_t     * vm,
 }
 
 /****************************************************************************/
-static int _lisp_compile_phase1(lisp_vm_t         * vm,
-                                lisp_size_t       * instr_size,
-                                const lisp_cell_t * expr)
+static int _lisp_compile_phase1(lisp_vm_t            * vm,
+                                lisp_compile_state_t * state,
+                                const lisp_cell_t    * expr)
 {
   if(LISP_IS_NIL(expr)) 
   {
@@ -67,37 +73,41 @@ static int _lisp_compile_phase1(lisp_vm_t         * vm,
   }
   else if(LISP_IS_ATOM(expr)) 
   {
-    *instr_size+= LISP_SIZ_LDVD + LISP_SIZ_RET;
+    state->instr_size+= LISP_SIZ_LDVD + LISP_SIZ_RET;
     return LISP_OK;
   }
   else if(LISP_IS_SYMBOL(expr))
   {
-    *instr_size+= LISP_SIZ_LDVD + LISP_SIZ_RET;
+    state->instr_size+= LISP_SIZ_LDVD + LISP_SIZ_RET;
     return LISP_OK;
   }
   else if(LISP_IS_OBJECT(expr))
   {
-    *instr_size+= LISP_SIZ_LDVD + LISP_SIZ_RET;
+    state->instr_size+= LISP_SIZ_LDVD + LISP_SIZ_RET;
     return LISP_OK;
   }
   else if(LISP_IS_CONS(expr)) 
   {
     if(LISP_IS_LAMBDA(LISP_CAR(expr)))
     {
-      *instr_size+= LISP_SIZ_JP;
-      return _lisp_compile_phase1_list_of_expressions(vm, instr_size,
+      state->instr_size+= LISP_SIZ_JP;
+      return _lisp_compile_phase1_list_of_expressions(vm,
+                                                      state,
                                                       LISP_CDR(expr));
     }
     else if(LISP_IS_SYMBOL(LISP_CAR(expr)))
     {
-      lisp_cell_t * value = lisp_symbol_get(vm, LISP_AS(LISP_CAR(expr), lisp_symbol_t));
+      lisp_cell_t * value;
+      value = lisp_symbol_get(vm, LISP_AS(LISP_CAR(expr), lisp_symbol_t));
       if(value && LISP_IS_FORM(value)) 
       {
-        return LISP_AS(value, lisp_form_t)->phase1(vm, instr_size, expr);
+        return LISP_AS(value, lisp_form_t)->phase1(vm,
+                                                   &state->instr_size,
+                                                   expr);
       }
       else 
       {
-        /* @todo */
+        /* @todo: implement other cases */
         return LISP_UNSUPPORTED;
       }
     }
@@ -113,9 +123,10 @@ static int _lisp_compile_phase1(lisp_vm_t         * vm,
   }
 }
 
-static int _lisp_compile_phase1_list_of_expressions(lisp_vm_t           * vm,
-                                                    lisp_size_t         * instr_size,
-                                                    const lisp_cell_t   * rest)
+static int
+_lisp_compile_phase1_list_of_expressions(lisp_vm_t            * vm,
+                                         lisp_compile_state_t * state,
+                                         const lisp_cell_t    * rest)
 {
   while(!LISP_IS_NIL(rest)) 
   {
@@ -125,7 +136,7 @@ static int _lisp_compile_phase1_list_of_expressions(lisp_vm_t           * vm,
       {
         /* @todo implement */
         /* PUSHD D */
-        *instr_size += LISP_SIZ_PUSHD;
+        state->instr_size += LISP_SIZ_PUSHD;
       }
       else 
       {
@@ -183,7 +194,11 @@ static int _lisp_compile_phase2(lisp_vm_t         * vm,
     if(LISP_IS_LAMBDA(LISP_CAR(expr)))
     {
       lisp_size_t n;
-      int ret = _lisp_compile_phase2_list_of_expressions(vm, cell, &instr, &n, LISP_CDR(expr));
+      int ret = _lisp_compile_phase2_list_of_expressions(vm,
+                                                         cell,
+                                                         &instr,
+                                                         &n,
+                                                         LISP_CDR(expr));
       if(ret == LISP_OK) 
       {
         LISP_SET_INSTR_2(LISP_ASM_JP, instr,
@@ -199,7 +214,9 @@ static int _lisp_compile_phase2(lisp_vm_t         * vm,
     }
     else if(LISP_IS_SYMBOL(LISP_CAR(expr)))
     {
-      lisp_cell_t * value = lisp_symbol_get(vm, LISP_AS(LISP_CAR(expr), lisp_symbol_t));
+      lisp_cell_t * value = lisp_symbol_get(vm,
+                                            LISP_AS(LISP_CAR(expr),
+                                                    lisp_symbol_t));
       if(value && LISP_IS_FORM(value)) 
       {
         return LISP_AS(value, lisp_form_t)->phase2(vm, cell, instr ,expr);
@@ -683,11 +700,13 @@ int lisp_lambda_compile(lisp_eval_env_t   * env,
 			const lisp_cell_t * expr)
 {
   *cell = lisp_nil;
+  lisp_compile_state_t state;
   int                ret;
-  lisp_size_t        instr_size = 0;
   lisp_byte_code_t * byte_code;
+
+  state.instr_size = 0;
   ret = _lisp_compile_phase1(env->vm,
-                             &instr_size,
+                             &state,
                              expr);
   if(ret != LISP_OK) 
   {
@@ -699,9 +718,9 @@ int lisp_lambda_compile(lisp_eval_env_t   * env,
   /* @todo check allocation */
   /* @todo remove halt */
   byte_code = MALLOC_OBJECT(sizeof(lisp_byte_code_t) + 
-                            instr_size,   
+                            state.instr_size,
                             1);
-  byte_code->instr_size = instr_size;
+  byte_code->instr_size = state.instr_size;
   lisp_make_cons_typed(env->vm, cell, LISP_TID_LAMBDA);
   LISP_CAR(cell)->type_id  = LISP_TID_OBJECT;
   LISP_CAR(cell)->data.ptr = byte_code;

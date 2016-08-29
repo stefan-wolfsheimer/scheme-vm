@@ -7,12 +7,12 @@
 #include "core/lisp_exception.h"
 #include "core/lisp_lambda.h"
 #include "test_core/lisp_assertion.h"
-#include "lisp_vm_check.h"
-
+#include "test_core/lisp_compile_mock.h"
+#include "test_core/context.h"
 
 static void test_list(unit_test_t * tst)
 {
- lisp_unit_context_t * ctx = lisp_create_unit_context(&lisp_vm_default_param,
+  lisp_unit_context_t * ctx = lisp_create_unit_context(&lisp_vm_default_param,
                                                        tst);
  ASSERT(tst, LISP_IS_NIL(LIST(ctx, NULL)));
  ASSERT(tst, LISP_IS_NIL(NIL(ctx)));
@@ -89,11 +89,12 @@ static void test_lisp_make_builtin_lambda(unit_test_t * tst)
 
   lisp_cell_t          lambda;
   lisp_lambda_mock_t   mock;
-  ASSERT_IS_OK(tst, lisp_make_builtin_lambda(ctx->vm,
-                                             &lambda,
-                                             0,
-                                             NULL,
-                                             lisp_lambda_mock_function));
+  ASSERT_IS_OK(tst,
+               lisp_make_builtin_lambda(ctx->vm,
+                                        &lambda,
+                                        0,
+                                        NULL,
+                                        lisp_lambda_mock_function));
   /* test code */
   ASSERT_DISASM(tst, ctx, &lambda, NULL,
                 LIST(ctx, 
@@ -313,17 +314,20 @@ static void test_compile_cons_builtin_arg_arg(unit_test_t * tst)
 
 static void test_compile_form_arg_arg(unit_test_t * tst) 
 {
-  lisp_unit_context_t * ctx = lisp_create_unit_context(&lisp_vm_default_param,
-                                                       tst);
+  lisp_unit_context_t * ctx;  
+  lisp_cell_t           lambda;
   //lisp_lambda_mock_t  mock;
-  //lisp_cell_t         lambda;
 
-  ASSERT_IS_OK(tst, lisp_symbol_set(ctx->vm,
-                                    LISP_AS(SYMBOL(ctx, "myform"), lisp_symbol_t),
-                                    FORM(ctx,
-                                         lisp_compile_phase1_mock,
-                                         lisp_compile_phase2_mock)));
-#if 0
+  ctx = lisp_create_unit_context(&lisp_vm_default_param,
+                                 tst);
+
+  ASSERT_IS_OK(tst,
+               lisp_symbol_set(ctx->vm,
+                               LISP_AS(SYMBOL(ctx, "myform"),
+                                       lisp_symbol_t),
+                               FORM(ctx,
+                                    lisp_compile_phase1_mock,
+                                    lisp_compile_phase2_mock)));
   ASSERT_IS_OK(tst,
                lisp_lambda_compile(ctx->env,
                                    &lambda, 
@@ -332,24 +336,16 @@ static void test_compile_form_arg_arg(unit_test_t * tst)
                                         INTEGER(ctx, 1),
                                         INTEGER(ctx, 2),
                                         NULL)));
-
   ASSERT_DISASM(tst,
                 ctx,
                 &lambda,
                 NULL,
-                LIST(ctx, NULL));
-#endif
-  //SYMBOL(ctx, "PUSHD"),
-  //SYMBOL(ctx, "PUSHD"),
-  //SYMBOL(ctx, "JP"),
-  //NULL));
-  //lisp_init_lambda_mock(&mock, ctx->vm, 1);
-  //lisp_make_integer(&mock.values[0], 23);
-  //mock_register(lisp_lambda_mock_function, NULL, &mock, NULL);
-  //ASSERT_IS_OK(tst, lisp_eval_lambda(ctx->env,
-  //LISP_AS(&lambda, lisp_lambda_t),
-  //0));
-  
+                LIST(ctx,
+                     SYMBOL(ctx, "PUSHD"),
+                     SYMBOL(ctx, "PUSHD"),
+                     SYMBOL(ctx, "RET"),
+                     NULL));
+
   /* test call */
   //ASSERT_EQ_U(tst, mock.n_args, 2);
   //ASSERT(tst, lisp_eq_object(&mock.args[0], INTEGER(ctx, 1)));

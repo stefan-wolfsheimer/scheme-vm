@@ -329,7 +329,13 @@ assertion_t * lisp_compare_asm_list(const char          * file,
       {
         if(!lisp_eq_object(LISP_CAR(curr_rhs), LISP_CAR(curr_lhs)))
         {
-          return _assertion_create_asm(ctx->vm, file, line, expr_lhs, lhs, rhs, 0);
+          return _assertion_create_asm(ctx->vm,
+                                       file,
+                                       line,
+                                       expr_lhs,
+                                       lhs,
+                                       rhs,
+                                       0);
         }
       }
       else 
