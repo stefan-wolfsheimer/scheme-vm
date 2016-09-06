@@ -3,6 +3,7 @@
 #include "util/mock.h"
 #include "core/lisp_vm.h" 
 #include "lisp_vm_check.h"
+#include "lisp_assertion.h"
 #include <stdio.h>
 #include <ctype.h>
 /* @todo test cons of objects, cow objects and atoms (other than nil) 
@@ -1064,7 +1065,7 @@ static void test_make_list_root_atoms(unit_test_t * tst)
   lisp_make_integer(&c_lst[0], 1);
   lisp_make_integer(&c_lst[1], 2);
   lisp_make_integer(&c_lst[2], 3);
-  ASSERT_EQ_I(tst, lisp_make_list_root(vm, &lst, c_lst, 2), LISP_OK);
+  ASSERT_IS_OK(tst, lisp_make_list_root(vm, &lst, c_lst, 2));
   rest = &lst;
   size_t i;
   for(i = 0; i < 2; i++) 
@@ -1079,6 +1080,43 @@ static void test_make_list_root_atoms(unit_test_t * tst)
   ASSERT_MEMCHECK(tst);
   memcheck_end();
 }
+
+static void test_lisp_make_list_root_typed(unit_test_t * tst)
+{
+  memcheck_begin();
+  lisp_cell_t c_lst[3];
+  lisp_cell_t lst;
+  lisp_cell_t *rest;
+  lisp_vm_t * vm = lisp_create_vm(&lisp_vm_default_param);
+  lisp_type_id_t type_id = 0;
+  ASSERT_IS_OK(tst, lisp_register_cons_type(vm, "MYCONS", &type_id));
+  lisp_make_integer(&c_lst[0], 1);
+  lisp_make_integer(&c_lst[1], 2);
+  lisp_make_integer(&c_lst[2], 3);
+  ASSERT_IS_OK(tst, lisp_make_list_root_typed(vm, &lst, type_id, c_lst, 2));
+  rest = &lst;
+  size_t i;
+  for(i = 0; i < 2; i++)
+  {
+    ASSERT(tst, LISP_IS_CONS_OBJECT(rest));
+    ASSERT(tst, LISP_IS_INTEGER(LISP_CAR(rest)));
+    if(i == 0)
+    {
+      ASSERT_EQ_U(tst, rest->type_id, type_id);
+    }
+    else
+    {
+      ASSERT(tst, LISP_IS_CONS(rest));
+    }
+    ASSERT_EQ_I(tst, LISP_CAR(rest)->data.integer, i+1);
+    rest = LISP_CDR(rest);
+  }
+  ASSERT(tst, LISP_IS_NIL(rest));
+  lisp_free_vm(vm);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
+}
+
 
 static void test_make_list_root_failure(unit_test_t * tst)
 {
@@ -1112,7 +1150,6 @@ static void test_make_list_root_failure(unit_test_t * tst)
   memcheck_end();
 }
 
-
 void test_cons(unit_context_t * ctx)
 {
   unit_suite_t * suite = unit_create_suite(ctx, "cons");
@@ -1143,5 +1180,6 @@ void test_cons(unit_context_t * ctx)
   TEST(suite, test_make_list_failure);
   TEST(suite, test_make_list_root_empty);
   TEST(suite, test_make_list_root_atoms);
+  TEST(suite, test_lisp_make_list_root_typed);
   TEST(suite, test_make_list_root_failure);
 }

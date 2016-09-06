@@ -635,6 +635,30 @@ int lisp_make_list_root(lisp_vm_t         * vm,
   }
 }
 
-
-
-
+int lisp_make_list_root_typed(lisp_vm_t         * vm,
+                              lisp_cell_t       * cell,
+                              lisp_type_id_t      type_id,
+                              const lisp_cell_t * elems,
+                              lisp_size_t         n)
+{
+  *cell = lisp_nil;
+  if(n == 0)
+  {
+    return LISP_OK;
+  }
+  else
+  {
+    lisp_cell_t rest = lisp_nil;
+    int ret = lisp_make_list(vm, &rest, &elems[1], n-1);
+    if(ret)
+    {
+      return ret;
+    }
+    ret = lisp_make_cons_root_typed_car_cdr(vm, cell, type_id, elems, &rest);
+    if(ret)
+    {
+      return ret;
+    }
+    return LISP_OK;
+  }
+}

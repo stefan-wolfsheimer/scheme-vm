@@ -250,6 +250,12 @@ int lisp_make_list_root(lisp_vm_t         * vm,
 			const lisp_cell_t * elems,
 			lisp_size_t         n);
 
+int lisp_make_list_root_typed(lisp_vm_t         * vm,
+                              lisp_cell_t       * cell,
+                              lisp_type_id_t      type_id,
+                              const lisp_cell_t * elems,
+                              lisp_size_t         n);
+
 int lisp_make_list(lisp_vm_t         * vm,
 		   lisp_cell_t       * cell,
 		   const lisp_cell_t * elems,
