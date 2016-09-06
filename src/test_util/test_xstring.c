@@ -88,6 +88,24 @@ static void test_sprintf_fail(unit_test_t * tst)
   memcheck_end();
 }
 
+static void _helper_alloc_va_sprintf(unit_test_t * tst, const char * fmt, ...)
+{
+  memcheck_begin();
+  va_list   val;
+  va_start(val, fmt);
+  char * ret = alloc_va_sprintf(fmt, val);
+  va_end(val);
+  ASSERT_EQ_CSTR(tst, ret, "abc 1 abc");
+  FREE(ret);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
+}
+
+static void test_alloc_va_sprintf(unit_test_t * tst)
+{
+  _helper_alloc_va_sprintf(tst, "abc %d %s", 1, "abc");
+}
+
 static void test_alloc_join(unit_test_t * tst)
 {
   const char * arr[] = { "first", "second", "", "third" };
@@ -209,6 +227,7 @@ void test_xstring(unit_context_t * ctx)
   TEST(suite, test_strcpy_fail);
   TEST(suite, test_sprintf_empty);
   TEST(suite, test_sprintf);
+  TEST(suite, test_alloc_va_sprintf);
   TEST(suite, test_sprintf_fail);
   TEST(suite, test_alloc_join);
   TEST(suite, test_alloc_join_cstr);

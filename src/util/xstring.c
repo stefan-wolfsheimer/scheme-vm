@@ -23,13 +23,20 @@ char * alloc_strcpy(const char * str)
 
 char * alloc_sprintf(const char * fmt, ...)
 {
+  va_list   val;
+  va_start(val, fmt);
+  char * ret = alloc_va_sprintf(fmt, val);
+  va_end(val);
+  return ret;
+}
+
+char * alloc_va_sprintf(const char * fmt, va_list val)
+{
   int       size;
-  va_list   ap1, ap2;
+  va_list   ap2;
   char    * ret;
-  va_start(ap1, fmt);
-  va_copy(ap2, ap1);
-  size = vsnprintf(NULL, 0, fmt, ap1);
-  va_end(ap1);
+  va_copy(ap2, val);
+  size = vsnprintf(NULL, 0, fmt, val);
   ret = MALLOC( sizeof(char) * (size+1) );
   if(ret) 
   {
@@ -38,6 +45,7 @@ char * alloc_sprintf(const char * fmt, ...)
   va_end(ap2);
   return ret;
 }
+
 
 char * alloc_join(const char * glue,
                   const char ** arr, size_t n)

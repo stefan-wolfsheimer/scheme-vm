@@ -17,6 +17,7 @@ char * alloc_strcpy(const char * str);
  * @return formatted string (or NULL of allocation fails)
  */
 char * alloc_sprintf(const char * fmt, ...);
+char * alloc_va_sprintf(const char * fmt, va_list val);
 
 char * alloc_join(const char * glue,
                   const char ** arr, size_t n);
