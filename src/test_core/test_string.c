@@ -44,6 +44,34 @@ static void test_sprintf(unit_test_t * tst)
   memcheck_end();
 }
 
+static void _helper_lisp_va_sprintf(unit_test_t * tst, const char * fmt, ...)
+{
+  memcheck_begin();
+  lisp_vm_t * vm = lisp_create_vm(&lisp_vm_default_param);
+  lisp_cell_t str;
+  va_list     va;
+  va_start(va, fmt);
+  lisp_va_sprintf(vm, &str, fmt, va);
+  va_end(va);
+  ASSERT(tst,         LISP_IS_OBJECT(&str));
+  ASSERT(tst,         LISP_IS_STRING(&str));
+  ASSERT_EQ_U(tst,    LISP_REFCOUNT(&str), 1u);
+  ASSERT_EQ_CSTR(tst, lisp_c_string(&str), "1 ff abc");
+  ASSERT_EQ_U(tst,    lisp_string_length(LISP_AS(&str,
+                                                 lisp_string_t)), 8u);
+  ASSERT_IS_OK(tst,   lisp_unset_object(vm, &str));
+  ASSERT(tst,         LISP_IS_NIL(&str));
+  lisp_free_vm(vm);
+  ASSERT_MEMCHECK(tst);
+  memcheck_end();
+}
+
+static void test_lisp_va_sprintf(unit_test_t * tst)
+{
+  _helper_lisp_va_sprintf(tst, "%d %x %s", 1,0xff, "abc");
+}
+
+
 static void test_lisp_string_cmp_c_string(unit_test_t * tst) 
 {
   memcheck_begin();
@@ -339,6 +367,7 @@ void test_string(unit_context_t * ctx)
   TEST(suite, test_create_string);
   TEST(suite, test_lisp_string_cmp_c_string);
   TEST(suite, test_sprintf);
+  TEST(suite, test_lisp_va_sprintf);
   TEST(suite, test_copy_string);
   TEST(suite, test_make_substring_full);
   TEST(suite, test_make_substring_empty);

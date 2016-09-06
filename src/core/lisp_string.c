@@ -77,23 +77,34 @@ int lisp_sprintf(lisp_vm_t         * vm,
                  const lisp_char_t * fmt,
                  ...)
 {
+  va_list va;
+  va_start(va, fmt);
+  int ret = lisp_va_sprintf(vm, cell, fmt, va);
+  va_end(va);
+  return ret;
+}
+
+int lisp_va_sprintf(lisp_vm_t   * vm,
+                    lisp_cell_t * cell,
+                    const char  * fmt,
+                    va_list       va)
+{
   int ret;
   int size;
-  va_list ap1, ap2;
-  va_start(ap1, fmt);
-  va_copy(ap2, ap1);
-  size = vsnprintf(NULL, 0, fmt, ap1);
-  va_end(ap1);
+  va_list va2;
+  va_copy(va2, va);
+  size = vsnprintf(NULL, 0, fmt, va);
   lisp_string_t * str = MALLOC_OBJECT(sizeof(lisp_string_t), 1);
   str->data  = MALLOC_OBJECT(sizeof(lisp_char_t) * (size+1), 1);;
   str->begin = 0;
   str->end   = size;
-  ret = vsprintf(str->data, fmt, ap2);
-  va_end(ap2);
+  ret = vsprintf(str->data, fmt, va2);
+  va_end(va2);
   cell->type_id = LISP_TID_STRING;
   cell->data.ptr = str;
   return ret;
 }
+
 
 lisp_size_t lisp_string_length(const lisp_string_t * str)
 {

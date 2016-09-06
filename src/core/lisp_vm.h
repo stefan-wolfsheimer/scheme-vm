@@ -167,6 +167,11 @@ int lisp_sprintf(lisp_vm_t         * vm,
                  const lisp_char_t * cstr,
                  ...);
 
+int lisp_va_sprintf(lisp_vm_t   * vm,
+                    lisp_cell_t * cell,
+                    const char  * fmt,
+                    va_list       val);
+
 const char * lisp_c_string(const lisp_cell_t * cell);
 
 lisp_size_t lisp_string_length(const lisp_string_t * str);
