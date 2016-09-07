@@ -3,54 +3,157 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-static void _lisp_make_exception_msg(lisp_cell_t       * target,
-				     const lisp_char_t * msg,
-				     va_list             va)
+int lisp_make_va_exception(lisp_vm_t         * vm,
+                           lisp_cell_t       * exception,
+                           lisp_integer_t      code,
+                           lisp_lambda_t     * lambda,
+                           lisp_size_t         pc,
+                           const lisp_char_t * msg,
+                           va_list             va)
 {
-  /*@todo malloc error handling */
-  int             size;
-  lisp_string_t * str;
-  va_list         va2;
-  va_copy(va2, va);
-  size = vsnprintf(NULL, 0, msg, va);
-  va_end(va);
-  str = MALLOC_OBJECT(sizeof(lisp_string_t), 1);
-  str->data  = MALLOC_OBJECT(sizeof(lisp_char_t) * (size+1), 1);
-  str->begin = 0;
-  str->end   = size;
-  vsprintf(str->data, msg, va2);
-  va_end(va2);
-  target->type_id = LISP_TID_STRING;
-  target->data.ptr = str;
+  int         ret;
+  lisp_cell_t elems[4];
+
+  /* code */
+  lisp_make_integer(&elems[0], code);
+
+  /* message */
+  lisp_va_sprintf(vm, &elems[1], msg, va);
+
+  /* lambda */
+  if(lambda == NULL)
+  {
+    elems[2] = lisp_nil;
+  }
+  else
+  {
+    elems[2].type_id = LISP_TID_LAMBDA;
+    elems[2].data.ptr = lambda;
+  }
+
+  /* pc */
+  lisp_make_integer(&elems[3], pc);
+
+  ret = lisp_make_list_root_typed(vm,
+                                  exception,
+                                  LISP_TID_EXCEPTION,
+                                  elems,
+                                  4u);
+  lisp_unset_object(vm, &elems[1]);
+  return ret;
 }
 
 int lisp_make_exception(lisp_vm_t         * vm,
-			lisp_cell_t       * cell,
-			lisp_integer_t      code,
-			lisp_byte_code_t     * lambda,
-			lisp_size_t         pc,
-			const lisp_char_t * msg,
-			...)
+                        lisp_cell_t       * exception,
+                        lisp_integer_t      code,
+                        lisp_lambda_t     * lambda,
+                        lisp_size_t         pc,
+                        const lisp_char_t * msg,
+                        ...)
 {
-  lisp_exception_t * exception;  
-  exception = MALLOC_OBJECT(sizeof(lisp_exception_t), 1);
-  if(!exception) 
-  {
-    /* @todo fatal exception */
-  }
+  int     ret;
   va_list va;
   va_start(va, msg);
-  _lisp_make_exception_msg(&exception->error_message, msg, va);
-  exception->error_code = code;
-  exception->pc = pc;
-  exception->lambda = lambda;
-  cell->type_id = LISP_TID_EXCEPTION;
-  cell->data.ptr = exception;
-  return LISP_OK;
+  ret = lisp_make_va_exception(vm,
+                               exception,
+                               code,
+                               lambda,
+                               pc,
+                               msg,
+                               va);
+  va_end(va);
+  return ret;
 }
 
-void lisp_exception_destruct(lisp_vm_t * vm, void * ptr)
+void lisp_raise_va_exception(lisp_eval_env_t   * env,
+                             lisp_integer_t      code,
+                             lisp_lambda_t     * lambda,
+                             lisp_size_t         pc,
+                             const lisp_char_t * msg,
+                             va_list va)
 {
-  lisp_unset_object_root(vm, &((lisp_exception_t*)ptr)->error_message);
-  FREE_OBJECT(ptr);
+  int ret;
+  ret = lisp_unset_object(env->vm, &env->exception);
+  if(ret != LISP_OK)
+  {
+    /* @todo fatal */
+  }
+  ret = lisp_make_va_exception(env->vm,
+                               &env->exception,
+                               code,
+                               lambda,
+                               pc,
+                               msg,
+                               va);
+  if(ret != LISP_OK)
+  {
+    /* @todo fatal */
+  }
+}
+
+void lisp_raise_exception(lisp_eval_env_t   * env,
+                          lisp_integer_t      code,
+                          lisp_lambda_t     * lambda,
+                          lisp_size_t         pc,
+                          const lisp_char_t * msg,
+                          ...)
+{
+  va_list va;
+  va_start(va, msg);
+  lisp_raise_va_exception(env,
+                          code,
+                          lambda,
+                          pc,
+                          msg,
+                          va);
+  va_end(va);
+}
+
+int lisp_exception_code(const lisp_cell_t * cell)
+{
+  if(LISP_IS_EXCEPTION(cell))
+  {
+    return LISP_CAR(cell)->data.integer;
+  }
+  else
+  {
+    return LISP_OK;
+  }
+}
+
+const lisp_cell_t * lisp_exception_message(const lisp_cell_t * cell)
+{
+  if(LISP_IS_EXCEPTION(cell))
+  {
+    return LISP_CADR(cell);
+  }
+  else
+  {
+    /* @todo return empty string constant */
+    return NULL;
+  }
+}
+
+const lisp_cell_t * lisp_exception_lambda(const lisp_cell_t * cell)
+{
+  if(LISP_IS_EXCEPTION(cell))
+  {
+    return LISP_CADDR(cell);
+  }
+  else
+  {
+    return &lisp_nil;
+  }
+}
+
+lisp_integer_t lisp_exception_pc(const lisp_cell_t * cell)
+{
+  if(LISP_IS_EXCEPTION(cell))
+  {
+    return LISP_CADDDR(cell)->data.integer;
+  }
+  else
+  {
+    return 0;
+  }
 }

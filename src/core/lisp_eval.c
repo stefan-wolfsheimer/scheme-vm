@@ -18,6 +18,11 @@ static void _init_halt(lisp_eval_env_t * env)
   lisp_make_cons_typed(env->vm, &env->halt_lambda, LISP_TID_LAMBDA);
   LISP_CAR(&env->halt_lambda)->type_id  = LISP_TID_OBJECT;
   LISP_CAR(&env->halt_lambda)->data.ptr = byte_code;
+  lisp_push_call(env, 
+                 LISP_AS(&env->halt_lambda,
+                         lisp_lambda_t),
+                 (lisp_instr_t*)&LISP_AS(LISP_CAR(&env->halt_lambda),
+                                         lisp_byte_code_t)[1]);
 }
 
 /* @TODO call stack 
@@ -57,7 +62,6 @@ lisp_eval_env_t * lisp_create_eval_env(lisp_vm_t * vm)
     env->call_stack      = NULL;
     env->call_stack_top  = 0;
     env->call_stack_size = 0;
-    
     _init_halt(env);
   }
   else 
@@ -70,6 +74,7 @@ lisp_eval_env_t * lisp_create_eval_env(lisp_vm_t * vm)
 void lisp_free_eval_env(lisp_eval_env_t * env)
 {
   lisp_size_t i;
+  lisp_unset_object(env->vm, &env->exception);
   lisp_unset_object(env->vm, &env->halt_lambda);
   REQUIRE_NEQ_PTR(env, NULL);
   for(i = 0; i < env->n_values; i++) 
@@ -177,12 +182,13 @@ int lisp_push_call(lisp_eval_env_t * env,
   }
   env->call_stack[env->call_stack_top].lambda = lambda;
   env->call_stack[env->call_stack_top++].next_instr = next_instr;
+  env->exception = lisp_nil;
   return LISP_OK;
 }
 
 int lisp_push_halt(lisp_eval_env_t * env)
 {
-  return lisp_push_call(env, 
+  return lisp_push_call(env,
                         LISP_AS(&env->halt_lambda,
                                 lisp_lambda_t),
                         (lisp_instr_t*)&LISP_AS(LISP_CAR(&env->halt_lambda),

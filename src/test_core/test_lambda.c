@@ -256,9 +256,8 @@ static void test_lambda_compile_symbol_undefined(unit_test_t * tst)
                                             0));
   lisp_unset_object(ctx->vm, &lambda);
   ASSERT_EQ_U(tst, ctx->env->n_values, 1u);
-  ASSERT(tst, LISP_IS_EXCEPTION(ctx->env->values));
-  ASSERT_IS_UNDEFINED(tst, LISP_AS(ctx->env->values,
-                                   lisp_exception_t)->error_code);
+  ASSERT_IS_UNDEFINED(tst, LISP_EXCEPTION(ctx->env));
+  //ASSERT_IS_UNDEFINED(tst, lisp_exception_code(ctx->env->values));
   /* @todo: set variable and run continuation again */
   lisp_free_unit_context(ctx);
 }

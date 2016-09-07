@@ -111,10 +111,9 @@ lisp_size_t lisp_string_length(const lisp_string_t * str)
   return str->end - str->begin;
 }
 
-const char * lisp_c_string(const lisp_cell_t * cell)
+const char * lisp_c_string(const lisp_string_t * str)
 {
-  /* @todo use lisp_string_t as argument */
-  return (char*)LISP_AS(cell, lisp_string_t)->data;
+  return (char*)str->data;
 }
 
 int lisp_string_cmp_c_string(const lisp_string_t * a, const char * cstr)

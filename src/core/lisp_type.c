@@ -106,6 +106,7 @@ int lisp_register_cons_type(lisp_vm_t          * vm,
       return _lisp_register_cons_type(vm, name, i);
     }
   }
+
   return LISP_TYPE_ERROR;
 }
 
@@ -137,11 +138,6 @@ int _lisp_init_types(lisp_vm_t * vm)
                                     NULL,
                                     LISP_TID_OBJECT);
 
-  err |= _lisp_register_object_type(vm,
-                                    "EXCEPTION",
-                                    lisp_exception_destruct,
-                                    NULL,
-                                    LISP_TID_EXCEPTION);
   err |= _lisp_register_object_type(vm, 
                                     "SYMBOL", 
                                     lisp_symbol_destruct,
@@ -167,6 +163,10 @@ int _lisp_init_types(lisp_vm_t * vm)
   err |= _lisp_register_cons_type(vm,
                                   "LAMBDA",
                                   LISP_TID_LAMBDA);
+
+  err |= _lisp_register_cons_type(vm,
+                                  "EXCEPTION",
+                                  LISP_TID_EXCEPTION);
 
   if(err) 
   {

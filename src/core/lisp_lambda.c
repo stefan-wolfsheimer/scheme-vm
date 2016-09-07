@@ -54,6 +54,7 @@ static int lisp_compile_alloc(lisp_vm_t     * vm,
                                                1);
   byte_code->instr_size = instr_size;
   *instr               = (lisp_instr_t*) &byte_code[1];
+  /* @todo check if it should be root ? */
   lisp_make_cons_typed(vm, cell, LISP_TID_LAMBDA);
   LISP_CAR(cell)->type_id  = LISP_TID_OBJECT;
   LISP_CAR(cell)->data.ptr = byte_code;
@@ -372,17 +373,12 @@ int lisp_eval_lambda(lisp_eval_env_t    * env,
   lisp_instr_t * instr;
   lisp_cell_t  * cell;
   lisp_size_t    pc = 0;
-
+  REQUIRE_GT_U(env->call_stack_size, 0);
   for(i = 0; i < env->n_values; i++) 
   {
     lisp_unset_object_root(env->vm, &env->values[i]);
   }
   env->n_values = 0;
-  ret = lisp_push_halt(env);
-  if(ret != LISP_OK) 
-  {
-    return ret;
-  }
   instr = (lisp_instr_t*) &(LISP_AS(&lambda->car,
                                     lisp_byte_code_t)[1]);
   while(1) 
@@ -408,14 +404,12 @@ int lisp_eval_lambda(lisp_eval_env_t    * env,
       }
       else 
       {
-	/* @todo check return code */
-	lisp_make_exception(env->vm, 
-			    env->values,
-			    LISP_UNDEFINED,
-			    NULL,
-			    pc,
-			    "Undefined symbol %s",
-			    "xxx");
+	lisp_raise_exception(env,
+                             LISP_UNDEFINED,
+                             NULL,
+                             pc,
+                             "Undefined symbol %s",
+                             "xxx");
 	return LISP_UNDEFINED;
       }
       instr+= LISP_SIZ_LDVR;

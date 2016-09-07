@@ -43,6 +43,7 @@ typedef struct lisp_cons_t
 } lisp_cons_t;
 
 typedef lisp_cons_t lisp_lambda_t;
+typedef lisp_cons_t lisp_exception_t;
 
 typedef struct lisp_root_cons_t
 {
@@ -74,7 +75,8 @@ typedef struct lisp_eval_env_t
   lisp_size_t                      max_call_stack_size;
 
   lisp_cell_t                      halt_lambda;
-  
+
+  lisp_cell_t                      exception;
 } lisp_eval_env_t;
 
 typedef void(*lisp_destructor_t)(struct lisp_vm_t * vm, void * ptr);
@@ -149,12 +151,13 @@ extern const lisp_cell_t lisp_nil;
 #define LISP_TID_CONS           0x40
 #define LISP_TID_LAMBDA         0x41
 #define LISP_TID_EVAL_ERROR     0x42
+#define LISP_TID_EXCEPTION      0x43
 
 #define LISP_TID_OBJECT         0x80 /* 0x80 ... 0xbf (0x80 + 0x3f) */
 #define LISP_TID_FORM           0x81
 #define LISP_TID_STRING         0x82
 #define LISP_TID_SYMBOL         0x83
-#define LISP_TID_EXCEPTION      0x84
+
 
 #define LISP_OBJECT_REFCOUNT(__OBJ__)             \
   (((lisp_ref_count_t*)(__OBJ__))[-1])
